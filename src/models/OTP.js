@@ -34,9 +34,13 @@ const otpschema = new mongoose.Schema({
     verified: {
         type: Boolean,
         default: false
+    },
+    attempts: {
+        type: Number,
+        default: 0
     }
 }, {
-    timestamps: true,
+    timestamps: true
 });
 
 otpschema.index({ mobile: 1 });
@@ -48,7 +52,7 @@ otpschema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
  * @returns {boolean} returns true if expired
  */
 
-otp.schema.methods.isExpired = function () {
+otpschema.methods.isExpired = function () {
     return this.expiresAt < new Date();
 };
 
@@ -56,8 +60,8 @@ otp.schema.methods.isExpired = function () {
  * check if otp is verified
  * @returns {boolean} returns true if verified
  */
-otp.schema.methods.isVerified = function () {
-    return this.verified == true;
+otpschema.methods.isVerified = function () {
+    return this.verified === true;
 };
 
 module.exports = mongoose.model('OTP', otpschema);
