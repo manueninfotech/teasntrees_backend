@@ -1,0 +1,75 @@
+// User model
+
+const mongoose = require('mongoose');
+
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        trim: true,
+        default: null,
+        required: true
+    },
+
+    email: {
+        type: String,
+        unique: true,
+        sparse: true,
+        lowercase: true,
+        trim: true,
+        default: null,
+        required: true
+    },
+
+    mobile: {
+        type: String,
+        required: true,
+        unique: true,
+        trim: true,
+        validate: {
+            validator: function (v) {
+                // Validates Indian mobile format (10 digits starting with 6-9)
+                return /^[0-9]{10}$/.test(v);
+            },
+            message: props => `${props.value} is not a valid 10-digit mobile number!`
+        }
+    },
+
+    address: {
+        type: String,
+        trim: true,
+        default: null
+    },
+
+    location: {
+        type: Object,
+        default: null
+    },
+
+    role: {
+        type: String,
+        enum: ['admin', 'customer', 'rider', 'manager'],
+        required: true
+    },
+
+    isProfileComplete: {
+        type: Boolean,
+        default: false
+    },
+
+    isActive: {
+        type: Boolean,
+        default: true
+    }
+}, {
+    timestamps: true
+});
+
+userSchema.index({ mobile: 1 });
+
+userSchema.index({ email: 1 });
+
+userSchema.methods.checkProfileComplete = function () {
+    return !!(this.name && this.email && this.address && this.role);
+};
+
+module.exports = mongoose.model('User', userSchema);
