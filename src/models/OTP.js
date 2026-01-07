@@ -26,8 +26,8 @@ const otpschema = new mongoose.Schema({
         type: Date,
         required: true,
         default: function () {
-            // expires in 5 minutes
-            return new Date(Date.now() + 5 * 60 * 1000);
+            const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
+            return new Date(Date.now() + expiryMinutes * 60 * 1000);
         }
     },
 

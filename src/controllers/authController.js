@@ -28,10 +28,11 @@ const sendOTP = async (req, res) => {
         await OTP.deleteMany({ mobile });
 
         // Save new OTP to database
+        const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
         const otpDoc = await OTP.create({
             mobile,
             otp,
-            expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5 minutes
+            expiresAt: new Date(Date.now() + expiryMinutes * 60 * 1000)
         });
 
         // TODO: Send OTP via SMS (Twilio integration)
@@ -46,7 +47,7 @@ const sendOTP = async (req, res) => {
             message: 'OTP sent successfully',
             data: {
                 mobile,
-                expiresIn: '5 minutes',
+                expiresIn: `${expiryMinutes} minutes`,
                 // Only include OTP in development mode
                 ...(process.env.NODE_ENV === 'development' && { otp })
             }
@@ -107,8 +108,9 @@ const verifyOTP = async (req, res) => {
             otpDoc.attempts += 1;
             await otpDoc.save();
 
-            // Block after 5 failed attempts
-            if (otpDoc.attempts >= 5) {
+            // Block after max failed attempts
+            const maxAttempts = parseInt(process.env.MAX_OTP_ATTEMPTS) || 5;
+            if (otpDoc.attempts >= maxAttempts) {
                 await OTP.deleteOne({ _id: otpDoc._id });
                 return res.status(429).json({
                     success: false,
@@ -119,7 +121,7 @@ const verifyOTP = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid OTP. Please try again.',
-                attemptsRemaining: 5 - otpDoc.attempts
+                attemptsRemaining: maxAttempts - otpDoc.attempts
             });
         }
 

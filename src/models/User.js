@@ -6,8 +6,7 @@ const userSchema = new mongoose.Schema({
     name: {
         type: String,
         trim: true,
-        default: null,
-        required: true
+        default: null
     },
 
     email: {
@@ -16,8 +15,7 @@ const userSchema = new mongoose.Schema({
         sparse: true,
         lowercase: true,
         trim: true,
-        default: null,
-        required: true
+        default: null
     },
 
     mobile: {
