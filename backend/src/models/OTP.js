@@ -43,8 +43,7 @@ const otpschema = new mongoose.Schema({
     timestamps: true
 });
 
-otpschema.index({ mobile: 1 });
-
+// TTL index - MongoDB automatically deletes documents after expiresAt
 otpschema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 /**

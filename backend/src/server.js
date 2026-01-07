@@ -7,6 +7,8 @@ const dotenv = require("dotenv");
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 
+const { notFound, errorHandler } = require('./middlewares/errorHandler');
+
 // Load environment variables
 dotenv.config();
 
@@ -56,23 +58,12 @@ app.get("/health", (req, res) => {
     });
 });
 
-// 404 Handler
-app.use((req, res) => {
-    res.status(404).json({
-        success: false,
-        message: "Route not found"
-    });
-});
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-    console.error('Error:', err.stack);
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message || 'Internal Server Error',
-        ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-    });
-});
+// 404 Handler 
+app.use(notFound);
+
+// Global Error Handler 
+app.use(errorHandler);
 
 // start the server
 const PORT = process.env.PORT || 5000;

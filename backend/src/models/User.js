@@ -64,10 +64,6 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 });
 
-userSchema.index({ mobile: 1 });
-
-userSchema.index({ email: 1 });
-
 userSchema.methods.checkProfileComplete = function () {
     return !!(this.name && this.email && this.address && this.role);
 };
