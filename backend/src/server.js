@@ -3,6 +3,10 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
+// Routes
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+
 // Load environment variables
 dotenv.config();
 
@@ -13,6 +17,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 
 //MongoDB connection
 const connectDB = async () => {
@@ -28,6 +33,8 @@ const connectDB = async () => {
 connectDB();
 
 // Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
