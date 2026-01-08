@@ -5,10 +5,10 @@ const settingsSchema = new mongoose.Schema({
         type: Number,
         default: 20
     },
-    freeDeliveryAbove: {
-        type: Number,
-        default: 500
-    },
+    // freeDeliveryAbove: {
+    //     type: Number,
+    //     default: 500
+    // },
     maxDeliveryDistance: {
         type: Number,
         default: 10
