@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "seed:categories": "node src/seeders/categorySeeder.js"
+    "seed:categories": "node src/seeders/categorySeeder.js",
+    "seed:products": "node src/seeders/productSeeder.js"
   },
   "keywords": [],
   "author": "",

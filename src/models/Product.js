@@ -17,8 +17,9 @@ const productSchema = new mongoose.Schema({
     },
     price: {
         type: Number,
-        required: true,
-        min: 0
+        required: false,
+        min: 0,
+        default: 0
     },
     image: {
         type: String,
@@ -53,6 +54,19 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    tags: {
+        type: [String],
+        enum: ['new-intro', 'must-try', 'best-seller', 'egg-contains'],
+        default: []
+    },
+    sizeOptions: [{
+        size: String,
+        price: Number
+    }],
+    variants: [{
+        name: String,
+        price: Number
+    }],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
