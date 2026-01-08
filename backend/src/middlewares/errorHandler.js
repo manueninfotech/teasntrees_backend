@@ -98,7 +98,7 @@ const asyncHandler = (fn) => {
     };
 };
 
-module.exports = {
+export {
     notFound,
     errorHandler,
     asyncHandler

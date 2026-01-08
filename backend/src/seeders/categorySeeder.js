@@ -1,6 +1,7 @@
-const mongoose = require('mongoose');
-const Category = require('../models/Category');
-require('dotenv').config();
+import mongoose from 'mongoose';
+import Category from '../models/Category.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const categories = [
     // Hot Beverages

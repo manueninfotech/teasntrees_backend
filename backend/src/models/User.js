@@ -1,6 +1,6 @@
 // User model
 
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -66,4 +66,4 @@ userSchema.methods.checkProfileComplete = function () {
     return !!(this.name && this.email && this.address && this.role);
 };
 
-module.exports = mongoose.model('User', userSchema);
+export default mongoose.model('User', userSchema);

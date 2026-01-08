@@ -1,7 +1,7 @@
 // Authentication Middleware
 
-const { verifyToken } = require('../utils/jwtHelper');
-const User = require('../models/User');
+import { verifyToken } from '../utils/jwtHelper.js';
+import User from '../models/User.js';
 
 // Authenticate User by verifying jwt token 
 const authenticateUser = async (req, res, next) => {
@@ -90,7 +90,7 @@ const optionalAuthenticate = async (req, res, next) => {
         next();
     }
 };
-module.exports = {
-    authenticate: authenticateUser,
+export {
+    authenticateUser as authenticate,
     optionalAuthenticate
 };

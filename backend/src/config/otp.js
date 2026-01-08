@@ -3,4 +3,4 @@ const otpConfig = {
     maxAttempts: parseInt(process.env.MAX_OTP_ATTEMPTS) || 5
 };
 
-module.exports = otpConfig;
+export default otpConfig;

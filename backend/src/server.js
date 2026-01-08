@@ -1,13 +1,19 @@
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const dotenv = require("dotenv");
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Get __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Routes
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
+import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
-const { notFound, errorHandler } = require('./middlewares/errorHandler');
+import { notFound, errorHandler } from './middlewares/errorHandler.js';
 
 // Load environment variables
 dotenv.config();
@@ -21,12 +27,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Serve static files (for test-api.html)
-const path = require('path');
-app.use(express.static(path.join(__dirname, '..')));
-
+app.use(express.static(join(__dirname, '..')));
 
 //MongoDB connection
-const connectDB = require('./config/db');
+import connectDB from './config/db.js';
 connectDB();
 
 // Routes
@@ -67,4 +71,4 @@ app.listen(PORT, () => {
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
-module.exports = app;
+export default app;

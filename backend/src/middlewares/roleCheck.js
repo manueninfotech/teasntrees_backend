@@ -46,7 +46,7 @@ const isRider = checkRole(['rider']);
 // check if user is manager
 const isManager = checkRole(['manager']);
 
-module.exports = {
+export {
     checkRole,
     isAdmin,
     isCustomer,
