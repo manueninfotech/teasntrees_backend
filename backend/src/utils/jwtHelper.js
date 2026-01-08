@@ -1,6 +1,8 @@
 // JWT Helper Functions
 
 const jwt = require('jsonwebtoken');
+const jwtConfig = require('../config/jwt');
+
 /**
  * Generate a JWT token
  * @param {Object} payload - Data to encode
@@ -8,8 +10,8 @@ const jwt = require('jsonwebtoken');
  * @returns {String} -Encoded token
  */
 
-const generateToken = (payload, expiresIn = process.env.JWT_EXPIRE || '30d') => {
-    return jwt.sign(payload, process.env.JWT_SECRET, {
+const generateToken = (payload, expiresIn = jwtConfig.expire) => {
+    return jwt.sign(payload, jwtConfig.secret, {
         expiresIn
     });
 };
@@ -23,7 +25,7 @@ const generateToken = (payload, expiresIn = process.env.JWT_EXPIRE || '30d') => 
 
 const verifyToken = (token) => {
     try {
-        return jwt.verify(token, process.env.JWT_SECRET);
+        return jwt.verify(token, jwtConfig.secret);
     } catch (error) {
         throw new Error('Invalid token');
     }

@@ -1,6 +1,7 @@
 // OTP model
 
 const mongoose = require('mongoose');
+const otpConfig = require('../config/otp');
 
 const otpschema = new mongoose.Schema({
     mobile: {
@@ -26,8 +27,7 @@ const otpschema = new mongoose.Schema({
         type: Date,
         required: true,
         default: function () {
-            const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
-            return new Date(Date.now() + expiryMinutes * 60 * 1000);
+            return new Date(Date.now() + otpConfig.expiryMinutes * 60 * 1000);
         }
     },
 
