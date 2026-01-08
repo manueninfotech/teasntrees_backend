@@ -1,7 +1,7 @@
 // OTP model
 
-const mongoose = require('mongoose');
-const otpConfig = require('../config/otp');
+import mongoose from 'mongoose';
+import otpConfig from '../config/otp.js';
 
 const otpschema = new mongoose.Schema({
     mobile: {
@@ -63,4 +63,4 @@ otpschema.methods.isVerified = function () {
     return this.verified === true;
 };
 
-module.exports = mongoose.model('OTP', otpschema);
+export default mongoose.model('OTP', otpschema);

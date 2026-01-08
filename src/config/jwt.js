@@ -3,4 +3,4 @@ const jwtConfig = {
     expire: process.env.JWT_EXPIRE || '30d'
 };
 
-module.exports = jwtConfig;
+export default jwtConfig;

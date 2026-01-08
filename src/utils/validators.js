@@ -55,7 +55,7 @@ const sanitizeString = (input) => {
     return input.trim();
 };
 
-module.exports = {
+export {
     isValidMobile,
     isValidEmail,
     isValidRole,

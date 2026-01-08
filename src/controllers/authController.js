@@ -1,12 +1,12 @@
 // Authentication Controller
 
 
-const User = require('../models/User');
-const OTP = require('../models/OTP');
-const { generateOTP } = require('../utils/generateOTP');
-const { generateToken } = require('../utils/jwtHelper');
-const { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } = require('../utils/validators');
-const otpConfig = require('../config/otp');
+import User from '../models/User.js';
+import OTP from '../models/OTP.js';
+import { generateOTP } from '../utils/generateOTP.js';
+import { generateToken } from '../utils/jwtHelper.js';
+import { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } from '../utils/validators.js';
+import otpConfig from '../config/otp.js';
 
 // Send OTP to mobile number
 
@@ -330,7 +330,7 @@ const completeProfile = async (req, res) => {
     }
 };
 
-module.exports = {
+export {
     sendOTP,
     verifyOTP,
     completeProfile

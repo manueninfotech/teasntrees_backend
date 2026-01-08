@@ -1,7 +1,7 @@
 // JWT Helper Functions
 
-const jwt = require('jsonwebtoken');
-const jwtConfig = require('../config/jwt');
+import jwt from 'jsonwebtoken';
+import jwtConfig from '../config/jwt.js';
 
 /**
  * Generate a JWT token
@@ -41,7 +41,7 @@ const decodeToken = (token) => {
     return jwt.decode(token);
 };
 
-module.exports = {
+export {
     generateToken,
     verifyToken,
     decodeToken

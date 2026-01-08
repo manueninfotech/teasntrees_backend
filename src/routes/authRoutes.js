@@ -1,8 +1,8 @@
 // Authentication Routes
 
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { sendOTP, verifyOTP, completeProfile } = require('../controllers/authController');
+import { sendOTP, verifyOTP, completeProfile } from '../controllers/authController.js';
 
 // POST Route to send otp to mobile number
 router.post('/send-otp', sendOTP);
@@ -13,4 +13,4 @@ router.post('/verify-otp', verifyOTP);
 // Route to complete user profile after otp verification
 router.post('/complete-profile', completeProfile);
 
-module.exports = router;
+export default router;

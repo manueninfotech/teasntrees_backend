@@ -25,7 +25,7 @@ const generateCustomOTP = (length = 6) => {
     return otp.toString();
 };
 
-module.exports = {
+export {
     generateOTP,
     generateCustomOTP
 };

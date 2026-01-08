@@ -1,7 +1,7 @@
 // User Controller
 
-const User = require('../models/User');
-const { isValidEmail, sanitizeString } = require('../utils/validators');
+import User from '../models/User.js';
+import { isValidEmail, sanitizeString } from '../utils/validators.js';
 
 // Get current user profile
 const getProfile = async (req, res) => {
@@ -196,7 +196,7 @@ const getAllUsers = async (req, res) => {
     }
 };
 
-module.exports = {
+export {
     getProfile,
     updateProfile,
     getAllUsers
