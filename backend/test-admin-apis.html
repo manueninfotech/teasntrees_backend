@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teas N Trees - Admin API Tester</title>
+    <title>Admin API Tester - Postman-like</title>
     <style>
         * {
             margin: 0;
@@ -13,255 +13,343 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
-
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             padding: 30px;
-            text-align: center;
         }
 
-        .header h1 {
-            font-size: 28px;
+        h1 {
+            color: #667eea;
             margin-bottom: 10px;
         }
 
-        .header p {
-            opacity: 0.9;
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
         }
 
-        .content {
-            padding: 30px;
-        }
-
-        .section {
-            margin: 25px 0;
-            padding: 25px;
+        .login-box {
             background: #f8f9fa;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
         }
 
-        .section h3 {
-            color: #333;
+        .login-box h3 {
             margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            color: #333;
         }
 
-        .step-number {
+        .login-box input {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+
+        .login-box button {
+            padding: 10px 30px;
             background: #667eea;
             color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        input,
-        select,
-        button {
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-
-        input:focus,
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
             border: none;
+            border-radius: 4px;
             cursor: pointer;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            margin: 5px;
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        .response {
-            background: #1e1e1e;
-            color: #00ff00;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-            display: none;
+        .login-box button:hover {
+            background: #5568d3;
         }
 
         .token-display {
+            margin-top: 10px;
+            padding: 10px;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .request-builder {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .request-builder h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .request-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .method-select {
+            padding: 12px 15px;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        .endpoint-input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .send-btn {
+            padding: 12px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .send-btn:hover {
+            background: #5568d3;
+        }
+
+        .body-section {
+            margin-top: 15px;
+        }
+
+        .body-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .body-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .quick-examples {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 4px;
+        }
+
+        .quick-examples h4 {
+            margin-bottom: 10px;
+            color: #1976d2;
+        }
+
+        .example-btn {
+            padding: 6px 12px;
+            margin: 3px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .example-btn:hover {
+            background: #1976d2;
+        }
+
+        .response-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            min-height: 200px;
+        }
+
+        .response-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .response-content {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            border-left: 4px solid #ddd;
+            min-height: 150px;
+        }
+
+        .response-content.success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .response-content.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .response-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .status-200 {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-201 {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-400 {
+            background: #ffc107;
+            color: black;
+        }
+
+        .status-401 {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status-404 {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status-500 {
+            background: #dc3545;
+            color: white;
+        }
+
+        .info-note {
             background: #fff3cd;
             border-left: 4px solid #ffc107;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            word-break: break-all;
-            display: none;
-        }
-
-        .token-display strong {
-            color: #856404;
-        }
-
-        .info-box {
-            background: #d1ecf1;
-            border-left: 4px solid #0c5460;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            color: #0c5460;
-        }
-
-        .endpoint-group {
-            margin: 10px 0;
-        }
-
-        .endpoint-group label {
-            font-weight: 600;
-            color: #666;
-            display: block;
-            margin: 10px 0 5px 0;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 13px;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🍵 Teas N Trees - Admin API Tester</h1>
-            <p>Test all admin endpoints with authentication</p>
+        <h1>🚀 Admin API Tester</h1>
+        <p class="subtitle">Test any admin endpoint with custom method and body - Like Postman</p>
+
+        <!-- Login Section -->
+        <div class="login-box">
+            <h3>🔐 Step 1: Login (Get Token)</h3>
+            <div class="info-note">
+                <strong>Note:</strong> Check server console for OTP after sending
+            </div>
+            <div>
+                <input type="text" id="mobile" placeholder="Mobile (9876543210)" value="9876543210">
+                <button onclick="sendOTP()">Send OTP</button>
+            </div>
+            <div style="margin-top: 10px;">
+                <input type="text" id="otp" placeholder="Enter OTP">
+                <button onclick="verifyOTP()">Verify & Login</button>
+            </div>
+            <div class="token-display" id="tokenDisplay"></div>
         </div>
 
-        <div class="content">
-            <!-- Info Box -->
-            <div class="info-box">
-                <strong>ℹ️ Note:</strong> Check the server console for OTP after sending. Default OTP is usually printed
-                in the terminal.
+        <!-- Request Builder -->
+        <div class="request-builder">
+            <h3>📝 Step 2: Build Your Request</h3>
+
+            <div class="request-row">
+                <select id="method" class="method-select">
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="PUT">PUT</option>
+                    <option value="DELETE">DELETE</option>
+                </select>
+
+                <input type="text" id="endpoint" class="endpoint-input" placeholder="/api/admin/categories"
+                    value="/api/admin/categories">
+
+                <button class="send-btn" onclick="sendRequest()">Send Request</button>
             </div>
 
-            <!-- Step 1: Send OTP -->
-            <div class="section">
-                <h3><span class="step-number">1</span> Send OTP</h3>
-                <input type="text" id="mobile" placeholder="Enter Mobile Number (e.g., 9876543210)" value="9876543210">
-                <button onclick="sendOTP()">📱 Send OTP</button>
-                <div id="otpResponse" class="response"></div>
+            <div class="body-section">
+                <label for="requestBody">Request Body (JSON) - Optional:</label>
+                <textarea id="requestBody" class="body-textarea" placeholder='{"name": "New Category"}'></textarea>
             </div>
 
-            <!-- Step 2: Verify OTP -->
-            <div class="section">
-                <h3><span class="step-number">2</span> Verify OTP & Get Token</h3>
-                <input type="text" id="otp" placeholder="Enter OTP from console (e.g., 12345)">
-                <button onclick="verifyOTP()">🔐 Verify OTP & Login</button>
-                <div id="tokenDisplay" class="token-display"></div>
-                <div id="verifyResponse" class="response"></div>
+            <div class="quick-examples">
+                <h4>⚡ Quick Examples:</h4>
+                <button class="example-btn" onclick="loadExample('getCategories')">Get Categories</button>
+                <button class="example-btn" onclick="loadExample('createCategory')">Create Category</button>
+                <button class="example-btn" onclick="loadExample('getProducts')">Get Products</button>
+                <button class="example-btn" onclick="loadExample('createProduct')">Create Product</button>
+                <button class="example-btn" onclick="loadExample('getOrders')">Get Orders</button>
+                <button class="example-btn" onclick="loadExample('updateOrderStatus')">Update Order Status</button>
+                <button class="example-btn" onclick="loadExample('getUsers')">Get Users</button>
+                <button class="example-btn" onclick="loadExample('getDashboard')">Dashboard Stats</button>
+                <button class="example-btn" onclick="loadExample('getSettings')">Get Settings</button>
             </div>
+        </div>
 
-            <!-- Step 3: Test Admin APIs -->
-            <div class="section">
-                <h3><span class="step-number">3</span> Test Admin APIs</h3>
-
-                <div class="endpoint-group">
-                    <label>📂 Categories</label>
-                    <select id="endpoint">
-                        <option value="/api/admin/categories">GET - All Categories</option>
-                        <option value="/api/admin/categories/[ID]">GET - Category by ID (enter ID below)</option>
-
-                        <option disabled>──────────────</option>
-                        <option value="/api/admin/products">GET - All Products</option>
-                        <option value="/api/admin/products/[ID]">GET - Product by ID</option>
-                        <option value="/api/admin/products?category=[ID]">GET - Products by Category</option>
-                        <option value="/api/admin/products?search=pizza">GET - Search Products</option>
-
-                        <option disabled>──────────────</option>
-                        <option value="/api/admin/orders">GET - All Orders</option>
-                        <option value="/api/admin/orders/stats">GET - Order Statistics</option>
-                        <option value="/api/admin/orders/[ID]">GET - Order by ID</option>
-                        <option value="/api/admin/orders?status=pending">GET - Orders by Status</option>
-
-                        <option disabled>──────────────</option>
-                        <option value="/api/admin/deliveries">GET - All Deliveries</option>
-                        <option value="/api/admin/deliveries/stats">GET - Delivery Statistics</option>
-                        <option value="/api/admin/deliveries/[ID]">GET - Delivery by ID</option>
-                        <option value="/api/admin/deliveries?status=in-transit">GET - Deliveries by Status</option>
-
-                        <option disabled>──────────────</option>
-                        <option value="/api/admin/users">GET - All Users</option>
-                        <option value="/api/admin/users/stats">GET - User Statistics</option>
-                        <option value="/api/admin/users/[ID]">GET - User by ID</option>
-                        <option value="/api/admin/users/role/customer">GET - Users by Role (customer)</option>
-                        <option value="/api/admin/users/role/rider">GET - Users by Role (rider)</option>
-
-                        <option disabled>──────────────</option>
-                        <option value="/api/admin/settings">GET - Application Settings</option>
-                        <option value="/api/admin/settings/delivery-zones">GET - Delivery Zones</option>
-
-                        <option disabled>──────────────</option>
-                        <option value="/api/admin/dashboard/stats">GET - Dashboard Statistics</option>
-                        <option value="/api/admin/dashboard/revenue">GET - Revenue Analytics</option>
-                        <option value="/api/admin/dashboard/top-products">GET - Top Products</option>
-                        <option value="/api/admin/dashboard/recent-orders">GET - Recent Orders</option>
-                    </select>
-                </div>
-
-                <input type="text" id="resourceId"
-                    placeholder="Optional: Enter ID for specific resource (if endpoint has [ID])">
-
-                <button onclick="testAdminAPI()">🚀 Test API</button>
-                <div id="apiResponse" class="response"></div>
+        <!-- Response Section -->
+        <div class="response-section">
+            <h3>📊 Response:</h3>
+            <div class="response-content" id="response">
+                <pre>Click "Send Request" to test an endpoint...</pre>
             </div>
         </div>
     </div>
 
     <script>
         const API_BASE = 'http://localhost:5000';
-        let authToken = '';
+        let token = '';
+        let lastCategoryId = '';
+        let lastProductId = '';
+        let lastOrderId = '';
 
         async function sendOTP() {
             const mobile = document.getElementById('mobile').value;
-            const responseDiv = document.getElementById('otpResponse');
-
-            if (!mobile) {
-                alert('Please enter mobile number');
-                return;
-            }
 
             try {
                 const response = await fetch(`${API_BASE}/api/auth/send-otp`, {
@@ -271,31 +359,20 @@
                 });
 
                 const data = await response.json();
-                responseDiv.style.display = 'block';
-                responseDiv.textContent = JSON.stringify(data, null, 2);
 
                 if (data.success) {
-                    alert('✅ OTP sent successfully!\n\n📱 Check your server console for the OTP code.\n\nCopy the OTP and paste it in Step 2.');
+                    alert('✅ OTP sent! Check server console for OTP code.');
                 } else {
-                    alert('❌ Failed to send OTP: ' + (data.message || 'Unknown error'));
+                    alert('❌ Failed: ' + data.message);
                 }
             } catch (error) {
-                responseDiv.style.display = 'block';
-                responseDiv.textContent = 'Error: ' + error.message;
-                alert('❌ Network error: ' + error.message);
+                alert('Error: ' + error.message);
             }
         }
 
         async function verifyOTP() {
             const mobile = document.getElementById('mobile').value;
             const otp = document.getElementById('otp').value;
-            const responseDiv = document.getElementById('verifyResponse');
-            const tokenDiv = document.getElementById('tokenDisplay');
-
-            if (!mobile || !otp) {
-                alert('Please enter both mobile number and OTP');
-                return;
-            }
 
             try {
                 const response = await fetch(`${API_BASE}/api/auth/verify-otp`, {
@@ -305,88 +382,167 @@
                 });
 
                 const data = await response.json();
-                responseDiv.style.display = 'block';
-                responseDiv.textContent = JSON.stringify(data, null, 2);
 
-                // Check for token in response (could be data.data.token or data.token)
-                const token = data.data?.token || data.token;
+                const tokenValue = data.data?.token || data.token;
                 const user = data.data?.user || data.user;
 
-                if (data.success && token) {
-                    authToken = token;
-                    tokenDiv.style.display = 'block';
-                    tokenDiv.innerHTML = `
-                        <strong>🔑 Authentication Token Saved!</strong><br>
-                        <small>Token: ${authToken.substring(0, 50)}...</small><br>
-                        <small>Role: ${user?.role || 'N/A'}</small>
+                if (data.success && tokenValue) {
+                    token = tokenValue;
+                    const display = document.getElementById('tokenDisplay');
+                    display.style.display = 'block';
+                    display.innerHTML = `
+                        ✅ <strong>Logged in as ${user?.name || user?.mobile} (${user?.role || 'N/A'})</strong><br>
+                        <small>Token: ${token.substring(0, 50)}...</small>
                     `;
-                    alert('✅ Login Successful!\n\n👤 User: ' + (user?.name || user?.mobile) + '\n🎭 Role: ' + (user?.role || 'N/A') + '\n\n🔓 You can now test admin APIs in Step 3!');
+                    alert('✅ Login successful! You can now test admin APIs.');
                 } else {
-                    alert('❌ Login failed: ' + (data.message || 'Invalid OTP'));
+                    alert('❌ Login failed: ' + data.message);
                 }
             } catch (error) {
-                responseDiv.style.display = 'block';
-                responseDiv.textContent = 'Error: ' + error.message;
-                alert('❌ Network error: ' + error.message);
+                alert('Error: ' + error.message);
             }
         }
 
-        async function testAdminAPI() {
-            if (!authToken) {
-                alert('❌ Authentication Required!\n\nPlease complete Steps 1 & 2 first to get your authentication token.');
-                return;
-            }
+        async function sendRequest() {
+            const method = document.getElementById('method').value;
+            const endpoint = document.getElementById('endpoint').value;
+            const bodyText = document.getElementById('requestBody').value;
+            const responseDiv = document.getElementById('response');
 
-            let endpoint = document.getElementById('endpoint').value;
-            const resourceId = document.getElementById('resourceId').value;
-            const responseDiv = document.getElementById('apiResponse');
-
-            // Replace [ID] placeholder with actual ID if provided
-            if (endpoint.includes('[ID]') && resourceId) {
-                endpoint = endpoint.replace('[ID]', resourceId);
-            } else if (endpoint.includes('[ID]')) {
-                alert('⚠️ This endpoint requires an ID.\n\nPlease enter the resource ID in the input field above.');
-                return;
-            }
+            responseDiv.className = 'response-content';
+            responseDiv.innerHTML = '<pre>⏳ Loading...</pre>';
 
             try {
-                responseDiv.style.display = 'block';
-                responseDiv.textContent = 'Loading...';
-
-                const response = await fetch(`${API_BASE}${endpoint}`, {
-                    method: 'GET',
+                const options = {
+                    method: method,
                     headers: {
-                        'Authorization': `Bearer ${authToken}`,
                         'Content-Type': 'application/json'
                     }
-                });
+                };
 
-                const data = await response.json();
-                responseDiv.textContent = JSON.stringify(data, null, 2);
-
-                if (response.ok) {
-                    const count = data.count || (Array.isArray(data.data) ? data.data.length : 0);
-                    alert(`✅ API Call Successful!\n\n📊 Status: ${response.status}\n📦 Items: ${count || 'N/A'}\n\nCheck the response below for details.`);
-                } else {
-                    alert(`⚠️ API Error!\n\n📊 Status: ${response.status}\n❌ Message: ${data.message || 'Unknown error'}`);
+                // Add token if available
+                if (token) {
+                    options.headers['Authorization'] = `Bearer ${token}`;
                 }
+
+                // Add body for POST/PATCH/PUT
+                if (bodyText && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
+                    try {
+                        JSON.parse(bodyText); // Validate JSON
+                        options.body = bodyText;
+                    } catch (e) {
+                        responseDiv.className = 'response-content error';
+                        responseDiv.innerHTML = '<pre>❌ Invalid JSON in request body</pre>';
+                        return;
+                    }
+                }
+
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await response.json();
+
+                // Save IDs for future use
+                if (data.success && data.data) {
+                    if (Array.isArray(data.data) && data.data.length > 0) {
+                        if (endpoint.includes('categor')) lastCategoryId = data.data[0]._id;
+                        if (endpoint.includes('product')) lastProductId = data.data[0]._id;
+                        if (endpoint.includes('order')) lastOrderId = data.data[0]._id;
+                    } else if (data.data._id) {
+                        if (endpoint.includes('categor')) lastCategoryId = data.data._id;
+                        if (endpoint.includes('product')) lastProductId = data.data._id;
+                        if (endpoint.includes('order')) lastOrderId = data.data._id;
+                    }
+                }
+
+                responseDiv.className = 'response-content ' + (response.ok ? 'success' : 'error');
+                responseDiv.innerHTML = `
+                    <span class="status-badge status-${response.status}">${response.status} ${response.statusText}</span><br>
+                    <strong>${data.success ? '✅ Success' : '❌ Failed'}</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+
             } catch (error) {
-                responseDiv.style.display = 'block';
-                responseDiv.textContent = 'Error: ' + error.message;
-                alert('❌ Network error: ' + error.message + '\n\nMake sure the server is running on http://localhost:5000');
+                responseDiv.className = 'response-content error';
+                responseDiv.innerHTML = `<pre>❌ Error: ${error.message}</pre>`;
             }
         }
 
-        // Auto-scroll to response
-        document.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', () => {
-                setTimeout(() => {
-                    const responses = document.querySelectorAll('.response[style*="display: block"]');
-                    if (responses.length > 0) {
-                        responses[responses.length - 1].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-                    }
-                }, 300);
-            });
+        function loadExample(type) {
+            const examples = {
+                getCategories: {
+                    method: 'GET',
+                    endpoint: '/api/admin/categories',
+                    body: ''
+                },
+                createCategory: {
+                    method: 'POST',
+                    endpoint: '/api/admin/categories',
+                    body: JSON.stringify({
+                        name: "New Category",
+                        description: "Category description",
+                        icon: "🍕",
+                        displayOrder: 1
+                    }, null, 2)
+                },
+                getProducts: {
+                    method: 'GET',
+                    endpoint: '/api/admin/products',
+                    body: ''
+                },
+                createProduct: {
+                    method: 'POST',
+                    endpoint: '/api/admin/products',
+                    body: JSON.stringify({
+                        name: "Test Product",
+                        description: "Product description",
+                        category: lastCategoryId || "CATEGORY_ID",
+                        price: 299,
+                        isAvailable: true,
+                        preparationTime: 15,
+                        tags: ["new-intro"]
+                    }, null, 2)
+                },
+                getOrders: {
+                    method: 'GET',
+                    endpoint: '/api/admin/orders',
+                    body: ''
+                },
+                updateOrderStatus: {
+                    method: 'PATCH',
+                    endpoint: `/api/admin/orders/${lastOrderId || 'ORDER_ID'}/status`,
+                    body: JSON.stringify({
+                        status: "confirmed"
+                    }, null, 2)
+                },
+                getUsers: {
+                    method: 'GET',
+                    endpoint: '/api/admin/users',
+                    body: ''
+                },
+                getDashboard: {
+                    method: 'GET',
+                    endpoint: '/api/admin/dashboard/stats',
+                    body: ''
+                },
+                getSettings: {
+                    method: 'GET',
+                    endpoint: '/api/admin/settings',
+                    body: ''
+                }
+            };
+
+            const example = examples[type];
+            if (example) {
+                document.getElementById('method').value = example.method;
+                document.getElementById('endpoint').value = example.endpoint;
+                document.getElementById('requestBody').value = example.body;
+            }
+        }
+
+        // Keyboard shortcut: Ctrl+Enter to send
+        document.getElementById('requestBody').addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                sendRequest();
+            }
         });
     </script>
 </body>
