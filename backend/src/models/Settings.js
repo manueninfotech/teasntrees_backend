@@ -22,13 +22,41 @@ const settingsSchema = new mongoose.Schema({
         default: 5
     },
     operatingHours: {
-        monday: { open: '09:00', close: '22:00', isOpen: true },
-        tuesday: { open: '09:00', close: '22:00', isOpen: true },
-        wednesday: { open: '09:00', close: '22:00', isOpen: true },
-        thursday: { open: '09:00', close: '22:00', isOpen: true },
-        friday: { open: '09:00', close: '22:00', isOpen: true },
-        saturday: { open: '09:00', close: '23:00', isOpen: true },
-        sunday: { open: '09:00', close: '23:00', isOpen: true }
+        monday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '22:00' },
+            isOpen: { type: Boolean, default: true }
+        },
+        tuesday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '22:00' },
+            isOpen: { type: Boolean, default: true }
+        },
+        wednesday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '22:00' },
+            isOpen: { type: Boolean, default: true }
+        },
+        thursday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '22:00' },
+            isOpen: { type: Boolean, default: true }
+        },
+        friday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '22:00' },
+            isOpen: { type: Boolean, default: true }
+        },
+        saturday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '23:00' },
+            isOpen: { type: Boolean, default: true }
+        },
+        sunday: {
+            open: { type: String, default: '09:00' },
+            close: { type: String, default: '23:00' },
+            isOpen: { type: Boolean, default: true }
+        }
     },
     serviceAreas: [{
         name: String,

@@ -27,3 +27,5 @@ router.put('/:id/cancel', cancelOrder);
 
 // Get order stats
 router.get('/stats', getOrderStats);
+
+export default router;
