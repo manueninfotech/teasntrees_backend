@@ -60,8 +60,8 @@ export const createCategory = async (req, res) => {
             icon,
             displayOrder
         });
-        res.status(201).json({
-            success: false,
+        res.status(200).json({
+            success: true,
             message: 'Category created successfully',
             data: category
         });
