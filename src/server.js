@@ -12,6 +12,7 @@ const __dirname = dirname(__filename);
 // Routes
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import adminRoutes from './routes/admin/index.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
 
@@ -36,6 +37,7 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Test Route
 app.get("/", (req, res) => {
