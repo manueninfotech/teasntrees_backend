@@ -23,7 +23,7 @@ export const getAllProducts = async (req, res) => {
             query.tags = { $in: tags.split(',') };
         }
 
-        const products = await product.find(query).populate('category', 'name icon').sort({ createdAt: -1 });
+        const products = await Product.find(query).populate('category', 'name icon').sort({ createdAt: -1 });
         res.status(200).json({
             success: true,
             count: products.length,

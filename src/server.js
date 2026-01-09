@@ -1,16 +1,15 @@
-// Load environment variables FIRST before any other imports
-import dotenv from 'dotenv';
-dotenv.config();
-
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
+// Load environment variables FIRST - dotenv/config automatically loads .env
+import 'dotenv/config';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 // Get __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
 
 // Routes
 import authRoutes from './routes/authRoutes.js';

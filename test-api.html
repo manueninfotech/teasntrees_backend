@@ -1,21 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auth API Tester</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-        .section { margin: 30px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
-        button:hover { background: #0056b3; }
-        input { padding: 8px; margin: 5px; width: 300px; border: 1px solid #ddd; border-radius: 4px; }
-        .response { background: #f8f9fa; padding: 15px; border-radius: 4px; margin-top: 10px; white-space: pre-wrap; }
-        .success { color: green; }
-        .error { color: red; }
-        h2 { color: #333; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        input {
+            padding: 8px;
+            margin: 5px;
+            width: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .response {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+
+        h2 {
+            color: #333;
+        }
     </style>
 </head>
+
 <body>
     <h1>🔐 Authentication API Tester</h1>
 
@@ -38,7 +86,7 @@
 
     <!-- Test 3: Complete Profile -->
     <div class="section">
-        <h2>3. Complete Profile</h2>
+        <h2>3. Complete Profile (Only if profile is incomplete)</h2>
         <input type="text" id="mobile3" placeholder="Mobile" value="9876543210"><br>
         <input type="text" id="name" placeholder="Name" value="John Doe"><br>
         <input type="email" id="email" placeholder="Email" value="john@example.com"><br>
@@ -67,19 +115,19 @@
         async function sendOTP() {
             const mobile = document.getElementById('mobile1').value;
             const responseDiv = document.getElementById('response1');
-            
+
             try {
                 const response = await fetch(`${API_URL}/auth/send-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mobile })
                 });
-                
+
                 const data = await response.json();
                 responseDiv.innerHTML = `<div class="${response.ok ? 'success' : 'error'}">
                     ${JSON.stringify(data, null, 2)}
                 </div>`;
-                
+
                 if (data.data?.otp) {
                     alert(`OTP: ${data.data.otp}\nCheck your terminal too!`);
                 }
@@ -92,18 +140,26 @@
             const mobile = document.getElementById('mobile2').value;
             const otp = document.getElementById('otp').value;
             const responseDiv = document.getElementById('response2');
-            
+
             try {
                 const response = await fetch(`${API_URL}/auth/verify-otp`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mobile, otp })
                 });
-                
+
                 const data = await response.json();
                 responseDiv.innerHTML = `<div class="${response.ok ? 'success' : 'error'}">
                     ${JSON.stringify(data, null, 2)}
                 </div>`;
+
+                // If profile is complete, save the token from this step
+                if (data.success && data.data?.token) {
+                    document.getElementById('token').value = data.data.token;
+                    alert('✅ Login Successful!\\n\\nYour profile is complete.\\nToken saved for Step 4.\\n\\nYou can skip Step 3.');
+                } else if (data.success && !data.data?.isProfileComplete) {
+                    alert('⚠️ Profile Incomplete!\\n\\nPlease complete Step 3 to finish your profile.');
+                }
             } catch (error) {
                 responseDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
             }
@@ -116,19 +172,19 @@
             const address = document.getElementById('address').value;
             const role = document.getElementById('role').value;
             const responseDiv = document.getElementById('response3');
-            
+
             try {
                 const response = await fetch(`${API_URL}/auth/complete-profile`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ mobile, name, email, address, role })
                 });
-                
+
                 const data = await response.json();
                 responseDiv.innerHTML = `<div class="${response.ok ? 'success' : 'error'}">
                     ${JSON.stringify(data, null, 2)}
                 </div>`;
-                
+
                 if (data.data?.token) {
                     document.getElementById('token').value = data.data.token;
                     alert('Token saved! Now try "Get Profile"');
@@ -141,15 +197,15 @@
         async function getProfile() {
             const token = document.getElementById('token').value;
             const responseDiv = document.getElementById('response4');
-            
+
             try {
                 const response = await fetch(`${API_URL}/users/profile`, {
                     method: 'GET',
-                    headers: { 
+                    headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                
+
                 const data = await response.json();
                 responseDiv.innerHTML = `<div class="${response.ok ? 'success' : 'error'}">
                     ${JSON.stringify(data, null, 2)}
@@ -160,4 +216,5 @@
         }
     </script>
 </body>
+
 </html>

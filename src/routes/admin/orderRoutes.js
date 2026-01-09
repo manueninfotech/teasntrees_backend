@@ -10,6 +10,9 @@ import {
 
 const router = express.Router();
 
+// Get order stats (must be before /:id)
+router.get('/stats', getOrderStats);
+
 // Get all orders
 router.get('/', getAllOrders);
 
@@ -24,8 +27,5 @@ router.put('/:id/assign-rider', assignDeliveryRider);
 
 // Cancel order
 router.put('/:id/cancel', cancelOrder);
-
-// Get order stats
-router.get('/stats', getOrderStats);
 
 export default router;
