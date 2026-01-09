@@ -150,54 +150,7 @@ const updateProfile = async (req, res) => {
     }
 };
 
-// Get all users (Admin only)
-const getAllUsers = async (req, res) => {
-    try {
-        const { role, limit = 50, page = 1 } = req.query;
-
-        // Build query filter
-        const filter = {};
-        if (role) {
-            filter.role = role;
-        }
-
-        // Calculate pagination
-        const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        // Get users
-        const users = await User.find(filter)
-            .select('-__v')
-            .limit(parseInt(limit))
-            .skip(skip)
-            .sort({ createdAt: -1 });
-
-        // Get total count
-        const total = await User.countDocuments(filter);
-
-        return res.status(200).json({
-            success: true,
-            data: {
-                users,
-                pagination: {
-                    total,
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    totalPages: Math.ceil(total / parseInt(limit))
-                }
-            }
-        });
-
-    } catch (error) {
-        console.error('Error in getAllUsers:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Failed to fetch users'
-        });
-    }
-};
-
 export {
     getProfile,
-    updateProfile,
-    getAllUsers
+    updateProfile
 };
