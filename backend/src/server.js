@@ -1,7 +1,10 @@
+// Load environment variables FIRST before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -15,9 +18,6 @@ import userRoutes from './routes/userRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
-
-// Load environment variables
-dotenv.config();
 
 // Initialize express app
 const app = express();
