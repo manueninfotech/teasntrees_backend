@@ -10,6 +10,9 @@ import {
 
 const router = express.Router();
 
+// Get user stats
+router.get('/stats', getUserStats);
+
 // Get all users
 router.get('/', getAllUsers);
 
@@ -24,8 +27,5 @@ router.get('/role/:role', getUsersByRole);
 
 // Delete user
 router.delete('/:id', deleteUser);
-
-// Get user stats
-router.get('/stats', getUserStats);
 
 export default router;
