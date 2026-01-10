@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Authentication Tester - Teas N Trees</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .response.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .response.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status-badge.logged-out {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.logged-in {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .token-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-break: break-all;
+            font-size: 12px;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 Admin Authentication Tester</h1>
+            <p>Teas N Trees Backend - Admin Portal</p>
+            <div style="margin-top: 15px;">
+                <strong>Status:</strong>
+                <span class="status-badge" id="statusBadge">Logged Out</span>
+            </div>
+        </div>
+
+        <!-- Step 1: Send OTP -->
+        <div class="card" id="step1Card">
+            <h2>Step 1: Send OTP</h2>
+            <div class="form-group">
+                <label for="mobile">Mobile Number (10 digits)</label>
+                <input type="tel" id="mobile" placeholder="9876543210" maxlength="10">
+            </div>
+            <button onclick="sendOTP()">Send OTP</button>
+            <div id="otpResponse"></div>
+        </div>
+
+        <!-- Step 2: Verify OTP -->
+        <div class="card hidden" id="step2Card">
+            <h2>Step 2: Verify OTP</h2>
+            <div class="form-group">
+                <label for="otp">Enter OTP</label>
+                <input type="text" id="otp" placeholder="123456" maxlength="6">
+            </div>
+            <button onclick="verifyOTP()">Verify OTP & Login</button>
+            <div id="verifyResponse"></div>
+        </div>
+
+        <!-- Step 3: View Profile -->
+        <div class="card hidden" id="step3Card">
+            <h2>Step 3: Get Profile</h2>
+            <button onclick="getProfile()">Get My Profile</button>
+            <div id="profileResponse"></div>
+        </div>
+
+        <!-- Step 4: Update Profile -->
+        <div class="card hidden" id="step4Card">
+            <h2>Step 4: Update Profile</h2>
+            <div class="form-group">
+                <label for="name">Name</label>
+                <input type="text" id="name" placeholder="Admin Name">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="admin@teasntrees.com">
+            </div>
+            <div class="form-group">
+                <label for="address">Address</label>
+                <textarea id="address" rows="3" placeholder="Admin Office Address"></textarea>
+            </div>
+            <button onclick="updateProfile()">Update Profile</button>
+            <div id="updateResponse"></div>
+        </div>
+
+        <!-- Step 5: Logout -->
+        <div class="card hidden" id="step5Card">
+            <h2>Step 5: Logout</h2>
+            <button onclick="logout()"
+                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">Logout</button>
+            <div id="logoutResponse"></div>
+        </div>
+
+        <!-- Token Display -->
+        <div class="card hidden" id="tokenCard">
+            <h2>🔑 Current JWT Token</h2>
+            <div class="token-display" id="tokenDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api/admin/auth';
+        let authToken = localStorage.getItem('adminToken') || '';
+        let currentMobile = '';
+
+        // Update UI on page load
+        window.addEventListener('load', () => {
+            console.log('Page loaded. Testing admin auth routes...');
+            if (authToken) {
+                updateStatus(true);
+                showLoggedInCards();
+            }
+        });
+
+        function updateStatus(loggedIn) {
+            const badge = document.getElementById('statusBadge');
+            if (loggedIn) {
+                badge.textContent = 'Logged In';
+                badge.className = 'status-badge logged-in';
+            } else {
+                badge.textContent = 'Logged Out';
+                badge.className = 'status-badge logged-out';
+            }
+        }
+
+        function showResponse(elementId, data, isSuccess) {
+            const element = document.getElementById(elementId);
+            element.className = `response ${isSuccess ? 'success' : 'error'}`;
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        function showLoggedInCards() {
+            document.getElementById('step3Card').classList.remove('hidden');
+            document.getElementById('step4Card').classList.remove('hidden');
+            document.getElementById('step5Card').classList.remove('hidden');
+            document.getElementById('tokenCard').classList.remove('hidden');
+            document.getElementById('tokenDisplay').textContent = authToken;
+        }
+
+        function hideLoggedInCards() {
+            document.getElementById('step3Card').classList.add('hidden');
+            document.getElementById('step4Card').classList.add('hidden');
+            document.getElementById('step5Card').classList.add('hidden');
+            document.getElementById('tokenCard').classList.add('hidden');
+        }
+
+        async function sendOTP() {
+            const mobile = document.getElementById('mobile').value;
+
+            if (!/^[0-9]{10}$/.test(mobile)) {
+                alert('Please enter a valid 10-digit mobile number');
+                return;
+            }
+
+            currentMobile = mobile;
+
+            try {
+                console.log('Sending OTP to:', mobile);
+                const response = await fetch(`${API_BASE}/send-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mobile })
+                });
+
+                console.log('Send OTP response status:', response.status);
+                const data = await response.json();
+                showResponse('otpResponse', data, response.ok);
+
+                if (response.ok) {
+                    document.getElementById('step2Card').classList.remove('hidden');
+                    if (data.otp) {
+                        document.getElementById('otp').value = data.otp;
+                    }
+                }
+            } catch (error) {
+                console.error('Send OTP error:', error);
+                showResponse('otpResponse', { error: error.message }, false);
+            }
+        }
+
+        async function verifyOTP() {
+            const mobile = currentMobile || document.getElementById('mobile').value;
+            const otp = document.getElementById('otp').value;
+
+            if (!mobile || !otp) {
+                alert('Please enter mobile and OTP');
+                return;
+            }
+
+            try {
+                console.log('Verifying OTP for:', mobile);
+                const response = await fetch(`${API_BASE}/verify-otp`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mobile, otp })
+                });
+
+                console.log('Verify OTP response status:', response.status);
+                const data = await response.json();
+                showResponse('verifyResponse', data, response.ok);
+
+                if (response.ok && data.token) {
+                    authToken = data.token;
+                    localStorage.setItem('adminToken', authToken);
+                    updateStatus(true);
+                    showLoggedInCards();
+                }
+            } catch (error) {
+                console.error('Verify OTP error:', error);
+                showResponse('verifyResponse', { error: error.message }, false);
+            }
+        }
+
+        async function getProfile() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            try {
+                console.log('Getting profile...');
+                const response = await fetch(`${API_BASE}/profile`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                console.log('Get profile response status:', response.status);
+                const data = await response.json();
+                showResponse('profileResponse', data, response.ok);
+            } catch (error) {
+                console.error('Get profile error:', error);
+                showResponse('profileResponse', { error: error.message }, false);
+            }
+        }
+
+        async function updateProfile() {
+            if (!authToken) {
+                alert('Please login first');
+                return;
+            }
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const address = document.getElementById('address').value;
+
+            const payload = {};
+            if (name) payload.name = name;
+            if (email) payload.email = email;
+            if (address) payload.address = address;
+
+            try {
+                console.log('Updating profile...');
+                const response = await fetch(`${API_BASE}/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log('Update profile response status:', response.status);
+                const data = await response.json();
+                showResponse('updateResponse', data, response.ok);
+            } catch (error) {
+                console.error('Update profile error:', error);
+                showResponse('updateResponse', { error: error.message }, false);
+            }
+        }
+
+        async function logout() {
+            if (!authToken) {
+                alert('Already logged out');
+                return;
+            }
+
+            try {
+                console.log('Logging out...');
+                const response = await fetch(`${API_BASE}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                console.log('Logout response status:', response.status);
+                const data = await response.json();
+                showResponse('logoutResponse', data, response.ok);
+
+                if (response.ok) {
+                    authToken = '';
+                    localStorage.removeItem('adminToken');
+                    updateStatus(false);
+                    hideLoggedInCards();
+                    document.getElementById('step2Card').classList.add('hidden');
+
+                    // Clear form fields
+                    document.getElementById('mobile').value = '';
+                    document.getElementById('otp').value = '';
+                    document.getElementById('name').value = '';
+                    document.getElementById('email').value = '';
+                    document.getElementById('address').value = '';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showResponse('logoutResponse', { error: error.message }, false);
+            }
+        }
+    </script>
+</body>
+
+</html>

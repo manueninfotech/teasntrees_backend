@@ -14,6 +14,7 @@ import cors from 'cors';
 // Routes
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import adminAuthRoutes from './routes/adminAuthRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
@@ -36,6 +37,12 @@ connectDB();
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+
+// IMPORTANT: Register more specific routes BEFORE general routes
+// Admin authentication must come before /api/admin to avoid route conflicts
+app.use('/api/admin/auth', adminAuthRoutes);
+
+// Admin CRUD routes (this catches all /api/admin/* except /api/admin/auth/*)
 app.use('/api/admin', adminRoutes);
 
 // Test Route
