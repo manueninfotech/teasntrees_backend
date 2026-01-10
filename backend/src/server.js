@@ -8,6 +8,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
 
@@ -18,9 +20,35 @@ import adminAuthRoutes from './routes/adminAuthRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
+import { socketAuth } from './middlewares/socketAuth.js';
+import { setupSocketHandlers } from './sockets/socketHandlers.js';
+import { SocketService } from './services/socketService.js';
 
 // Initialize express app
 const app = express();
+
+// Create HTTP server
+const httpServer = createServer(app);
+
+// Initialize Socket.io with CORS
+const io = new Server(httpServer, {
+    cors: {
+        origin: process.env.FRONTEND_URL || '*',
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
+});
+
+// Apply Socket.io authentication middleware
+io.use(socketAuth);
+
+// Setup Socket.io event handlers
+setupSocketHandlers(io);
+
+// Create Socket Service and make it accessible to routes
+const socketService = new SocketService(io);
+app.set('io', io);
+app.set('socketService', socketService);
 
 // Middleware
 app.use(cors());
@@ -72,10 +100,11 @@ app.use(notFound);
 // Global Error Handler 
 app.use(errorHandler);
 
-// start the server
+// start the server with Socket.io
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log(`Socket.io enabled for real-time features`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
