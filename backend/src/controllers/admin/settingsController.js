@@ -56,6 +56,17 @@ export const updateSettings = async (req, res) => {
             await settings.save();
         }
 
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'settings:updated', {
+                updatedFields: Object.keys(req.body)
+            });
+            socketService.notifyRole('admin', 'settings:updated', {
+                updatedFields: Object.keys(req.body)
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Settings updated successfully',

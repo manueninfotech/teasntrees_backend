@@ -117,6 +117,32 @@ export const updateDeliveryStatus = async (req, res) => {
         if (status === 'delivered') {
             await Order.findByIdAndUpdate(delivery.order, { status: 'delivered', deliveredAt: new Date() });
         }
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            // Notify customer
+            if (delivery.customer) {
+                socketService.notifyUser(delivery.customer.toString(), 'delivery:status-updated', {
+                    deliveryId: delivery._id,
+                    status: status
+                });
+            }
+            // Notify rider
+            if (delivery.rider) {
+                socketService.notifyUser(delivery.rider.toString(), 'delivery:status-updated', {
+                    deliveryId: delivery._id,
+                    status: status
+                });
+            }
+            // Notify managers/admin
+            socketService.notifyRole('manager', 'delivery:status-updated', {
+                deliveryId: delivery._id,
+                status: status,
+                riderId: delivery.rider
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Delivery status updated successfully',
@@ -158,6 +184,15 @@ export const updateDeliveryLocation = async (req, res) => {
         };
 
         await delivery.save();
+
+        // Emit Socket.io event for live tracking
+        const socketService = req.app.get('socketService');
+        if (socketService && delivery.customer) {
+            socketService.notifyUser(delivery.customer.toString(), 'rider:location-update', {
+                deliveryId: delivery._id,
+                location: { latitude, longitude }
+            });
+        }
 
         res.status(200).json({
             success: true,
