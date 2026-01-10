@@ -5,6 +5,11 @@ import User from "../../models/User.js";
 export const getAllOrders = async (req, res) => {
     try {
         const { status, startDate, endDate, customerId } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const sortBy = req.query.sortBy || 'createdAt';
+        const order = req.query.order === 'desc' ? -1 : 1;
+        const skip = (page - 1) * limit;
 
         // Build query
         let query = {};
@@ -31,12 +36,21 @@ export const getAllOrders = async (req, res) => {
             .populate('customer', 'name mobile email')
             .populate('items.product', 'name price image')
             .populate('assignedRider', 'name mobile')
-            .sort({ createdAt: -1 });
+            .sort({ [sortBy]: order })
+            .limit(limit)
+            .skip(skip);
+        const total = await Order.countDocuments(query);
 
         res.status(200).json({
             success: true,
             count: orders.length,
-            data: orders
+            data: orders,
+            pagination: {
+                current: page,
+                totalPages: Math.ceil(total / limit),
+                limit: limit,
+                totalItems: total
+            }
         });
     } catch (error) {
         res.status(500).json({

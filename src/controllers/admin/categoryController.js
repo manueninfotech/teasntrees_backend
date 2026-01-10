@@ -3,11 +3,27 @@ import Category from "../../models/Category.js";
 // Get all categories
 export const getAllCategories = async (req, res) => {
     try {
-        const categories = await Category.find().sort({ displayOrder: 1 });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const sortBy = req.query.sortBy || 'displayOrder';
+        const order = req.query.order === 'desc' ? -1 : 1;
+        const skip = (page - 1) * limit;
+
+        const categories = await Category.find()
+            .sort({ [sortBy]: order })
+            .limit(limit)
+            .skip(skip);
+        const total = await Category.countDocuments();
         res.status(200).json({
             success: true,
             count: categories.length,
-            data: categories
+            data: categories,
+            pagination: {
+                current: page,
+                totalPages: Math.ceil(total / limit),
+                limit: limit,
+                totalItems: total
+            }
         });
     } catch (error) {
         res.status(500).json({

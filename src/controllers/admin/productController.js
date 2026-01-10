@@ -5,6 +5,11 @@ import Category from "../../models/Category.js";
 export const getAllProducts = async (req, res) => {
     try {
         const { category, search, isAvailable, tags } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const sortBy = req.query.sortBy || 'createdAt';
+        const order = req.query.order === 'desc' ? -1 : 1;
+        const skip = (page - 1) * limit;
         // build query
         let query = {};
         if (category) {
@@ -23,11 +28,22 @@ export const getAllProducts = async (req, res) => {
             query.tags = { $in: tags.split(',') };
         }
 
-        const products = await Product.find(query).populate('category', 'name icon').sort({ createdAt: -1 });
+        const products = await Product.find(query)
+            .populate('category', 'name icon')
+            .sort({ [sortBy]: order })
+            .limit(limit)
+            .skip(skip);
+        const total = await Product.countDocuments(query);
         res.status(200).json({
             success: true,
             count: products.length,
-            data: products
+            data: products,
+            pagination: {
+                current: page,
+                totalPages: Math.ceil(total / limit),
+                limit: limit,
+                totalItems: total
+            }
         });
     } catch (error) {
         res.status(500).json({
