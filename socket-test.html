@@ -199,6 +199,32 @@
                 log(`📦 Order Status Updated: ${JSON.stringify(data)}`, 'info');
             });
 
+            // Category events
+            socket.on('category:created', (data) => {
+                log(`📁 Category Created: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('category:updated', (data) => {
+                log(`📝 Category Updated: ${JSON.stringify(data)}`, 'info');
+            });
+
+            socket.on('category:deleted', (data) => {
+                log(`🗑️ Category Deleted: ${JSON.stringify(data)}`, 'error');
+            });
+
+            // Product events
+            socket.on('product:created', (data) => {
+                log(`📦 Product Created: ${JSON.stringify(data)}`, 'success');
+            });
+
+            socket.on('product:updated', (data) => {
+                log(`📝 Product Updated: ${JSON.stringify(data)}`, 'info');
+            });
+
+            socket.on('product:deleted', (data) => {
+                log(`🗑️ Product Deleted: ${JSON.stringify(data)}`, 'error');
+            });
+
             // Rider events
             socket.on('rider:online', (data) => {
                 log(`🚴 Rider Online: ${JSON.stringify(data)}`, 'success');
