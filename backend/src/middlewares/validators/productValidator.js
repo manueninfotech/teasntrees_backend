@@ -1,0 +1,134 @@
+import { body, param } from 'express-validator';
+import { handleValidationErrors } from './categoryValidator.js';
+
+// Product validation rules
+export const validateCreateProduct = [
+    body('name')
+        .trim()
+        .notEmpty().withMessage('Product name is required')
+        .isLength({ min: 2, max: 100 }).withMessage('Product name must be between 2-100 characters'),
+
+    body('description')
+        .optional()
+        .trim()
+        .isLength({ max: 500 }).withMessage('Description must not exceed 500 characters'),
+
+    body('category')
+        .notEmpty().withMessage('Category is required')
+        .isMongoId().withMessage('Invalid category ID'),
+
+    body('price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+
+    body('image')
+        .optional()
+        .trim()
+        .isURL().withMessage('Image must be a valid URL'),
+
+    body('isAvailable')
+        .optional()
+        .isBoolean().withMessage('isAvailable must be a boolean'),
+
+    body('preparationTime')
+        .optional()
+        .isInt({ min: 0 }).withMessage('Preparation time must be a positive number'),
+
+    body('ingredients')
+        .optional()
+        .isArray().withMessage('Ingredients must be an array'),
+
+    body('allergens')
+        .optional()
+        .isArray().withMessage('Allergens must be an array'),
+
+    body('tags')
+        .optional()
+        .isArray().withMessage('Tags must be an array')
+        .custom((tags) => {
+            const validTags = ['new-intro', 'must-try', 'best-seller', 'egg-contains'];
+            return tags.every(tag => validTags.includes(tag));
+        }).withMessage('Tags must be one of: new-intro, must-try, best-seller, egg-contains'),
+
+    body('sizeOptions')
+        .optional()
+        .isArray().withMessage('Size options must be an array'),
+
+    body('sizeOptions.*.size')
+        .optional()
+        .trim()
+        .notEmpty().withMessage('Size is required in size options'),
+
+    body('sizeOptions.*.price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Size option price must be a positive number'),
+
+    handleValidationErrors
+];
+
+export const validateUpdateProduct = [
+    param('id')
+        .isMongoId().withMessage('Invalid product ID'),
+
+    body('name')
+        .optional()
+        .trim()
+        .isLength({ min: 2, max: 100 }).withMessage('Product name must be between 2-100 characters'),
+
+    body('description')
+        .optional()
+        .trim()
+        .isLength({ max: 500 }).withMessage('Description must not exceed 500 characters'),
+
+    body('category')
+        .optional()
+        .isMongoId().withMessage('Invalid category ID'),
+
+    body('price')
+        .optional()
+        .isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+
+    body('image')
+        .optional()
+        .trim()
+        .isURL().withMessage('Image must be a valid URL'),
+
+    body('isAvailable')
+        .optional()
+        .isBoolean().withMessage('isAvailable must be a boolean'),
+
+    body('preparationTime')
+        .optional()
+        .isInt({ min: 0 }).withMessage('Preparation time must be a positive number'),
+
+    body('tags')
+        .optional()
+        .isArray().withMessage('Tags must be an array')
+        .custom((tags) => {
+            const validTags = ['new-intro', 'must-try', 'best-seller', 'egg-contains'];
+            return tags.every(tag => validTags.includes(tag));
+        }).withMessage('Tags must be one of: new-intro, must-try, best-seller, egg-contains'),
+
+    handleValidationErrors
+];
+
+export const validateProductId = [
+    param('id')
+        .isMongoId().withMessage('Invalid product ID'),
+
+    handleValidationErrors
+];
+
+export const validateBulkUpdate = [
+    body('productIds')
+        .isArray({ min: 1 }).withMessage('Product IDs array is required'),
+
+    body('productIds.*')
+        .isMongoId().withMessage('Invalid product ID in array'),
+
+    body('updates')
+        .notEmpty().withMessage('Updates object is required')
+        .isObject().withMessage('Updates must be an object'),
+
+    handleValidationErrors
+];

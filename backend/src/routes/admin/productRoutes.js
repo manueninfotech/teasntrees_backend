@@ -9,6 +9,12 @@ import {
     toggleProductAvailability,
     bulkUpdateProducts
 } from '../../controllers/admin/productController.js';
+import {
+    validateCreateProduct,
+    validateUpdateProduct,
+    validateProductId,
+    validateBulkUpdate
+} from '../../middlewares/validators/productValidator.js';
 
 const router = express.Router();
 
@@ -16,24 +22,24 @@ const router = express.Router();
 router.get('/', getAllProducts);
 
 // Get single product by id
-router.get('/:id', getProductById);
+router.get('/:id', validateProductId, getProductById);
 
 // Get products by category
 router.get('/category/:categoryId', getProductsByCategory);
 
 // Create new product
-router.post('/', createProduct);
+router.post('/', validateCreateProduct, createProduct);
 
 // update product
-router.put('/:id', updateProduct);
+router.put('/:id', validateUpdateProduct, updateProduct);
 
 // delete product
-router.delete('/:id', deleteProduct);
+router.delete('/:id', validateProductId, deleteProduct);
 
 // toggle product availability
-router.put('/:id/availability', toggleProductAvailability);
+router.put('/:id/availability', validateProductId, toggleProductAvailability);
 
 // bulk update products
-router.put('/bulk-update', bulkUpdateProducts);
+router.put('/bulk-update', validateBulkUpdate, bulkUpdateProducts);
 
 export default router;

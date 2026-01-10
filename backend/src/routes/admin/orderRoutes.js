@@ -7,6 +7,11 @@ import {
     cancelOrder,
     getOrderStats
 } from '../../controllers/admin/orderController.js';
+import {
+    validateUpdateOrderStatus,
+    validateAssignRider,
+    validateOrderId
+} from '../../middlewares/validators/orderValidator.js';
 
 const router = express.Router();
 
@@ -17,15 +22,15 @@ router.get('/stats', getOrderStats);
 router.get('/', getAllOrders);
 
 // Get single order by id
-router.get('/:id', getOrderById);
+router.get('/:id', validateOrderId, getOrderById);
 
-// Update order status
-router.put('/:id/status', updateOrderStatus);
+//Update order status
+router.put('/:id/status', validateUpdateOrderStatus, updateOrderStatus);
 
 // Assign delivery rider
-router.put('/:id/assign-rider', assignDeliveryRider);
+router.put('/:id/assign-rider', validateAssignRider, assignDeliveryRider);
 
 // Cancel order
-router.put('/:id/cancel', cancelOrder);
+router.put('/:id/cancel', validateOrderId, cancelOrder);
 
 export default router;
