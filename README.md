@@ -106,6 +106,37 @@ Complete backend with **42 API endpoints**, 7 database models, admin panel, **in
 - **Auto-optimization** - Images optimized for web (max 1000x1000px)
 - **Validation** - File type (JPEG, PNG, WEBP) and size (max 5MB)
 - **Cloud storage** - All images stored on Cloudinary CDN
+- **Product images** - Integrated with product controller for seamless image management
+
+#### Real-Time Features with Socket.io ⚡ **NEW**
+- **Instant notifications** - Real-time updates across all roles
+- **JWT authentication** - Secure Socket.io connections
+- **Room-based messaging** - User-specific, role-based, and order-specific rooms
+- **Live tracking** - Real-time rider location updates
+- **Event coverage:**
+  - **Categories & Products** - Create, update, delete events
+  - **Orders** - Status updates, rider assignment, cancellation
+  - **Deliveries** - Status changes, live location tracking
+  - **Users** - Role updates, account changes
+  - **Settings** - Configuration updates, delivery zones
+- **Multi-role support** - Separate events for customers, riders, managers, admins
+- **Test page included** - `socket-test.html` for testing real-time events
+
+### Recent Updates (January 2026)
+
+#### Admin Authentication Fixes
+- Fixed **404 errors** on profile and logout routes
+- Corrected user ID handling (`req.user.userId` vs `req.user._id`)
+- Deprecated generic `completeProfile` function
+- Cleaned up verbose logging middleware
+- All admin auth routes now working correctly
+
+#### Cloudinary Product Integration
+- **Automatic image upload** on product creation
+- **Image replacement** on product update with old image deletion
+- **Cloudinary cleanup** on product deletion
+- **Backward compatibility** maintained for string URLs
+- **Multer middleware** integrated with product routes
 
 ---
 
@@ -163,29 +194,36 @@ backend/
 │   │   ├── auth.js                # JWT verification
 │   │   ├── roleCheck.js           # Role authorization
 │   │   ├── errorHandler.js        # Error handling
-│   │   ├── upload.js              # NEW: Multer config
-│   │   └── validators/            # NEW: Input validators
+│   │   ├── upload.js              # Multer config
+│   │   ├── socketAuth.js          # NEW: Socket.io auth middleware
+│   │   └── validators/            # Input validators
 │   │       ├── categoryValidator.js
 │   │       ├── productValidator.js
 │   │       ├── orderValidator.js
 │   │       └── userValidator.js
+│   ├── sockets/                   # NEW: Socket.io configuration
+│   │   ├── socketEvents.js        # Event definitions
+│   │   └── socketHandlers.js      # Event handlers
+│   ├── services/                  # NEW: Business services
+│   │   └── socketService.js       # Socket.io helper service
 │   ├── utils/                     # Helper functions
 │   │   ├── jwtHelper.js
 │   │   ├── generateOTP.js
 │   │   ├── validators.js
-│   │   └── imageUpload.js         # NEW: Cloudinary utils
+│   │   └── imageUpload.js         # Cloudinary utils
 │   ├── config/                    # Configuration
 │   │   ├── db.js                  # MongoDB connection
 │   │   ├── jwt.js                 # JWT config
 │   │   ├── otp.js                 # OTP config
-│   │   └── cloudinary.js          # NEW: Cloudinary config
+│   │   └── cloudinary.js          # Cloudinary config
 │   ├── seeders/                   # Database seeders
 │   │   ├── categorySeeder.js      # 33 categories
 │   │   ├── productSeeder.js       # 239 products
 │   │   └── clearProducts.js
-│   └── server.js                  # Main server
+│   └── server.js                  # Main server with Socket.io
 ├── test-api.html                  # User API tester
 ├── test-admin-apis.html           # Admin API tester
+├── socket-test.html               # NEW: Socket.io event tester
 ├── .env                           # Environment variables
 └── package.json                   # Dependencies
 ```
@@ -413,6 +451,7 @@ GET /api/admin/users?page=1&sortBy=createdAt&order=desc
 - **MongoDB** - NoSQL database
 - **Mongoose** - MongoDB ODM
 - **JWT** - Token-based authentication
+- **Socket.io** - Real-time bidirectional communication ⚡
 - **express-validator** - Input validation
 - **Multer** - File upload handling
 - **Cloudinary** - Cloud image storage & CDN
@@ -469,14 +508,18 @@ npm run seed:products  # Seed products to database
 ## Highlights
 
 - **42 API Endpoints** ready for production
+- **Real-Time Features** with Socket.io - instant notifications across all roles ⚡
 - **Complete Admin Panel Backend** with full CRUD operations
 - **Input Validation** on all mutation endpoints
 - **Pagination Support** for efficient data handling
 - **Image Upload** with Cloudinary CDN integration
+- **Product Image Management** - automated upload/delete on product operations
+- **Live Delivery Tracking** - real-time rider location updates
 - **239 Menu Items** accurately seeded from actual menu
 - **Role-based Access Control** for security
+- **JWT Authentication** for both HTTP and WebSocket connections
 - **ES6 Modules** for modern code structure
-- **Test Pages Included** for easy API testing
+- **Test Pages Included** for easy API and Socket.io testing
 
 ---
 
