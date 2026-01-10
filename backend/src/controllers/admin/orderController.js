@@ -186,6 +186,32 @@ export const assignDeliveryRider = async (req, res) => {
 
         const updatedOrder = await Order.findById(order._id)
             .populate('assignedRider', 'name mobile');
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            // Notify the assigned rider
+            socketService.notifyUser(riderId, 'delivery:assigned', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                deliveryAddress: order.deliveryAddress
+            });
+
+            // Notify customer
+            socketService.notifyUser(order.customer.toString(), 'order:rider-assigned', {
+                orderId: order._id,
+                riderName: rider.name,
+                riderMobile: rider.mobile
+            });
+
+            // Notify managers/admin
+            socketService.notifyRole('manager', 'delivery:assigned', {
+                orderId: order._id,
+                riderId: riderId,
+                riderName: rider.name
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Rider assigned successfully',
@@ -226,6 +252,32 @@ export const cancelOrder = async (req, res) => {
         order.cancelledAt = new Date();
 
         await order.save();
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            // Notify customer
+            socketService.notifyUser(order.customer.toString(), 'order:cancelled', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                reason: order.cancelReason
+            });
+
+            // Notify rider if assigned
+            if (order.riderId) {
+                socketService.notifyUser(order.riderId.toString(), 'order:cancelled', {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber
+                });
+            }
+
+            // Notify managers/admin
+            socketService.notifyRole('manager', 'order:cancelled', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                customerId: order.customer
+            });
+        }
 
         res.status(200).json({
             success: true,
