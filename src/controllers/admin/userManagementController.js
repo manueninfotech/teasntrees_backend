@@ -174,7 +174,15 @@ export const deleteUser = async (req, res) => {
                 message: 'Cannot delete your own account'
             });
         }
+        const userData = { id: user._id, name: user.name, role: user.role };
         await user.deleteOne();
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', 'user:deleted', userData);
+        }
+
         res.status(200).json({
             success: true,
             message: 'User deleted successfully'

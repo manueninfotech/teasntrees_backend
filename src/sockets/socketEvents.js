@@ -31,6 +31,7 @@ export const SOCKET_EVENTS = {
     DELIVERY_PICKED_UP: 'delivery:picked-up',
     DELIVERY_IN_TRANSIT: 'delivery:in-transit',
     DELIVERY_DELIVERED: 'delivery:delivered',
+    DELIVERY_STATUS_UPDATED: 'delivery:status-updated',
 
     // Rider events
     RIDER_LOCATION_UPDATE: 'rider:location-update',
@@ -46,6 +47,9 @@ export const SOCKET_EVENTS = {
     // Notification events
     NOTIFICATION_NEW: 'notification:new',
     NOTIFICATION_READ: 'notification:read',
+
+    // Settings events
+    SETTINGS_UPDATED: 'settings:updated',
 
     // System events
     SYSTEM_MESSAGE: 'system:message'
