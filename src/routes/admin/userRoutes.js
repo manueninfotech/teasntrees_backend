@@ -7,6 +7,10 @@ import {
     deleteUser,
     getUserStats
 } from '../../controllers/admin/userManagementController.js';
+import {
+    validateUpdateUserRole,
+    validateUserId
+} from '../../middlewares/validators/userValidator.js';
 
 const router = express.Router();
 
@@ -17,15 +21,15 @@ router.get('/stats', getUserStats);
 router.get('/', getAllUsers);
 
 // Get single user by id
-router.get('/:id', getUserById);
+router.get('/:id', validateUserId, getUserById);
 
 // Update user role
-router.put('/:id/role', updateUserRole);
+router.put('/:id/role', validateUpdateUserRole, updateUserRole);
 
 // Get users by role
 router.get('/role/:role', getUsersByRole);
 
 // Delete user
-router.delete('/:id', deleteUser);
+router.delete('/:id', validateUserId, deleteUser);
 
 export default router;
