@@ -147,6 +147,24 @@ export const createProduct = async (req, res) => {
             createdBy: req.user.id
         });
         const populatedProduct = await Product.findById(product._id).populate('category', 'name icon');
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'product:created', {
+                productId: product._id,
+                name: product.name,
+                category: categoryExists.name,
+                price: product.price
+            });
+            socketService.notifyRole('admin', 'product:created', {
+                productId: product._id,
+                name: product.name,
+                category: categoryExists.name,
+                price: product.price
+            });
+        }
+
         res.status(201).json({
             success: true,
             message: 'Product created successfully',
@@ -209,6 +227,22 @@ export const updateProduct = async (req, res) => {
         });
         await product.save();
         const updatedProduct = await Product.findById(product._id).populate('category', 'name icon');
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'product:updated', {
+                productId: product._id,
+                name: product.name,
+                isAvailable: product.isAvailable
+            });
+            socketService.notifyRole('admin', 'product:updated', {
+                productId: product._id,
+                name: product.name,
+                isAvailable: product.isAvailable
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Product updated successfully',
@@ -247,7 +281,16 @@ export const deleteProduct = async (req, res) => {
             }
         }
 
+        const productData = { id: product._id, name: product.name };
         await product.deleteOne();
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'product:deleted', productData);
+            socketService.notifyRole('admin', 'product:deleted', productData);
+        }
+
         res.status(200).json({
             success: true,
             message: 'Product deleted successfully'

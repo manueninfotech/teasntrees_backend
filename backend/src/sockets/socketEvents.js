@@ -38,6 +38,11 @@ export const SOCKET_EVENTS = {
     RIDER_ONLINE: 'rider:online',
     RIDER_OFFLINE: 'rider:offline',
 
+    // User management events
+    USER_ROLE_UPDATED: 'user:role-updated',
+    USER_ACTIVATED: 'user:activated',
+    USER_DEACTIVATED: 'user:deactivated',
+
     // Notification events
     NOTIFICATION_NEW: 'notification:new',
     NOTIFICATION_READ: 'notification:read',

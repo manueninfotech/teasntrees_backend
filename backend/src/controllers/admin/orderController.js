@@ -116,6 +116,29 @@ export const updateOrderStatus = async (req, res) => {
         }
         await order.save();
 
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            // Notify customer
+            socketService.notifyUser(order.customer.toString(), 'order:status-updated', {
+                orderId: order._id,
+                status: order.status,
+                estimatedDelivery: order.estimatedDeliveryTime
+            });
+
+            // Notify managers/admin
+            socketService.notifyRole('manager', 'order:status-updated', {
+                orderId: order._id,
+                status: order.status,
+                customerId: order.customer
+            });
+            socketService.notifyRole('admin', 'order:status-updated', {
+                orderId: order._id,
+                status: order.status,
+                customerId: order.customer
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Order status updated successfully',

@@ -92,6 +92,25 @@ export const updateUserRole = async (req, res) => {
         }
         user.role = role;
         await user.save();
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            // Notify the user whose role changed
+            socketService.notifyUser(user._id.toString(), 'user:role-updated', {
+                userId: user._id,
+                newRole: role
+            });
+
+            // Notify admin
+            socketService.notifyRole('admin', 'user:role-updated', {
+                userId: user._id,
+                name: user.name,
+                mobile: user.mobile,
+                newRole: role
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'User role updated successfully',
