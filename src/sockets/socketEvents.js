@@ -50,6 +50,7 @@ export const SOCKET_EVENTS = {
 
     // Settings events
     SETTINGS_UPDATED: 'settings:updated',
+    DELIVERY_ZONES_UPDATED: 'delivery-zones:updated',
 
     // System events
     SYSTEM_MESSAGE: 'system:message'

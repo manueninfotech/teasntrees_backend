@@ -125,6 +125,21 @@ export const updateDeliveryZones = async (req, res) => {
             await settings.save();
         }
 
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'delivery-zones:updated', {
+                zonesCount: deliveryZones.length
+            });
+            socketService.notifyRole('admin', 'delivery-zones:updated', {
+                zonesCount: deliveryZones.length
+            });
+            // Notify customers about new delivery zones
+            socketService.notifyRole('customer', 'delivery-zones:updated', {
+                message: 'Delivery zones have been updated'
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Delivery zones updated successfully',
