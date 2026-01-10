@@ -5,6 +5,12 @@ import Order from '../../models/Order.js';
 export const getAllDeliveries = async (req, res) => {
     try {
         const { status, riderId, startDate, endDate } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const sortBy = req.query.sortBy || 'createdAt';
+        const order = req.query.order === 'desc' ? -1 : 1;
+        const skip = (page - 1) * limit;
+
         // Build query
         let query = {};
         if (status) {
@@ -26,12 +32,21 @@ export const getAllDeliveries = async (req, res) => {
             .populate('order', 'orderNumber totalAmount')
             .populate('rider', 'name mobile')
             .populate('customer', 'name mobile address')
-            .sort({ createdAt: -1 })
+            .sort({ [sortBy]: order })
+            .limit(limit)
+            .skip(skip);
+        const total = await Delivery.countDocuments(query);
 
         res.status(200).json({
             success: true,
             count: deliveries.length,
-            data: deliveries
+            data: deliveries,
+            pagination: {
+                current: page,
+                totalPages: Math.ceil(total / limit),
+                limit: limit,
+                totalItems: total
+            }
         });
     } catch (error) {
         res.status(500).json({

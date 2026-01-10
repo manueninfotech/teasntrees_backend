@@ -4,6 +4,11 @@ import User from '../../models/User.js';
 export const getAllUsers = async (req, res) => {
     try {
         const { role, search, isProfileComplete } = req.query;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const sortBy = req.query.sortBy || 'createdAt';
+        const order = req.query.order === 'desc' ? -1 : 1;
+        const skip = (page - 1) * limit;
         let query = {};
         if (role) {
             query.role = role;
@@ -20,11 +25,20 @@ export const getAllUsers = async (req, res) => {
         }
         const users = await User.find(query)
             .select('-__v')
-            .sort({ createdAt: -1 });
+            .sort({ [sortBy]: order })
+            .limit(limit)
+            .skip(skip);
+        const total = await User.countDocuments(query);
         res.status(200).json({
             success: true,
             count: users.length,
-            data: users
+            data: users,
+            pagination: {
+                current: page,
+                totalPages: Math.ceil(total / limit),
+                limit: limit,
+                totalItems: total
+            }
         });
     } catch (error) {
         res.status(500).json({
