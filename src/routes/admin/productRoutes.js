@@ -15,6 +15,7 @@ import {
     validateProductId,
     validateBulkUpdate
 } from '../../middlewares/validators/productValidator.js';
+import upload from '../../middlewares/upload.js';
 
 const router = express.Router();
 
@@ -27,11 +28,11 @@ router.get('/:id', validateProductId, getProductById);
 // Get products by category
 router.get('/category/:categoryId', getProductsByCategory);
 
-// Create new product
-router.post('/', validateCreateProduct, createProduct);
+// Create new product (with optional image upload)
+router.post('/', upload.single('image'), validateCreateProduct, createProduct);
 
-// update product
-router.put('/:id', validateUpdateProduct, updateProduct);
+// update product (with optional image upload)
+router.put('/:id', upload.single('image'), validateUpdateProduct, updateProduct);
 
 // delete product
 router.delete('/:id', validateProductId, deleteProduct);
