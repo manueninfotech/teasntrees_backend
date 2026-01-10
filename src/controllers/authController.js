@@ -200,13 +200,18 @@ const verifyOTP = async (req, res) => {
 
 /**
  * Complete user profile after OTP verification
+ * DEPRECATED: Use role-specific auth endpoints instead
+ * - /api/admin/auth/verify-otp
+ * - /api/customer/auth/verify-otp
+ * - /api/rider/auth/verify-otp
+ * - /api/manager/auth/verify-otp
  * 
  * POST /api/auth/complete-profile
- * Body: { mobile, name, email, address, role }
+ * Body: { mobile, name, email, address }
  */
 const completeProfile = async (req, res) => {
     try {
-        const { mobile, name, email, address, role } = req.body;
+        const { mobile, name, email, address } = req.body;
 
         // Validate mobile
         if (!mobile || !isValidMobile(mobile)) {
@@ -237,10 +242,10 @@ const completeProfile = async (req, res) => {
         }
 
         // Validate required fields
-        if (!name || !email || !address || !role) {
+        if (!name || !email || !address) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide all required fields: name, email, address, role'
+                message: 'Please provide all required fields: name, email, address'
             });
         }
 
@@ -252,21 +257,13 @@ const completeProfile = async (req, res) => {
             });
         }
 
-        // Validate role
-        if (!isValidRole(role)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid role. Must be one of: admin, customer, rider, manager'
-            });
-        }
-
         // Sanitize inputs
         const sanitizedData = {
             mobile,
             name: sanitizeString(name),
             email: sanitizeString(email).toLowerCase(),
             address: sanitizeString(address),
-            role,
+            role: 'customer',  // Default to customer for backward compatibility
             isProfileComplete: true
         };
 
@@ -274,11 +271,14 @@ const completeProfile = async (req, res) => {
         let user = await User.findOne({ mobile });
 
         if (user) {
-            // Update existing user
+            // Update existing user (but don't change role if already set)
             user.name = sanitizedData.name;
             user.email = sanitizedData.email;
             user.address = sanitizedData.address;
-            user.role = sanitizedData.role;
+            // Only set role if user doesn't have one
+            if (!user.role) {
+                user.role = sanitizedData.role;
+            }
             user.isProfileComplete = true;
             await user.save();
         } else {
