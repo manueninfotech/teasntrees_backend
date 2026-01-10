@@ -1,5 +1,6 @@
 import Product from "../../models/Product.js";
 import Category from "../../models/Category.js";
+import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../../utils/imageUpload.js";
 
 // Get all products
 export const getAllProducts = async (req, res) => {
@@ -121,12 +122,21 @@ export const createProduct = async (req, res) => {
                 message: 'Category not found'
             });
         }
+
+        // Handle image upload
+        let productImage = image; // Default to string URL from body
+        if (req.file) {
+            // If file uploaded, upload to Cloudinary
+            const uploadResult = await uploadToCloudinary(req.file.buffer, 'products');
+            productImage = uploadResult.url;
+        }
+
         const product = await Product.create({
             name,
             description,
             category,
             price: price || 0,
-            image,
+            image: productImage,
             isAvailable,
             preparationTime,
             ingredients,
@@ -171,9 +181,31 @@ export const updateProduct = async (req, res) => {
                 });
             }
         }
-        // update fields
+
+        // Handle image upload/update
+        if (req.file) {
+            // Delete old image from Cloudinary if it exists and is a Cloudinary URL
+            if (product.image && product.image.includes('cloudinary.com')) {
+                const oldPublicId = extractPublicId(product.image);
+                if (oldPublicId) {
+                    try {
+                        await deleteFromCloudinary(oldPublicId);
+                    } catch (error) {
+                        console.error('Error deleting old image:', error);
+                        // Continue even if deletion fails
+                    }
+                }
+            }
+            // Upload new image
+            const uploadResult = await uploadToCloudinary(req.file.buffer, 'products');
+            product.image = uploadResult.url;
+        }
+
+        // update other fields
         Object.keys(req.body).forEach(key => {
-            product[key] = req.body[key];
+            if (key !== 'image') { // Skip image as it's handled above
+                product[key] = req.body[key];
+            }
         });
         await product.save();
         const updatedProduct = await Product.findById(product._id).populate('category', 'name icon');
@@ -201,6 +233,20 @@ export const deleteProduct = async (req, res) => {
                 message: 'Product not found'
             });
         }
+
+        // Delete image from Cloudinary if it exists and is a Cloudinary URL
+        if (product.image && product.image.includes('cloudinary.com')) {
+            const publicId = extractPublicId(product.image);
+            if (publicId) {
+                try {
+                    await deleteFromCloudinary(publicId);
+                } catch (error) {
+                    console.error('Error deleting image from Cloudinary:', error);
+                    // Continue with product deletion even if image deletion fails
+                }
+            }
+        }
+
         await product.deleteOne();
         res.status(200).json({
             success: true,
