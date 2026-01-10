@@ -76,6 +76,22 @@ export const createCategory = async (req, res) => {
             icon,
             displayOrder
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'category:created', {
+                categoryId: category._id,
+                name: category.name,
+                icon: category.icon
+            });
+            socketService.notifyRole('admin', 'category:created', {
+                categoryId: category._id,
+                name: category.name,
+                icon: category.icon
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Category created successfully',
@@ -118,6 +134,21 @@ export const updateCategory = async (req, res) => {
 
         await category.save();
 
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'category:updated', {
+                categoryId: category._id,
+                name: category.name,
+                icon: category.icon
+            });
+            socketService.notifyRole('admin', 'category:updated', {
+                categoryId: category._id,
+                name: category.name,
+                icon: category.icon
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Category updated successfully',
@@ -142,7 +173,17 @@ export const deleteCategory = async (req, res) => {
                 message: 'Category not found'
             });
         }
+
+        const categoryData = { id: category._id, name: category.name };
         await category.deleteOne();
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', 'category:deleted', categoryData);
+            socketService.notifyRole('admin', 'category:deleted', categoryData);
+        }
+
         res.status(200).json({
             success: true,
             message: 'Category deleted successfully'

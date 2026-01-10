@@ -14,6 +14,16 @@ export const SOCKET_EVENTS = {
     ORDER_CANCELLED: 'order:cancelled',
     ORDER_NEW: 'order:new', // For managers/admin
 
+    // Category events
+    CATEGORY_CREATED: 'category:created',
+    CATEGORY_UPDATED: 'category:updated',
+    CATEGORY_DELETED: 'category:deleted',
+
+    // Product events
+    PRODUCT_CREATED: 'product:created',
+    PRODUCT_UPDATED: 'product:updated',
+    PRODUCT_DELETED: 'product:deleted',
+
     // Delivery events
     DELIVERY_ASSIGNED: 'delivery:assigned',
     DELIVERY_ACCEPTED: 'delivery:accepted',
