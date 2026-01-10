@@ -2,9 +2,9 @@
 
 A complete Node.js backend for Teas N Trees food delivery application with OTP-based authentication, comprehensive menu management, and full admin panel APIs.
 
-## Project Status: 
+## Project Status: **Ongoing**
 
-Complete backend with 39 API endpoints, 7 database models, and admin panel integration.
+Complete backend with **42 API endpoints**, 7 database models, admin panel, **input validation**, **pagination**, and **image upload**.
 
 ---
 
@@ -76,6 +76,37 @@ Complete backend with 39 API endpoints, 7 database models, and admin panel integ
 - Top selling products
 - Recent orders report
 
+#### Image Upload (3 endpoints)
+- Upload single image to Cloudinary
+- Upload multiple images (max 10)
+- Delete image from Cloudinary
+
+### Recent Enhancements
+
+#### Input Validation
+- **All endpoints validated** - express-validator integration
+- **Data type checking** - Ensures correct data formats
+- **Clear error messages** - 400 status with detailed validation errors
+- **MongoDB ID validation** - Validates all ID parameters
+- **Custom validators** - For tags, status enums, and complex fields
+
+#### Pagination Support
+- **All list endpoints** - Support page, limit, sort parameters
+- **Query parameters:**
+  - `page` - Page number (default: 1)
+  - `limit` - Items per page (default: 10, max: 100)
+  - `sortBy` - Field to sort by (default: createdAt)
+  - `order` - Sort order: asc or desc (default: desc)
+- **Pagination metadata** - Returns current page, total pages, total items
+- **Example:** `GET /api/admin/products?page=2&limit=20&sortBy=name&order=asc`
+
+#### Image Upload with Cloudinary
+- **Single upload** - Upload one image at a time
+- **Multiple upload** - Upload up to 10 images simultaneously
+- **Auto-optimization** - Images optimized for web (max 1000x1000px)
+- **Validation** - File type (JPEG, PNG, WEBP) and size (max 5MB)
+- **Cloud storage** - All images stored on Cloudinary CDN
+
 ---
 
 ## Database Models (7 Models)
@@ -113,7 +144,8 @@ backend/
 │   │       ├── deliveryController.js
 │   │       ├── userManagementController.js
 │   │       ├── settingsController.js
-│   │       └── dashboardController.js
+│   │       ├── dashboardController.js
+│   │       └── uploadController.js    # NEW: Image upload
 │   ├── routes/                    # API routes
 │   │   ├── authRoutes.js
 │   │   ├── userRoutes.js
@@ -125,19 +157,28 @@ backend/
 │   │       ├── deliveryRoutes.js
 │   │       ├── userRoutes.js
 │   │       ├── settingsRoutes.js
-│   │       └── dashboardRoutes.js
+│   │       ├── dashboardRoutes.js
+│   │       └── uploadRoutes.js    # NEW: Upload routes
 │   ├── middlewares/               # Custom middleware
 │   │   ├── auth.js                # JWT verification
 │   │   ├── roleCheck.js           # Role authorization
-│   │   └── errorHandler.js        # Error handling
+│   │   ├── errorHandler.js        # Error handling
+│   │   ├── upload.js              # NEW: Multer config
+│   │   └── validators/            # NEW: Input validators
+│   │       ├── categoryValidator.js
+│   │       ├── productValidator.js
+│   │       ├── orderValidator.js
+│   │       └── userValidator.js
 │   ├── utils/                     # Helper functions
 │   │   ├── jwtHelper.js
 │   │   ├── generateOTP.js
-│   │   └── validators.js
+│   │   ├── validators.js
+│   │   └── imageUpload.js         # NEW: Cloudinary utils
 │   ├── config/                    # Configuration
 │   │   ├── db.js                  # MongoDB connection
 │   │   ├── jwt.js                 # JWT config
-│   │   └── otp.js                 # OTP config
+│   │   ├── otp.js                 # OTP config
+│   │   └── cloudinary.js          # NEW: Cloudinary config
 │   ├── seeders/                   # Database seeders
 │   │   ├── categorySeeder.js      # 33 categories
 │   │   ├── productSeeder.js       # 239 products
@@ -168,6 +209,11 @@ JWT_SECRET=your_secret_key_here
 JWT_EXPIRE=30d
 OTP_LENGTH=6
 OTP_EXPIRE_MINUTES=10
+
+# Cloudinary Configuration (for image uploads)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
 
 ### 3. Seed Database
@@ -274,16 +320,79 @@ Content-Type: application/json
 }
 ```
 
+#### Upload Single Image
+```http
+POST /api/admin/upload/image
+Authorization: Bearer <your_token>
+Content-Type: multipart/form-data
+
+Body (form-data):
+- image: [image file]
+- folder: "products" (optional, defaults to "teasntrees")
+
+Response:
+{
+  "success": true,
+  "message": "Image uploaded successfully",
+  "data": {
+    "url": "https://res.cloudinary.com/.../image.jpg",
+    "publicId": "teasntrees/abc123",
+    "width": 800,
+    "height": 600,
+    "format": "jpg"
+  }
+}
+```
+
+#### Upload Multiple Images
+```http
+POST /api/admin/upload/images?folder=products
+Authorization: Bearer <your_token>
+Content-Type: multipart/form-data
+
+Body (form-data):
+- images: [multiple image files, max 10]
+```
+
+#### Delete Image
+```http
+DELETE /api/admin/upload/image
+Authorization: Bearer <your_token>
+Content-Type: application/json
+
+{
+  "publicId": "teasntrees/abc123"
+}
+// OR
+{
+  "url": "https://res.cloudinary.com/.../image.jpg"
+}
+```
+
+#### Pagination Examples
+```http
+# Get products with pagination
+GET /api/admin/products?page=2&limit=20&sortBy=name&order=asc
+
+# Get orders from specific page
+GET /api/admin/orders?page=1&limit=50&status=pending
+
+# Sort users by creation date
+GET /api/admin/users?page=1&sortBy=createdAt&order=desc
+```
+
 ---
 
 ## Security Features
 
-- JWT-based authentication
-- Role-based authorization (Admin, Customer, Rider, Manager)
-- OTP expiration (10 minutes)
-- Protected admin routes
-- Password-less authentication
-- Environment variable protection
+- **JWT-based authentication** - Secure token-based auth
+- **Role-based authorization** - Admin, Customer, Rider, Manager roles
+- **Input validation** - express-validator on all endpoints
+- **OTP expiration** - 10-minute TTL indexes
+- **Protected admin routes** - Authentication + role check
+- **Password-less** - No password storage
+- **File upload validation** - Type and size restrictions
+- **Environment variable protection** - Sensitive data in .env
 
 ---
 
@@ -304,6 +413,9 @@ Content-Type: application/json
 - **MongoDB** - NoSQL database
 - **Mongoose** - MongoDB ODM
 - **JWT** - Token-based authentication
+- **express-validator** - Input validation
+- **Multer** - File upload handling
+- **Cloudinary** - Cloud image storage & CDN
 - **ES6 Modules** - Modern JavaScript
 
 ---
@@ -356,8 +468,11 @@ npm run seed:products  # Seed products to database
 
 ## Highlights
 
-- **39 API Endpoints** ready for production
+- **42 API Endpoints** ready for production
 - **Complete Admin Panel Backend** with full CRUD operations
+- **Input Validation** on all mutation endpoints
+- **Pagination Support** for efficient data handling
+- **Image Upload** with Cloudinary CDN integration
 - **239 Menu Items** accurately seeded from actual menu
 - **Role-based Access Control** for security
 - **ES6 Modules** for modern code structure
@@ -368,5 +483,3 @@ npm run seed:products  # Seed products to database
 ## Support
 
 For questions or issues, contact the development team.
-
-
