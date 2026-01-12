@@ -1,11 +1,6 @@
 import ActivityLog from '../models/ActivityLog.js';
 
-/**
- * Activity logger middleware - logs all admin actions
- * @param {string} action - Action type (create, update, delete, etc.)
- * @param {string} resource - Resource type (user, product, category, etc.)
- * @returns {Function} Express middleware function
- */
+// Activity logger middleware - logs all admin actions
 export const logActivity = (action, resource) => {
     return async (req, res, next) => {
         // Store original methods
@@ -54,9 +49,7 @@ export const logActivity = (action, resource) => {
     };
 };
 
-/**
- * Sanitize request body to remove sensitive data
- */
+// Sanitize request body to remove sensitive data
 function sanitizeBody(body) {
     if (!body) return {};
 
