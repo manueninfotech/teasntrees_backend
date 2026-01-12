@@ -56,11 +56,13 @@ Complete backend with **42 API endpoints**, 7 database models, admin panel, **in
 - Delivery statistics
 - Filter by rider/status
 
-#### User Management (6 endpoints)
+#### User Management (8 endpoints)
 - View all users
 - Search users
 - Update user roles
-- Delete users
+- **Activate user** - Re-enable deactivated accounts
+- **Deactivate user** - Soft delete (recommended)
+- Delete users (permanent)
 - Filter by role
 - User statistics
 
@@ -80,6 +82,13 @@ Complete backend with **42 API endpoints**, 7 database models, admin panel, **in
 - Upload single image to Cloudinary
 - Upload multiple images (max 10)
 - Delete image from Cloudinary
+
+#### Activity Logging (5 endpoints) ⚡ **NEW**
+- View all activity logs with filters
+- Get activity statistics
+- Export activity logs  
+- View logs by admin
+- Get single activity log details
 
 ### Recent Enhancements
 
@@ -138,9 +147,27 @@ Complete backend with **42 API endpoints**, 7 database models, admin panel, **in
 - **Backward compatibility** maintained for string URLs
 - **Multer middleware** integrated with product routes
 
+#### Phase 1: User Activation & Activity Logging ⚡
+**User Activation/Deactivation:**
+- **Soft delete system** - Deactivate users without data loss
+- **Reversible suspension** - Activate/deactivate accounts anytime
+- **Login prevention** - Deactivated users blocked by auth middleware
+- **Socket.io notifications** - Real-time alerts to users and admins
+- **Self-protection** - Cannot deactivate own admin account
+
+**Activity Logging (Audit Trail):**
+- **Complete audit trail** - Track all admin actions for compliance
+- **Automatic logging** - Middleware captures all mutations
+- **Comprehensive data** - Admin, action, resource, IP, user agent, timestamps
+- **Advanced filtering** - Filter by admin, action, resource, date range
+- **Statistics dashboard** - Action/resource breakdowns, top admins
+- **Export capability** - Export up to 10,000 logs
+- **Indexed queries** - Fast searching even with large datasets
+- **Full integration** - Logging on all admin routes (users, products, categories, orders, deliveries, settings)
+
 ---
 
-## Database Models (7 Models)
+## Database Models (8 Models)
 
 1. **User** - User accounts and authentication
 2. **OTP** - Temporary OTP storage with TTL
@@ -149,6 +176,7 @@ Complete backend with **42 API endpoints**, 7 database models, admin panel, **in
 5. **Order** - Customer orders
 6. **Delivery** - Delivery tracking
 7. **Settings** - App configuration
+8. **ActivityLog** - Admin action audit trail ⚡ **NEW**
 
 ---
 
