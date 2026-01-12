@@ -2,9 +2,9 @@
 // Endpoint: /api/customer/auth
 
 import express from 'express';
-import { sendOTP, verifyOTP, completeProfile, refreshAccessToken, logout } from '../controllers/customerAuthController.js';
-import { authenticate } from '../middlewares/auth.js';
-import { otpLimiter, authLimiter } from '../middlewares/rateLimiter.js';
+import { sendOTP, verifyOTP, completeProfile, refreshAccessToken, logout } from '../../controllers/customer/authController.js';
+import { authenticate } from '../../middlewares/auth.js';
+import { otpLimiter, authLimiter } from '../../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
