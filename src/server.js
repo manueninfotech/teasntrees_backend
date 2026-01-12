@@ -19,6 +19,7 @@ import customerAuthRoutes from './routes/customer/authRoutes.js';
 import customerProfileRoutes from './routes/customer/profileRoutes.js';
 import customerProductRoutes from './routes/customer/productRoutes.js';
 import customerCategoryRoutes from './routes/customer/categoryRoutes.js';
+import customerOrderRoutes from './routes/customer/orderRoutes.js';
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminRoutes from './routes/admin/index.js';
@@ -100,6 +101,7 @@ app.use('/api/customer/auth', customerAuthRoutes);         // Customer authentic
 app.use('/api/customer/profile', customerProfileRoutes);   // Customer profile
 app.use('/api/customer/products', customerProductRoutes);  // Product browsing
 app.use('/api/customer/categories', customerCategoryRoutes); // Category browsing
+app.use('/api/customer/orders', customerOrderRoutes);      // Order management
 
 // Admin Routes  
 app.use('/api/admin/auth', adminAuthRoutes);           // Admin authentication
