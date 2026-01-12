@@ -2,9 +2,9 @@
 
 A complete Node.js backend for Teas N Trees food delivery application with OTP-based authentication, comprehensive menu management, and full admin panel APIs.
 
-## Project Status: **Ongoing**
+## Project Status: **Ongoing** 
 
-Complete backend with **42 API endpoints**, 7 database models, admin panel, **input validation**, **pagination**, and **image upload**.
+Complete backend with **50+ API endpoints**, 9 database models, admin panel, structured logging, refresh token authentication, account lockout, and comprehensive security features.
 
 ---
 
@@ -165,18 +165,46 @@ Complete backend with **42 API endpoints**, 7 database models, admin panel, **in
 - **Indexed queries** - Fast searching even with large datasets
 - **Full integration** - Logging on all admin routes (users, products, categories, orders, deliveries, settings)
 
+**Structured Logging:**
+- **Winston logger** - Production-grade logging with file rotation
+- **Morgan HTTP logging** - All API requests logged
+- **Log levels** - Configured for development vs production
+- **File rotation** - Automatic log rotation (5MB max, 5 files)
+- **Error tracking** - Separate error.log for critical issues
+
+**Refresh Token System:**
+- **Token rotation** - Old tokens revoked on refresh
+- **90-day validity** - Long-lived refresh tokens
+- **15-minute access tokens** - Short-lived for security
+- **Database storage** - RefreshToken model with TTL index
+- **IP & User Agent tracking** - Security audit trail
+- **Automatic cleanup** - Expired tokens auto-deleted
+
+**Account Lockout:**
+- **5 failed attempts** - Account locks for 30 minutes
+- **Auto-unlock** - Automatic unlock after timeout
+- **Login tracking** - Failed attempts logged
+- **Progressive security** - Prevents brute force attacks
+
+**IP Whitelisting:**
+- **Admin panel protection** - IP whitelist for production
+- **Development bypass** - Disabled in dev mode
+- **Configurable** - Environment variable based
+- **Logged access** - All admin access tracked
+
 ---
 
-## Database Models (8 Models)
+## Database Models (9 Models)
 
-1. **User** - User accounts and authentication
+1. **User** - User accounts, authentication, lockout fields
 2. **OTP** - Temporary OTP storage with TTL
 3. **Category** - 33 menu categories
 4. **Product** - 239 menu items
 5. **Order** - Customer orders
 6. **Delivery** - Delivery tracking
 7. **Settings** - App configuration
-8. **ActivityLog** - Admin action audit trail ⚡ **NEW**
+8. **ActivityLog** - Admin action audit trail
+9. **RefreshToken** - Token rotation & revocation ⚡ **NEW**
 
 ---
 
@@ -193,6 +221,7 @@ backend/
 │   │   ├── Order.js
 │   │   ├── Delivery.js
 │   │   └── Settings.js
+│   │   └── RefreshToken.js
 │   ├── controllers/               # Business logic
 │   │   ├── authController.js      # Authentication
 │   │   ├── userController.js      # User profiles
@@ -328,6 +357,8 @@ Content-Type: application/json
 {
   "mobile": "9876543210"
 }
+
+Rate Limit: 3 requests per hour
 ```
 
 #### Verify OTP
@@ -343,9 +374,56 @@ Content-Type: application/json
 Response:
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",  # 15 min validity
+  "refreshToken": "abc123def456...",  # 90 days validity ⚡ NEW
   "user": { ... }
 }
+
+Rate Limit: 5 requests per 15 minutes
+```
+
+#### Refresh Access Token ⚡ **NEW**
+```http
+POST /api/auth/refresh-token
+Content-Type: application/json
+
+{
+  "refreshToken": "abc123def456..."
+}
+
+Response:
+{
+  "success": true,
+  "token": "new_access_token...",  # New 15 min token
+  "refreshToken": "new_refresh_token..."  # New 90 day token (old one revoked)
+}
+
+Features:
+- Token rotation (old refresh token invalidated)
+- Checks if user is still active
+- Logs refresh events
+
+Rate Limit: 5 requests per 15 minutes
+```
+
+#### Logout ⚡ **NEW**
+```http
+POST /api/auth/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "abc123def456..."  # Optional
+}
+
+Response:
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+
+Features:
+- Revokes refresh token from database
+- Prevents further use of the token
 ```
 
 ### Admin Endpoints (Protected)
@@ -451,14 +529,47 @@ GET /api/admin/users?page=1&sortBy=createdAt&order=desc
 
 ## Security Features
 
-- **JWT-based authentication** - Secure token-based auth
+### Authentication & Access Control
+- **JWT-based authentication** - Secure token-based auth (15-minute access tokens)
+- **Refresh tokens** - 90-day validity with rotation \u26a1 **NEW**
+- **Token revocation** - Database-backed logout \u26a1 **NEW**
 - **Role-based authorization** - Admin, Customer, Rider, Manager roles
-- **Input validation** - express-validator on all endpoints
 - **OTP expiration** - 10-minute TTL indexes
-- **Protected admin routes** - Authentication + role check
-- **Password-less** - No password storage
-- **File upload validation** - Type and size restrictions
-- **Environment variable protection** - Sensitive data in .env
+- **Account lockout** - 5 failed attempts = 30 min lock \u26a1 **NEW**
+- **Password-less** - No password storage, OTP-only
+
+### Security Middleware
+- **Helmet** - Security HTTP headers \u26a1 **NEW**
+- **NoSQL Injection Prevention** - Input sanitization \u26a1 **NEW**
+- **XSS Protection** - Cross-site scripting prevention \u26a1 **NEW**
+- **Rate Limiting** - DDoS and brute force protection \u26a1 **NEW**
+  - OTP: 3 requests/hour
+  - Auth: 5 requests/15min
+  - API: 100 requests/15min
+- **CORS** - Configured origin control
+- **IP Whitelisting** - Admin panel protection (production) \u26a1 **NEW**
+
+### Audit & Monitoring
+- **Activity Logging** - Complete audit trail for all admin actions
+- **Structured Logging** - Winston + Morgan for production \u26a1 **NEW**
+- **File Rotation** - Automatic log rotation (5MB max) \u26a1 **NEW**
+- **Security Events** - Failed login tracking, lockout events \u26a1 **NEW**
+
+### Data Protection
+- **Input validation** - express-validator on all endpoints
+- **File upload validation** - Type and size restrictions (Cloudinary)
+- **Environment variables** - Sensitive data in .env
+- **Protected Routes** - Authentication + role check on admin routes
+- **Payload Limits** - 10MB maximum request size \u26a1 **NEW**
+
+### Response Headers (Helmet)
+```
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+Strict-Transport-Security: max-age=...
+X-XSS-Protection: 0
+```
 
 ---
 
