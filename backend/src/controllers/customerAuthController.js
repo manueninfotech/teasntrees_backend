@@ -1,4 +1,6 @@
-// Authentication Controller
+// Customer Authentication Controller
+// Role: 'customer' (auto-assigned)
+// App: Customer App
 
 import User from '../models/User.js';
 import OTP from '../models/OTP.js';
@@ -348,7 +350,7 @@ const completeProfile = async (req, res) => {
             name: sanitizeString(name),
             email: sanitizeString(email).toLowerCase(),
             address: sanitizeString(address),
-            role: 'customer',  // Default to customer for backward compatibility
+            role: 'customer',  // LOCKED: Customer app always creates customers
             isProfileComplete: true
         };
 

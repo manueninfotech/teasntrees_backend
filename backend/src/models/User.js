@@ -70,6 +70,12 @@ const userSchema = new mongoose.Schema({
     isLocked: {
         type: Boolean,
         default: false
+    },
+
+    // Approval status (for manager/rider)
+    isApproved: {
+        type: Boolean,
+        default: null  // null = not applicable (customer/admin), true/false for manager/rider
     }
 
 }, {
