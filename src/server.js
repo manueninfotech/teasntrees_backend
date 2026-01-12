@@ -15,9 +15,10 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 
 // Routes
-import customerAuthRoutes from './routes/customerAuthRoutes.js';
-import userRoutes from './routes/userRoutes.js';
-import adminAuthRoutes from './routes/adminAuthRoutes.js';
+import customerAuthRoutes from './routes/customer/authRoutes.js';
+import customerProfileRoutes from './routes/customer/profileRoutes.js';
+import adminAuthRoutes from './routes/admin/authRoutes.js';
+import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
@@ -92,16 +93,14 @@ app.use(express.static(join(__dirname, '..')));
 import connectDB from './config/db.js';
 connectDB();
 
-// Routes
-app.use('/api/users', userRoutes);
+// Customer Routes
+app.use('/api/customer/auth', customerAuthRoutes);     // Customer authentication
+app.use('/api/customer/profile', customerProfileRoutes); // Customer profile
 
-// IMPORTANT: Register more specific routes BEFORE general routes
-// Authentication Routes
-app.use('/api/customer/auth', customerAuthRoutes);  // Customer app auth
-app.use('/api/admin/auth', adminAuthRoutes);        // Admin panel auth
-
-// Admin CRUD routes (this catches all /api/admin/* except /api/admin/auth/*)
-app.use('/api/admin', adminRoutes);
+// Admin Routes  
+app.use('/api/admin/auth', adminAuthRoutes);           // Admin authentication
+app.use('/api/admin/profile', adminProfileRoutes);     // Admin profile
+app.use('/api/admin', adminRoutes);                    // Admin CRUD operations
 
 // Test Route
 app.get("/", (req, res) => {

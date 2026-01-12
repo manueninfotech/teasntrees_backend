@@ -1,15 +1,15 @@
-// Customer Authentication Controller
-// Role: 'customer' (auto-assigned)
-// App: Customer App
+// Admin Authentication Controller
+// Role: 'admin' (auto-assigned)
+// App: Admin Panel
 
-import User from '../models/User.js';
-import OTP from '../models/OTP.js';
-import RefreshToken from '../models/RefreshToken.js';
-import { generateOTP } from '../utils/generateOTP.js';
-import { generateToken, generateRefreshToken } from '../utils/jwtHelper.js';
-import { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } from '../utils/validators.js';
-import otpConfig from '../config/otp.js';
-import logger from '../config/logger.js';
+import User from '../../models/User.js';
+import OTP from '../../models/OTP.js';
+import RefreshToken from '../../models/RefreshToken.js';
+import { generateOTP } from '../../utils/generateOTP.js';
+import { generateToken, generateRefreshToken } from '../../utils/jwtHelper.js';
+import { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } from '../../utils/validators.js';
+import otpConfig from '../../config/otp.js';
+import logger from '../../config/logger.js';
 
 // Send OTP to mobile number
 
@@ -350,7 +350,7 @@ const completeProfile = async (req, res) => {
             name: sanitizeString(name),
             email: sanitizeString(email).toLowerCase(),
             address: sanitizeString(address),
-            role: 'customer',  // LOCKED: Customer app always creates customers
+            role: 'admin',  // LOCKED: Admin panel always creates admins
             isProfileComplete: true
         };
 
