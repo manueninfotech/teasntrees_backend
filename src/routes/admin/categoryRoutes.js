@@ -11,6 +11,7 @@ import {
     validateUpdateCategory,
     validateCategoryId
 } from '../../middlewares/validators/categoryValidator.js';
+import { logActivity } from '../../middlewares/activityLogger.js';
 
 const router = express.Router();
 // Get all categories
@@ -20,12 +21,12 @@ router.get('/', getAllCategories);
 router.get('/:id', validateCategoryId, getCategoryById);
 
 // Create new category
-router.post('/', validateCreateCategory, createCategory);
+router.post('/', validateCreateCategory, logActivity('create', 'category'), createCategory);
 
 // update category
-router.put('/:id', validateUpdateCategory, updateCategory);
+router.put('/:id', validateUpdateCategory, logActivity('update', 'category'), updateCategory);
 
 // delete category
-router.delete('/:id', validateCategoryId, deleteCategory);
+router.delete('/:id', validateCategoryId, logActivity('delete', 'category'), deleteCategory);
 
 export default router;

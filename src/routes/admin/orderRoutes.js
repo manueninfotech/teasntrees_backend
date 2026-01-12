@@ -12,6 +12,7 @@ import {
     validateAssignRider,
     validateOrderId
 } from '../../middlewares/validators/orderValidator.js';
+import { logActivity } from '../../middlewares/activityLogger.js';
 
 const router = express.Router();
 
@@ -25,12 +26,12 @@ router.get('/', getAllOrders);
 router.get('/:id', validateOrderId, getOrderById);
 
 //Update order status
-router.put('/:id/status', validateUpdateOrderStatus, updateOrderStatus);
+router.put('/:id/status', validateUpdateOrderStatus, logActivity('update', 'order'), updateOrderStatus);
 
 // Assign delivery rider
-router.put('/:id/assign-rider', validateAssignRider, assignDeliveryRider);
+router.put('/:id/assign-rider', validateAssignRider, logActivity('assign', 'order'), assignDeliveryRider);
 
 // Cancel order
-router.put('/:id/cancel', validateOrderId, cancelOrder);
+router.put('/:id/cancel', validateOrderId, logActivity('cancel', 'order'), cancelOrder);
 
 export default router;

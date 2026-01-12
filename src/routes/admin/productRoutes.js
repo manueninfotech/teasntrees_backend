@@ -15,6 +15,7 @@ import {
     validateProductId,
     validateBulkUpdate
 } from '../../middlewares/validators/productValidator.js';
+import { logActivity } from '../../middlewares/activityLogger.js';
 import upload from '../../middlewares/upload.js';
 
 const router = express.Router();
@@ -29,18 +30,18 @@ router.get('/:id', validateProductId, getProductById);
 router.get('/category/:categoryId', getProductsByCategory);
 
 // Create new product (with optional image upload)
-router.post('/', upload.single('image'), validateCreateProduct, createProduct);
+router.post('/', upload.single('image'), validateCreateProduct, logActivity('create', 'product'), createProduct);
 
 // update product (with optional image upload)
-router.put('/:id', upload.single('image'), validateUpdateProduct, updateProduct);
+router.put('/:id', upload.single('image'), validateUpdateProduct, logActivity('update', 'product'), updateProduct);
 
 // delete product
-router.delete('/:id', validateProductId, deleteProduct);
+router.delete('/:id', validateProductId, logActivity('delete', 'product'), deleteProduct);
 
 // toggle product availability
-router.put('/:id/availability', validateProductId, toggleProductAvailability);
+router.put('/:id/availability', validateProductId, logActivity('update', 'product'), toggleProductAvailability);
 
 // bulk update products
-router.put('/bulk-update', validateBulkUpdate, bulkUpdateProducts);
+router.put('/bulk-update', validateBulkUpdate, logActivity('update', 'product'), bulkUpdateProducts);
 
 export default router;

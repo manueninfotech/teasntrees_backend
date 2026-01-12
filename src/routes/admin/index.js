@@ -11,6 +11,7 @@ import userRoutes from './userRoutes.js';
 import settingsRoutes from './settingsRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
+import activityRoutes from './activityRoutes.js';
 
 const router = express.Router();
 
@@ -27,5 +28,6 @@ router.use('/users', userRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/upload', uploadRoutes);
+router.use('/activity-logs', activityRoutes);
 
 export default router;
