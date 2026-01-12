@@ -1,8 +1,8 @@
-// Admin Authentication Routes
-// Endpoint: /api/admin/auth
+// Customer Authentication Routes
+// Endpoint: /api/customer/auth
 
 import express from 'express';
-import { sendOTP, verifyOTP, completeProfile, refreshAccessToken, logout } from '../controllers/adminAuthController.js';
+import { sendOTP, verifyOTP, completeProfile, refreshAccessToken, logout } from '../controllers/customerAuthController.js';
 import { authenticate } from '../middlewares/auth.js';
 import { otpLimiter, authLimiter } from '../middlewares/rateLimiter.js';
 

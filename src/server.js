@@ -15,7 +15,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 
 // Routes
-import authRoutes from './routes/authRoutes.js';
+import customerAuthRoutes from './routes/customerAuthRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import adminAuthRoutes from './routes/adminAuthRoutes.js';
 import adminRoutes from './routes/admin/index.js';
@@ -93,12 +93,12 @@ import connectDB from './config/db.js';
 connectDB();
 
 // Routes
-app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
 // IMPORTANT: Register more specific routes BEFORE general routes
-// Admin authentication must come before /api/admin to avoid route conflicts
-app.use('/api/admin/auth', adminAuthRoutes);
+// Authentication Routes
+app.use('/api/customer/auth', customerAuthRoutes);  // Customer app auth
+app.use('/api/admin/auth', adminAuthRoutes);        // Admin panel auth
 
 // Admin CRUD routes (this catches all /api/admin/* except /api/admin/auth/*)
 app.use('/api/admin', adminRoutes);
