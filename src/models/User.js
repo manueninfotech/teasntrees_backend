@@ -57,7 +57,21 @@ const userSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+
+    // Account lockout fields
+    loginAttempts: {
+        type: Number,
+        default: 0
+    },
+    lockUntil: {
+        type: Date
+    },
+    isLocked: {
+        type: Boolean,
+        default: false
     }
+
 }, {
     timestamps: true
 });

@@ -2,10 +2,12 @@
 
 import User from '../models/User.js';
 import OTP from '../models/OTP.js';
+import RefreshToken from '../models/RefreshToken.js';
 import { generateOTP } from '../utils/generateOTP.js';
-import { generateToken } from '../utils/jwtHelper.js';
+import { generateToken, generateRefreshToken } from '../utils/jwtHelper.js';
 import { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } from '../utils/validators.js';
 import otpConfig from '../config/otp.js';
+import logger from '../config/logger.js';
 
 // Send OTP to mobile number
 
@@ -37,8 +39,8 @@ const sendOTP = async (req, res) => {
         // TODO: Send OTP via SMS (Twilio integration)
         // For now, just log to console for development
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log(`📱 OTP for ${mobile}: ${otp}`);
-        console.log(`⏰ Expires at: ${otpDoc.expiresAt}`);
+        console.log(`OTP for ${mobile}: ${otp} `);
+        console.log(`Expires at: ${otpDoc.expiresAt} `);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
         return res.status(200).json({
@@ -147,6 +149,27 @@ const verifyOTP = async (req, res) => {
                     role: existingUser.role
                 });
 
+                // Generate refresh token
+                const refreshToken = generateRefreshToken();
+
+                // Store refresh token in database
+                const expiresAt = new Date();
+                expiresAt.setDate(expiresAt.getDate() + 90); // 90 days
+
+                await RefreshToken.create({
+                    token: refreshToken,
+                    user: existingUser._id,
+                    expiresAt,
+                    ipAddress: req.ip,
+                    userAgent: req.headers['user-agent']
+                });
+
+                logger.info('User login successful', {
+                    userId: existingUser._id,
+                    mobile: existingUser.mobile,
+                    role: existingUser.role
+                });
+
                 // Delete OTP after successful verification
                 await OTP.deleteOne({ _id: otpDoc._id });
 
@@ -155,6 +178,7 @@ const verifyOTP = async (req, res) => {
                     message: 'Login successful',
                     data: {
                         token,
+                        refreshToken,
                         user: {
                             id: existingUser._id,
                             name: existingUser.name,
@@ -333,22 +357,81 @@ const refreshAccessToken = async (req, res) => {
         const { refreshToken } = req.body;
 
         if (!refreshToken) {
+            logger.warn('Refresh token missing in request');
             return res.status(401).json({
                 success: false,
                 message: 'Refresh token required'
             });
         }
 
-        // Note: Since we're not using refresh tokens yet in Phase 1,
-        // this is a placeholder for future implementation
-        // For now, just return an error
-        return res.status(501).json({
-            success: false,
-            message: 'Refresh token feature coming soon. Please login again.'
+        // Find token in database
+        const storedToken = await RefreshToken.findOne({
+            token: refreshToken,
+            isRevoked: false
+        }).populate('user');
+
+        if (!storedToken) {
+            logger.warn('Invalid refresh token attempt', { token: refreshToken.substring(0, 20) });
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid or revoked refresh token'
+            });
+        }
+
+        // Check expiry
+        if (storedToken.expiresAt < new Date()) {
+            logger.warn('Expired refresh token', { userId: storedToken.user._id });
+            return res.status(401).json({
+                success: false,
+                message: 'Refresh token expired. Please login again.'
+            });
+        }
+
+        // Check if user is still active
+        if (!storedToken.user.isActive) {
+            logger.warn('Refresh attempt by deactivated user', { userId: storedToken.user._id });
+            return res.status(403).json({
+                success: false,
+                message: 'Account is deactivated'
+            });
+        }
+
+        // TOKEN ROTATION: Revoke old token
+        storedToken.isRevoked = true;
+        storedToken.revokedAt = new Date();
+
+        const newRefreshToken = generateRefreshToken();
+        storedToken.replacedBy = newRefreshToken;
+        await storedToken.save();
+
+        // Create new refresh token
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90);
+
+        await RefreshToken.create({
+            token: newRefreshToken,
+            user: storedToken.user._id,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        // Generate new access token
+        const accessToken = generateToken({
+            userId: storedToken.user._id,
+            role: storedToken.user.role
+        });
+
+        logger.info('Token refreshed successfully', { userId: storedToken.user._id });
+
+        res.json({
+            success: true,
+            token: accessToken,
+            refreshToken: newRefreshToken
         });
 
     } catch (error) {
-        console.error('Error in refreshAccessToken:', error);
+        logger.error('Error in refreshAccessToken', { error: error.message });
         return res.status(500).json({
             success: false,
             message: 'Failed to refresh token'
@@ -356,18 +439,31 @@ const refreshAccessToken = async (req, res) => {
     }
 };
 
-// Logout user
+
 const logout = async (req, res) => {
     try {
-        // For now, logout is stateless (JWT invalidation would require redis/database)
-        // Future: Implement token blacklist or refresh token revocation
+        const { refreshToken } = req.body;
+
+        if (refreshToken) {
+            const result = await RefreshToken.updateOne(
+                { token: refreshToken },
+                {
+                    isRevoked: true,
+                    revokedAt: new Date()
+                }
+            );
+
+            logger.info('User logged out', {
+                tokenRevoked: result.modifiedCount > 0
+            });
+        }
 
         res.status(200).json({
             success: true,
             message: 'Logged out successfully'
         });
     } catch (error) {
-        console.error('Error in logout:', error);
+        logger.error('Error in logout', { error: error.message });
         return res.status(500).json({
             success: false,
             message: 'Failed to logout'
