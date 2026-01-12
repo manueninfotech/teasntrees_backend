@@ -14,6 +14,7 @@ import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
+import morgan from 'morgan';
 
 // Routes
 import authRoutes from './routes/authRoutes.js';
@@ -26,6 +27,7 @@ import { socketAuth } from './middlewares/socketAuth.js';
 import { setupSocketHandlers } from './sockets/socketHandlers.js';
 import { SocketService } from './services/socketService.js';
 import { apiLimiter } from './middlewares/rateLimiter.js';
+import logger from './config/logger.js';
 
 // Initialize express app
 const app = express();
@@ -58,6 +60,12 @@ app.use(helmet()); // Set security HTTP headers
 app.use(mongoSanitize()); // Prevent NoSQL injection
 app.use(express.json({ limit: '10mb' })); // Body limit to prevent payload attacks
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// HTTP request logging
+const morganFormat = process.env.NODE_ENV === 'production' ? 'combined' : 'dev';
+app.use(morgan(morganFormat, {
+    stream: logger.stream
+}));
 
 // CORS configuration
 const corsOptions = {

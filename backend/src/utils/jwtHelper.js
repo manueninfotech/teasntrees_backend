@@ -4,32 +4,19 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import jwtConfig from '../config/jwt.js';
 
-/**
- * Generate a JWT access token (short-lived)
- * @param {Object} payload - Data to encode
- * @param {String} expiresIn - Expiration time
- * @returns {String} - Encoded token
- */
+// Generate a JWT access token (short-lived)
 const generateToken = (payload, expiresIn = '15m') => {  // Changed default to 15 minutes
     return jwt.sign(payload, jwtConfig.secret, {
         expiresIn
     });
 };
 
-/**
- * Generate a cryptographically secure refresh token
- * @returns {String} - Random hex string (128 chars)
- */
+// Generate a cryptographically secure refresh token
 const generateRefreshToken = () => {
     return crypto.randomBytes(64).toString('hex');
 };
 
-/**
- * Verify and decode a JWT token
- * @param {String} token - JWT token to verify
- * @returns {Object} - Decoded token
- * @throws {Error} - If token is invalid or expired
- */
+// Verify and decode a JWT token
 const verifyToken = (token) => {
     try {
         return jwt.verify(token, jwtConfig.secret);
@@ -38,20 +25,12 @@ const verifyToken = (token) => {
     }
 };
 
-/**
- * Verify refresh token format (actual validation against DB happens in controller)
- * @param {String} token - Refresh token to verify
- * @returns {Boolean} - True if format is valid
- */
+// Verify refresh token format (actual validation against DB happens in controller)
 const verifyRefreshTokenFormat = (token) => {
     return token && typeof token === 'string' && token.length === 128;
 };
 
-/**
- * Decode a JWT token without verification
- * @param {String} token - JWT token to decode
- * @returns {Object} - Decoded token
- */
+// Decode a JWT token without verification
 const decodeToken = (token) => {
     return jwt.decode(token);
 };
