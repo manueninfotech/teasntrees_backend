@@ -1,6 +1,7 @@
 import express from 'express';
 import { authenticate } from '../../middlewares/auth.js';
 import { checkRole } from '../../middlewares/roleCheck.js';
+import { checkAdminIP } from '../../middlewares/ipWhitelist.js';
 
 // Import all admin route modules
 import categoryRoutes from './categoryRoutes.js';
@@ -15,7 +16,8 @@ import activityRoutes from './activityRoutes.js';
 
 const router = express.Router();
 
-// Apply authentication and admin role check to all admin routes
+// Apply IP whitelist (production only), authentication, and admin role check
+router.use(checkAdminIP);
 router.use(authenticate);
 router.use(checkRole(['admin']));
 
