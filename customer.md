@@ -7,7 +7,7 @@ Base URL: `/api/customer`
 
 ---
 
-## 🔐 Authentication
+## Authentication
 
 ### Send OTP
 ```http
@@ -79,7 +79,7 @@ Authorization: Bearer {token}
 
 ---
 
-## 👤 Profile Management
+## Profile Management
 
 ### Get Profile
 ```http
@@ -101,7 +101,7 @@ Authorization: Bearer {token}
 
 ---
 
-## 📦 Products
+## Products
 
 ### Get All Products
 **With Pagination, Search & Filters**
@@ -157,7 +157,7 @@ GET /api/customer/products/category/{categoryId}?page=1&limit=20
 
 ---
 
-## 🏷️ Categories
+## Categories
 
 ### Get All Categories
 ```http
@@ -185,7 +185,7 @@ GET /api/customer/categories/{categoryId}
 
 ---
 
-## 🛍️ Orders
+## Orders
 
 ### Create Order
 ```http
@@ -276,7 +276,7 @@ Note: Only pending/accepted orders can be cancelled
 
 ---
 
-## 📊 Order Status Lifecycle
+## Order Status Lifecycle
 
 ```
 pending → accepted → preparing → ready → assigned → picked_up → in_transit → delivered
@@ -286,7 +286,7 @@ pending → accepted → preparing → ready → assigned → picked_up → in_t
 
 ---
 
-## 🏷️ Available Product Tags
+## Available Product Tags
 
 - `new-intro` - New menu items
 - `must-try` - Recommended items  
@@ -295,7 +295,7 @@ pending → accepted → preparing → ready → assigned → picked_up → in_t
 
 ---
 
-## 🔒 Security Features
+## Security Features
 
 - **Rate Limiting**: OTP (3/hour), Auth (5/15min)
 - **Account Lockout**: 5 failed attempts = 30 min lock
