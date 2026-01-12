@@ -33,7 +33,7 @@ export const getAllProducts = async (req, res) => {
         const skip = (page - 1) * limit;
 
         const products = await Product.find(query)
-            .populate('category', 'name slug')
+            .populate('category', 'name description icon')
             .select('-__v')
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
@@ -66,7 +66,7 @@ export const getAllProducts = async (req, res) => {
 export const getProductById = async (req, res) => {
     try {
         const product = await Product.findById(req.params.id)
-            .populate('category', 'name slug description');
+            .populate('category', 'name description icon');
 
         if (!product) {
             return res.status(404).json({
@@ -108,7 +108,7 @@ export const getProductsByCategory = async (req, res) => {
             category: categoryId,
             isAvailable: true
         })
-            .populate('category', 'name slug')
+            .populate('category', 'name description icon')
             .limit(parseInt(limit))
             .skip(skip);
 
