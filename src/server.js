@@ -12,6 +12,8 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import helmet from 'helmet';
+import mongoSanitize from 'express-mongo-sanitize';
 
 // Routes
 import authRoutes from './routes/authRoutes.js';
@@ -23,6 +25,7 @@ import { notFound, errorHandler } from './middlewares/errorHandler.js';
 import { socketAuth } from './middlewares/socketAuth.js';
 import { setupSocketHandlers } from './sockets/socketHandlers.js';
 import { SocketService } from './services/socketService.js';
+import { apiLimiter } from './middlewares/rateLimiter.js';
 
 // Initialize express app
 const app = express();
@@ -50,10 +53,22 @@ const socketService = new SocketService(io);
 app.set('io', io);
 app.set('socketService', socketService);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Security Middleware
+app.use(helmet()); // Set security HTTP headers
+app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(express.json({ limit: '10mb' })); // Body limit to prevent payload attacks
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// CORS configuration
+const corsOptions = {
+    origin: process.env.FRONTEND_URL || '*',
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Rate limiting for API routes
+app.use('/api/', apiLimiter);
 
 // Serve static files (for test-api.html)
 app.use(express.static(join(__dirname, '..')));
