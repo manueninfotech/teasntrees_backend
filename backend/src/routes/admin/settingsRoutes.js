@@ -5,6 +5,7 @@ import {
     getDeliveryZones,
     updateDeliveryZones
 } from '../../controllers/admin/settingsController.js';
+import { logActivity } from '../../middlewares/activityLogger.js';
 
 const router = express.Router();
 
@@ -12,12 +13,12 @@ const router = express.Router();
 router.get('/delivery-zones', getDeliveryZones);
 
 // update delivery zones
-router.put('/delivery-zones', updateDeliveryZones);
+router.put('/delivery-zones', logActivity('update', 'settings'), updateDeliveryZones);
 
 // Get application settings
 router.get('/', getSettings);
 
 // Update application settings
-router.put('/', updateSettings);
+router.put('/', logActivity('update', 'settings'), updateSettings);
 
 export default router;
