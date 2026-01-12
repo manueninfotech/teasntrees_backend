@@ -105,16 +105,48 @@ const verifyOTP = async (req, res) => {
 
         // Check if OTP matches
         if (otpDoc.otp !== otp) {
-            // Increment attempts
+            // Increment OTP attempts
             otpDoc.attempts += 1;
             await otpDoc.save();
 
-            // Block after max failed attempts
+            // Track failed login attempts if user exists
+            const failedUser = await User.findOne({ mobile });
+            if (failedUser) {
+                failedUser.loginAttempts += 1;
+
+                // Lock account after 5 failed attempts
+                if (failedUser.loginAttempts >= 5) {
+                    failedUser.isLocked = true;
+                    failedUser.lockUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+                    await failedUser.save();
+
+                    logger.warn('Account locked due to failed login attempts', {
+                        userId: failedUser._id,
+                        mobile: failedUser.mobile,
+                        attempts: failedUser.loginAttempts
+                    });
+
+                    await OTP.deleteOne({ _id: otpDoc._id });
+                    return res.status(423).json({
+                        success: false,
+                        message: 'Account locked for 30 minutes due to too many failed attempts.'
+                    });
+                }
+
+                await failedUser.save();
+                logger.warn('Failed login attempt', {
+                    userId: failedUser._id,
+                    mobile: failedUser.mobile,
+                    attempts: failedUser.loginAttempts
+                });
+            }
+
+            // Block after max OTP failed attempts
             if (otpDoc.attempts >= otpConfig.maxAttempts) {
                 await OTP.deleteOne({ _id: otpDoc._id });
                 return res.status(429).json({
                     success: false,
-                    message: 'Too many failed attempts. Please request a new OTP.'
+                    message: 'Too many failed OTP attempts. Please request a new OTP.'
                 });
             }
 
@@ -133,7 +165,30 @@ const verifyOTP = async (req, res) => {
         const existingUser = await User.findOne({ mobile });
 
         if (existingUser) {
-            // User exists - check if account is active
+            // Check if account is locked
+            if (existingUser.isLocked && existingUser.lockUntil > new Date()) {
+                const minutesLeft = Math.ceil((existingUser.lockUntil - new Date()) / (60 * 1000));
+                logger.warn('Login attempt on locked account', {
+                    userId: existingUser._id,
+                    mobile: existingUser.mobile,
+                    minutesRemaining: minutesLeft
+                });
+                return res.status(423).json({
+                    success: false,
+                    message: `Account is temporarily locked due to too many failed attempts. Try again in ${minutesLeft} minutes.`
+                });
+            }
+
+            // Reset lock if time expired
+            if (existingUser.lockUntil && existingUser.lockUntil < new Date()) {
+                existingUser.isLocked = false;
+                existingUser.loginAttempts = 0;
+                existingUser.lockUntil = null;
+                await existingUser.save();
+                logger.info('Account auto-unlocked', { userId: existingUser._id });
+            }
+
+            // Check if account is active
             if (!existingUser.isActive) {
                 return res.status(403).json({
                     success: false,
@@ -169,6 +224,12 @@ const verifyOTP = async (req, res) => {
                     mobile: existingUser.mobile,
                     role: existingUser.role
                 });
+
+                // Reset login attempts on successful login
+                existingUser.loginAttempts = 0;
+                existingUser.isLocked = false;
+                existingUser.lockUntil = null;
+                await existingUser.save();
 
                 // Delete OTP after successful verification
                 await OTP.deleteOne({ _id: otpDoc._id });
