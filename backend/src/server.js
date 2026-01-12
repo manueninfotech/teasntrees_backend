@@ -10,10 +10,8 @@ const __dirname = dirname(__filename);
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import helmet from 'helmet';
-import mongoSanitize from 'express-mongo-sanitize';
 import morgan from 'morgan';
 
 // Routes
@@ -56,8 +54,17 @@ app.set('io', io);
 app.set('socketService', socketService);
 
 // Security Middleware
-app.use(helmet()); // Set security HTTP headers
-app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "script-src": ["'self'", "'unsafe-inline'"], // Allow inline scripts for test pages
+            "script-src-attr": ["'unsafe-inline'"], // Allow inline event handlers (onclick, etc.)
+        },
+    },
+})); // Set security HTTP headers
+// Temporarily disabled due to compatibility issue with Express
+// app.use(mongoSanitize({ replaceWith: '_' })); // Prevent NoSQL injection
 app.use(express.json({ limit: '10mb' })); // Body limit to prevent payload attacks
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 

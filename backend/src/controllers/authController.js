@@ -39,9 +39,12 @@ const sendOTP = async (req, res) => {
         // TODO: Send OTP via SMS (Twilio integration)
         // For now, just log to console for development
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log(`OTP for ${mobile}: ${otp} `);
-        console.log(`Expires at: ${otpDoc.expiresAt} `);
+        console.log(`OTP for ${mobile}: ${otp}`);
+        console.log(`Expires at: ${otpDoc.expiresAt}`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+        // Also log with Winston for visibility
+        logger.info('OTP Generated', { mobile, otp, expiresAt: otpDoc.expiresAt });
 
         return res.status(200).json({
             success: true,
