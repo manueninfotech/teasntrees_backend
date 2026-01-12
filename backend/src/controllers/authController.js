@@ -1,6 +1,5 @@
 // Authentication Controller
 
-
 import User from '../models/User.js';
 import OTP from '../models/OTP.js';
 import { generateOTP } from '../utils/generateOTP.js';
@@ -132,9 +131,17 @@ const verifyOTP = async (req, res) => {
         const existingUser = await User.findOne({ mobile });
 
         if (existingUser) {
-            // User exists - check profile completion
+            // User exists - check if account is active
+            if (!existingUser.isActive) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Account is deactivated. Please contact support.'
+                });
+            }
+
+            // Check profile completion
             if (existingUser.isProfileComplete) {
-                // Profile complete - generate token and login
+                // Profile complete - generate tokens and login
                 const token = generateToken({
                     userId: existingUser._id,
                     role: existingUser.role
@@ -198,17 +205,7 @@ const verifyOTP = async (req, res) => {
     }
 };
 
-/**
- * Complete user profile after OTP verification
- * DEPRECATED: Use role-specific auth endpoints instead
- * - /api/admin/auth/verify-otp
- * - /api/customer/auth/verify-otp
- * - /api/rider/auth/verify-otp
- * - /api/manager/auth/verify-otp
- * 
- * POST /api/auth/complete-profile
- * Body: { mobile, name, email, address }
- */
+// Complete user profile after OTP verification
 const completeProfile = async (req, res) => {
     try {
         const { mobile, name, email, address } = req.body;
@@ -330,8 +327,58 @@ const completeProfile = async (req, res) => {
     }
 };
 
+// Refresh access token using refresh token
+const refreshAccessToken = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: 'Refresh token required'
+            });
+        }
+
+        // Note: Since we're not using refresh tokens yet in Phase 1,
+        // this is a placeholder for future implementation
+        // For now, just return an error
+        return res.status(501).json({
+            success: false,
+            message: 'Refresh token feature coming soon. Please login again.'
+        });
+
+    } catch (error) {
+        console.error('Error in refreshAccessToken:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to refresh token'
+        });
+    }
+};
+
+// Logout user
+const logout = async (req, res) => {
+    try {
+        // For now, logout is stateless (JWT invalidation would require redis/database)
+        // Future: Implement token blacklist or refresh token revocation
+
+        res.status(200).json({
+            success: true,
+            message: 'Logged out successfully'
+        });
+    } catch (error) {
+        console.error('Error in logout:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to logout'
+        });
+    }
+};
+
 export {
     sendOTP,
     verifyOTP,
-    completeProfile
+    completeProfile,
+    refreshAccessToken,
+    logout
 };
