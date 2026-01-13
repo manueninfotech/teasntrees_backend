@@ -3,6 +3,7 @@
 
 import Cart from '../../models/Cart.js';
 import Product from '../../models/Product.js';
+import Order from '../../models/Order.js';
 import logger from '../../config/logger.js';
 
 // Get customer's cart
@@ -267,6 +268,120 @@ export const clearCart = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to clear cart'
+        });
+    }
+};
+
+// Checkout - Convert cart to order
+export const checkoutCart = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const { deliveryAddress, deliveryInstructions, paymentMethod = 'COD' } = req.body;
+
+        // Get cart
+        const cart = await Cart.findOne({ userId }).populate('items.product');
+
+        if (!cart || cart.items.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cart is empty'
+            });
+        }
+
+        // Validate delivery address
+        if (!deliveryAddress) {
+            return res.status(400).json({
+                success: false,
+                message: 'Delivery address is required'
+            });
+        }
+
+        // Validate all items are still available
+        const unavailableItems = [];
+        const orderItems = [];
+
+        for (const item of cart.items) {
+            if (!item.product || !item.product.isAvailable) {
+                unavailableItems.push(item.name);
+            } else {
+                orderItems.push({
+                    product: item.product._id,
+                    name: item.product.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    customization: item.customization
+                });
+            }
+        }
+
+        if (unavailableItems.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Some items are no longer available',
+                unavailableItems
+            });
+        }
+
+        // Calculate totals
+        const subtotal = cart.subtotal;
+        const deliveryCharge = 50;
+        const tax = subtotal * 0.05;
+        const total = subtotal + deliveryCharge + tax;
+
+        // Create order
+        const order = await Order.create({
+            customerId: userId,
+            items: orderItems,
+            subtotal,
+            deliveryCharge,
+            tax,
+            total,
+            deliveryAddress: {
+                address: deliveryAddress
+            },
+            paymentMethod,
+            specialInstructions: deliveryInstructions,
+            status: 'pending'
+        });
+
+        // Clear cart after successful order
+        cart.items = [];
+        await cart.save();
+
+        logger.info('Order created from cart', {
+            orderId: order._id,
+            orderNumber: order.orderNumber,
+            customerId: userId,
+            total
+        });
+
+        // Emit socket event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyUser(userId.toString(), 'order:created', {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                total: order.total
+            });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Order placed successfully',
+            data: {
+                orderNumber: order.orderNumber,
+                orderId: order._id,
+                total: order.total,
+                status: order.status
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error during checkout', { error: error.message });
+        console.error('Error in checkoutCart:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to complete checkout'
         });
     }
 };
