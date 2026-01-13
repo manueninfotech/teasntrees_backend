@@ -151,6 +151,12 @@ export const createProduct = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
+            socketService.notifyRole('customer', 'product:created', {
+                productId: product._id,
+                name: product.name,
+                category: categoryExists.name,
+                price: product.price
+            });
             socketService.notifyRole('manager', 'product:created', {
                 productId: product._id,
                 name: product.name,
@@ -231,6 +237,11 @@ export const updateProduct = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
+            socketService.notifyRole('customer', 'product:updated', {
+                productId: product._id,
+                name: product.name,
+                isAvailable: product.isAvailable
+            });
             socketService.notifyRole('manager', 'product:updated', {
                 productId: product._id,
                 name: product.name,
@@ -287,6 +298,7 @@ export const deleteProduct = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
+            socketService.notifyRole('customer', 'product:deleted', productData);
             socketService.notifyRole('manager', 'product:deleted', productData);
             socketService.notifyRole('admin', 'product:deleted', productData);
         }

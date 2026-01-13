@@ -80,6 +80,11 @@ export const createCategory = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
+            socketService.notifyRole('customer', 'category:created', {
+                categoryId: category._id,
+                name: category.name,
+                icon: category.icon
+            });
             socketService.notifyRole('manager', 'category:created', {
                 categoryId: category._id,
                 name: category.name,
@@ -137,6 +142,11 @@ export const updateCategory = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
+            socketService.notifyRole('customer', 'category:updated', {
+                categoryId: category._id,
+                name: category.name,
+                icon: category.icon
+            });
             socketService.notifyRole('manager', 'category:updated', {
                 categoryId: category._id,
                 name: category.name,
@@ -180,6 +190,7 @@ export const deleteCategory = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
+            socketService.notifyRole('customer', 'category:deleted', categoryData);
             socketService.notifyRole('manager', 'category:deleted', categoryData);
             socketService.notifyRole('admin', 'category:deleted', categoryData);
         }
