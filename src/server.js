@@ -22,6 +22,7 @@ import customerCategoryRoutes from './routes/customer/categoryRoutes.js';
 import customerOrderRoutes from './routes/customer/orderRoutes.js';
 import customerCartRoutes from './routes/customer/cartRoutes.js';
 import customerDeliveryRoutes from './routes/customer/deliveryRoutes.js';
+import customerReviewRoutes from './routes/customer/reviewRoutes.js';
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminRoutes from './routes/admin/index.js';
@@ -106,6 +107,7 @@ app.use('/api/customer/categories', customerCategoryRoutes); // Category browsin
 app.use('/api/customer/cart', customerCartRoutes);         // Shopping cart
 app.use('/api/customer/orders', customerOrderRoutes);      // Order management
 app.use('/api/customer/deliveries', customerDeliveryRoutes); // Delivery tracking
+app.use('/api/customer/reviews', customerReviewRoutes);    // Product reviews
 
 // Admin Routes  
 app.use('/api/admin/auth', adminAuthRoutes);           // Admin authentication
