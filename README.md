@@ -1,7 +1,30 @@
-# Teas N Trees - Backend API
+# TEAS N TREES - Backend API
 
-A complete Node.js backend for Teas N Trees food delivery application with OTP-based authentication, comprehensive menu management, and full admin panel APIs.
+A comprehensive MERN stack backend for a food delivery/restaurant management system with role-based access control, OTP authentication, and real-time notifications.
 
+---
+
+## Latest Features (January 2026)
+
+### Customer Features
+- **Shopping Cart System** - Add items, update quantities, checkout to order
+- **Real-Time Delivery Tracking** - Live rider location, ETA countdown, distance updates
+- **Reviews & Ratings** - Rate orders, products, and riders with optional images
+- **Product Reviews** - Public product reviews with average ratings and filtering
+
+### Admin Features  
+- **Cart Analytics** - Active carts, abandoned cart tracking, popular items
+- **Review Moderation** - Approve/reject reviews, view rider ratings, statistics
+- **Delivery Management** - Real-time location updates, status tracking
+
+### Real-Time Notifications (Socket.io)
+- Order status updates, rider assignments, delivery tracking
+- Product/category updates pushed to customers
+- Live cart and review notifications
+
+---
+
+## Overview
 ## Project Status: **Ongoing** 
 
 Complete backend with **50+ API endpoints**, 9 database models, admin panel, structured logging, refresh token authentication, account lockout, and comprehensive security features.
