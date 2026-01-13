@@ -7,7 +7,8 @@ import {
     addToCart,
     updateCartItem,
     removeCartItem,
-    clearCart
+    clearCart,
+    checkoutCart
 } from '../../controllers/customer/cartController.js';
 import { authenticate } from '../../middlewares/auth.js';
 
@@ -21,6 +22,9 @@ router.get('/', getCart);
 
 // Add item to cart
 router.post('/add', addToCart);
+
+// Checkout - Convert cart to order
+router.post('/checkout', checkoutCart);
 
 // Update cart item quantity
 router.put('/item/:itemId', updateCartItem);
