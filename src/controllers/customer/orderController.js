@@ -92,7 +92,7 @@ export const createOrder = async (req, res) => {
         // Emit socket event for real-time update
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.emitToUser(customerId.toString(), 'order:created', {
+            socketService.notifyUser(customerId.toString(), 'order:created', {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
                 total: order.total
@@ -242,7 +242,7 @@ export const cancelOrder = async (req, res) => {
         // Emit socket event
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.emitToUser(customerId.toString(), 'order:cancelled', {
+            socketService.notifyUser(customerId.toString(), 'order:cancelled', {
                 orderId: order._id,
                 orderNumber: order.orderNumber
             });
