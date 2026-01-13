@@ -13,6 +13,7 @@ import settingsRoutes from './settingsRoutes.js';
 import dashboardRoutes from './dashboardRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
 import activityRoutes from './activityRoutes.js';
+import cartAnalyticsRoutes from './cartAnalyticsRoutes.js';
 
 const router = express.Router();
 
@@ -31,5 +32,6 @@ router.use('/settings', settingsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/activity-logs', activityRoutes);
+router.use('/analytics/carts', cartAnalyticsRoutes);
 
 export default router;
