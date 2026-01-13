@@ -1,13 +1,21 @@
-# Customer API - Complete Documentation
+# Customer API Documentation
 
-## Overview
-Customer-facing API endpoints for browsing products, managing profile, and placing orders.
+Complete API reference for customer-facing endpoints.
 
-Base URL: `/api/customer`
+## Table of Contents
+1. [Authentication](#authentication)
+2. [Profile Management](#profile-management)
+3. [Product Browsing](#product-browsing)
+4. [Category Browsing](#category-browsing)
+5. [Shopping Cart](#shopping-cart)
+6. [Order Management](#order-management)
+7. [Delivery Tracking](#delivery-tracking)
+8. [Reviews & Ratings](#reviews--ratings)
+URL: `/api/customer`
 
 ---
 
-## Authentication
+## 1. Authentication
 
 ### Send OTP
 ```http
@@ -79,7 +87,7 @@ Authorization: Bearer {token}
 
 ---
 
-## Profile Management
+## 2. Profile Management
 
 ### Get Profile
 ```http
@@ -101,7 +109,7 @@ Authorization: Bearer {token}
 
 ---
 
-## Products
+## 3. Product Browsing
 
 ### Get All Products
 **With Pagination, Search & Filters**
@@ -157,7 +165,7 @@ GET /api/customer/products/category/{categoryId}?page=1&limit=20
 
 ---
 
-## Categories
+## 4. Category Browsing
 
 ### Get All Categories
 ```http
@@ -185,7 +193,7 @@ GET /api/customer/categories/{categoryId}
 
 ---
 
-## Orders
+## 6. Order Management
 
 ### Create Order
 ```http
@@ -276,18 +284,292 @@ Note: Only pending/accepted orders can be cancelled
 
 ---
 
-## Order Status Lifecycle
+## 5. Shopping Cart
 
+### Get Cart
+```http
+GET /api/customer/cart
+Authorization: Bearer <token>
 ```
-pending → accepted → preparing → ready → assigned → picked_up → in_transit → delivered
-                                                               ↓
-                                                          cancelled
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "_id": "itemId",
+        "product": {
+          "_id": "productId",
+          "name": "Margherita Pizza",
+          "price": 250,
+          "image": "url",
+          "isAvailable": true
+        },
+        "quantity": 2,
+        "price": 250,
+        "customization": "Extra cheese"
+      }
+    ],
+    "subtotal": 500,
+    "itemCount": 1
+  }
+}
+```
+
+### Add to Cart
+```http
+POST /api/customer/cart/add
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "productId": "productId",
+  "quantity": 2,
+  "customization": "Extra cheese"
+}
+```
+
+### Update Cart Item
+```http
+PUT /api/customer/cart/item/:itemId
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "quantity": 3
+}
+```
+
+### Remove from Cart
+```http
+DELETE /api/customer/cart/item/:itemId
+Authorization: Bearer <token>
+```
+
+### Clear Cart
+```http
+DELETE /api/customer/cart/clear
+Authorization: Bearer <token>
+```
+
+### Checkout (Cart to Order)
+```http
+POST /api/customer/cart/checkout
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "deliveryAddress": "123 Main St, City",
+  "deliveryInstructions": "Ring doorbell",
+  "paymentMethod": "COD"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Order placed successfully",
+  "data": {
+    "orderNumber": "ORD000001",
+    "orderId": "orderId",
+    "total": 575.50,
+    "status": "pending"
+  }
+}
 ```
 
 ---
 
-## Available Product Tags
+## 7. Delivery Tracking
 
+### Get My Deliveries
+```http
+GET /api/customer/deliveries
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "deliveryId",
+      "deliveryNumber": "DEL000001",
+      "status": "in_transit",
+      "riderId": {
+        "name": "John Rider",
+        "mobile": "9876543210"
+      },
+      "distance": 5.2,
+      "estimatedTime": 30
+    }
+  ]
+}
+```
+
+### Track Delivery (Real-time)
+```http
+GET /api/customer/deliveries/:deliveryId/track
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "deliveryNumber": "DEL000001",
+    "status": "in_transit",
+    "rider": {
+      "name": "John Rider",
+      "mobile": "9876543210"
+    },
+    "currentLocation": {
+      "type": "Point",
+      "coordinates": [77.5946, 12.9716],
+      "address": "Current location"
+    },
+    "deliveryLocation": {
+      "coordinates": [77.6033, 12.9698],
+      "address": "Delivery address"
+    },
+    "distance": 5.2,
+    "estimatedTime": 30,
+    "estimatedArrival": 15,
+    "assignedAt": "2024-01-13T10:00:00Z",
+    "pickedUpAt": "2024-01-13T10:15:00Z"
+  }
+}
+```
+
+### Get Delivery by Order
+```http
+GET /api/customer/deliveries/order/:orderId
+Authorization: Bearer <token>
+```
+
+---
+
+## 8. Reviews & Ratings
+
+### Submit Order Review
+```http
+POST /api/customer/reviews
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "orderId": "orderId",
+  "foodRating": 5,
+  "riderRating": 4,
+  "review": "Great food and quick delivery!",
+  "images": ["url1", "url2"]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Review submitted successfully",
+  "data": {
+    "_id": "reviewId",
+    "orderId": "orderId",
+    "foodRating": 5,
+    "riderRating": 4,
+    "review": "Great food and quick delivery!"
+  }
+}
+```
+
+### Rate Specific Product
+```http
+POST /api/customer/reviews/product
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "productId": "productId",
+  "orderId": "orderId",
+  "rating": 5,
+  "review": "Best pizza ever!"
+}
+```
+
+### Get Product Reviews (Public)
+```http
+GET /api/customer/reviews/product/:productId?page=1&limit=10&rating=5
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "reviews": [
+      {
+        "_id": "reviewId",
+        "customerId": {
+          "name": "John Doe"
+        },
+        "productRating": 5,
+        "review": "Excellent product!",
+        "createdAt": "2024-01-13T10:00:00Z"
+      }
+    ],
+    "averageRating": 4.5,
+    "totalReviews": 45,
+    "pagination": {
+      "currentPage": 1,
+      "totalPages": 5,
+      "total": 45,
+      "limit": 10
+    }
+  }
+}
+```
+
+### Get My Reviews
+```http
+GET /api/customer/reviews/my-reviews?page=1&limit=10
+Authorization: Bearer <token>
+```
+
+---
+
+## Real-Time Features (Socket.io)
+
+### Events Customers Receive:
+
+**Order Updates:**
+- `order:created` - Order placed successfully
+- `order:status-updated` - Order status changed
+- `order:rider-assigned` - Rider assigned to order
+- `order:cancelled` - Order cancelled
+
+**Delivery Updates:**
+- `rider:location-update` - Real-time rider location
+- `delivery:status-updated` - Delivery status changed
+
+**Product Updates:**
+- `product:created` - New product available
+- `product:updated` - Product availability/price changed
+- `product:deleted` - Product removed
+
+**Category Updates:**
+- `category:created` - New category added
+- `category:updated` - Category updated
+- `category:deleted` - Category removed
+
+---
+
+## Order Status Lifecycle
+
+```
 - `new-intro` - New menu items
 - `must-try` - Recommended items  
 - `best-seller` - Popular items
