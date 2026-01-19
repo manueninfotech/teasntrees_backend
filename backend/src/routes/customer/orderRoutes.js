@@ -6,7 +6,9 @@ import {
     createOrder,
     getMyOrders,
     getOrderById,
-    cancelOrder
+    cancelOrder,
+    reorder,
+    downloadInvoice
 } from '../../controllers/customer/orderController.js';
 import { authenticate } from '../../middlewares/auth.js';
 
@@ -22,6 +24,8 @@ router.post('/', createOrder);
 router.get('/my-orders', getMyOrders);
 
 // Get single order
+router.post('/:orderId/reorder', reorder);         // Reorder
+router.get('/:orderId/invoice', downloadInvoice);    // Download invoice
 router.get('/:orderId', getOrderById);
 
 // Cancel order

@@ -251,6 +251,41 @@ Response:
 }
 ```
 
+### Search & Filter Orders
+```http
+GET /api/customer/orders/my-orders?page=1&limit=10&status=pending&search=pizza&startDate=2024-01-01&endDate=2024-01-31
+
+Query Parameters:
+- search: Search by Order ID or Item Name
+- startDate: Filter by date range start (YYYY-MM-DD)
+- endDate: Filter by date range end (YYYY-MM-DD)
+```
+
+### Reorder
+```http
+POST /api/customer/orders/{orderId}/reorder
+Authorization: Bearer {token}
+
+Response:
+{
+  "success": true,
+  "message": "Order placed successfully",
+  "data": {
+    "orderNumber": "ORD000002",
+    "total": 505,
+    "status": "pending"
+  }
+}
+```
+
+### Download Invoice
+```http
+GET /api/customer/orders/{orderId}/invoice
+Authorization: Bearer {token}
+
+Response: PDF File Stream
+```
+
 ### Get Order Details
 ```http
 GET /api/customer/orders/{orderId}
