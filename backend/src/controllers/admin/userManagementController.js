@@ -52,13 +52,25 @@ export const getAllUsers = async (req, res) => {
 // Get single user by id
 export const getUserById = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id).select('-__v');
+        let user = await User.findById(req.params.id).select('-__v');
+
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
+
+        // If user is a Customer, populate their wishlist
+        if (user.role === 'customer') {
+            user = await User.findById(req.params.id)
+                .select('-__v')
+                .populate({
+                    path: 'wishlist',
+                    select: 'name price image isAvailable'
+                });
+        }
+
         res.status(200).json({
             success: true,
             data: user

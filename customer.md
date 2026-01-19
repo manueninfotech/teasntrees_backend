@@ -280,11 +280,13 @@ Response:
 
 ### Download Invoice
 ```http
-GET /api/customer/orders/{orderId}/invoice
-Authorization: Bearer {token}
-
-Response: PDF File Stream
+GET /api/customer/orders/:orderId/invoice
+Authorization: Bearer <token>
 ```
+
+### Response
+- **Content-Type**: `application/pdf`
+- **Body**: Binary PDF data
 
 ### Get Order Details
 ```http
@@ -414,6 +416,73 @@ Content-Type: application/json
     "total": 575.50,
     "status": "pending"
   }
+}
+```
+
+---
+
+## Wishlist
+
+### Add to Wishlist
+```http
+POST /api/customer/wishlist/add
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "productId": "60d0fe4f5311236168a109cb"
+}
+```
+
+### Response
+```json
+{
+  "success": true,
+  "message": "Product added to wishlist",
+  "data": [
+    {
+      "_id": "60d0fe4f5311236168a109cb",
+      "name": "Classic Burger",
+      "price": 150,
+      "image": "burger.jpg"
+    }
+  ]
+}
+```
+
+### Remove from Wishlist
+```http
+DELETE /api/customer/wishlist/remove/:productId
+Authorization: Bearer <token>
+```
+
+### Response
+```json
+{
+  "success": true,
+  "message": "Product removed from wishlist",
+  "data": []
+}
+```
+
+### Get Wishlist
+```http
+GET /api/customer/wishlist
+Authorization: Bearer <token>
+```
+
+### Response
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "60d0fe4f5311236168a109cb",
+      "name": "Classic Burger",
+      "price": 150,
+      "image": "burger.jpg"
+    }
+  ]
 }
 ```
 
