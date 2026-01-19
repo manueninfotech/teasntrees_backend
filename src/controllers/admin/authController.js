@@ -109,7 +109,12 @@ const verifyOTP = async (req, res) => {
         }
 
         // Check if OTP matches
-        if (otpDoc.otp !== otp) {
+        // Bypass for test account in development
+        const isTestBypass = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+            mobile === '9999999999' &&
+            otp === '123456';
+
+        if (otpDoc.otp !== otp && !isTestBypass) {
             // Increment OTP attempts
             otpDoc.attempts += 1;
             await otpDoc.save();

@@ -22,7 +22,7 @@ export const getDashboardStats = async (req, res) => {
 
         const todayRevenue = await Order.aggregate([
             { $match: { createdAt: { $gte: today }, status: 'delivered' } },
-            { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            { $group: { _id: null, total: { $sum: '$total' } } }
         ]);
 
         // Get active orders
@@ -33,7 +33,7 @@ export const getDashboardStats = async (req, res) => {
         // Get total revenue
         const revenueData = await Order.aggregate([
             { $match: { status: 'delivered' } },
-            { $group: { _id: null, total: { $sum: '$totalAmount' } } }
+            { $group: { _id: null, total: { $sum: '$total' } } }
         ]);
 
         const totalRevenue = revenueData.length > 0 ? revenueData[0].total : 0;
@@ -97,7 +97,7 @@ export const getRevenueAnalytics = async (req, res) => {
                     _id: {
                         $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
                     },
-                    revenue: { $sum: '$totalAmount' },
+                    revenue: { $sum: '$total' },
                     orders: { $sum: 1 }
                 }
             },
@@ -149,15 +149,16 @@ export const getRecentOrders = async (req, res) => {
         const recentOrders = await Order.find()
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
-            .populate('customer', 'name email')
+            .populate('customerId', 'name email')
             .populate('items.product', 'name price')
-            .select('orderNumber totalAmount status createdAt customer');
+            .select('orderNumber total status createdAt customerId');
         res.status(200).json({
             success: true,
             count: recentOrders.length,
             data: recentOrders
         });
     } catch (error) {
+        console.error('GetRecentOrders Error:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching recent orders',

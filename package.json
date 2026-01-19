@@ -7,7 +7,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "seed:categories": "node src/seeders/categorySeeder.js",
-    "seed:products": "node src/seeders/productSeeder.js"
+    "seed:products": "node src/seeders/productSeeder.js",
+    "seed:admin": "node src/seeders/adminSeeder.js"
   },
   "keywords": [],
   "author": "",

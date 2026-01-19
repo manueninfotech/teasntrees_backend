@@ -1,5 +1,6 @@
 import Order from "../../models/Order.js";
 import User from "../../models/User.js";
+import Product from "../../models/Product.js";
 
 // Get all orders with filters
 export const getAllOrders = async (req, res) => {
@@ -8,7 +9,7 @@ export const getAllOrders = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const sortBy = req.query.sortBy || 'createdAt';
-        const order = req.query.order === 'desc' ? -1 : 1;
+        const sortOrder = req.query.order === 'desc' ? -1 : 1;
         const skip = (page - 1) * limit;
 
         // Build query
@@ -19,24 +20,26 @@ export const getAllOrders = async (req, res) => {
         }
 
         if (customerId) {
-            query.customer = customerId;
+            query.customerId = customerId;
         }
 
         if (startDate || endDate) {
             query.createdAt = {};
             if (startDate) {
-                query.createdAt.$gte = new Date(startDate);
+                const start = new Date(startDate);
+                if (!isNaN(start)) query.createdAt.$gte = start;
             }
             if (endDate) {
-                query.createdAt.$lte = new Date(endDate);
+                const end = new Date(endDate);
+                if (!isNaN(end)) query.createdAt.$lte = end;
             }
         }
 
         const orders = await Order.find(query)
-            .populate('customer', 'name mobile email')
+            .populate('customerId', 'name mobile email')
             .populate('items.product', 'name price image')
-            .populate('assignedRider', 'name mobile')
-            .sort({ [sortBy]: order })
+            .populate('riderId', 'name mobile')
+            .sort({ [sortBy]: sortOrder })
             .limit(limit)
             .skip(skip);
         const total = await Order.countDocuments(query);
@@ -53,6 +56,7 @@ export const getAllOrders = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('GetAllOrders Error:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching orders',
@@ -64,10 +68,10 @@ export const getAllOrders = async (req, res) => {
 // Get single order by ID
 export const getOrderById = async (req, res) => {
     try {
-        const order = await Order.findById(req.params.Id)
-            .populate('customer', 'name mobile email address')
+        const order = await Order.findById(req.params.id)
+            .populate('customerId', 'name mobile email address')
             .populate('items.product', 'name price image')
-            .populate('assignedRider', 'name mobile');
+            .populate('riderId', 'name mobile');
         if (!order) {
             return res.status(404).json({
                 success: false,
@@ -120,7 +124,7 @@ export const updateOrderStatus = async (req, res) => {
         const socketService = req.app.get('socketService');
         if (socketService) {
             // Notify customer
-            socketService.notifyUser(order.customer.toString(), 'order:status-updated', {
+            socketService.notifyUser(order.customerId.toString(), 'order:status-updated', {
                 orderId: order._id,
                 status: order.status,
                 estimatedDelivery: order.estimatedDeliveryTime
@@ -130,12 +134,12 @@ export const updateOrderStatus = async (req, res) => {
             socketService.notifyRole('manager', 'order:status-updated', {
                 orderId: order._id,
                 status: order.status,
-                customerId: order.customer
+                customerId: order.customerId
             });
             socketService.notifyRole('admin', 'order:status-updated', {
                 orderId: order._id,
                 status: order.status,
-                customerId: order.customer
+                customerId: order.customerId
             });
         }
 
@@ -178,14 +182,14 @@ export const assignDeliveryRider = async (req, res) => {
                 message: 'Order not found'
             });
         }
-        order.assignedRider = riderId;
+        order.riderId = riderId;
         order.status = 'out-for-delivery';
         order.dispatchedAt = new Date();
 
         await order.save();
 
         const updatedOrder = await Order.findById(order._id)
-            .populate('assignedRider', 'name mobile');
+            .populate('riderId', 'name mobile');
 
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
@@ -198,7 +202,7 @@ export const assignDeliveryRider = async (req, res) => {
             });
 
             // Notify customer
-            socketService.notifyUser(order.customer.toString(), 'order:rider-assigned', {
+            socketService.notifyUser(order.customerId.toString(), 'order:rider-assigned', {
                 orderId: order._id,
                 riderName: rider.name,
                 riderMobile: rider.mobile
@@ -257,7 +261,7 @@ export const cancelOrder = async (req, res) => {
         const socketService = req.app.get('socketService');
         if (socketService) {
             // Notify customer
-            socketService.notifyUser(order.customer.toString(), 'order:cancelled', {
+            socketService.notifyUser(order.customerId.toString(), 'order:cancelled', {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
                 reason: order.cancelReason
@@ -275,7 +279,7 @@ export const cancelOrder = async (req, res) => {
             socketService.notifyRole('manager', 'order:cancelled', {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
-                customerId: order.customer
+                customerId: order.customerId
             });
         }
 
