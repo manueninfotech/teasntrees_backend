@@ -124,6 +124,17 @@ export const approveReview = async (req, res) => {
             adminId: req.user.userId
         });
 
+        // Notify Customer
+        const socketService = req.app.get('socketService');
+        if (socketService && review.customerId) {
+            socketService.notifyUser(review.customerId.toString(), 'notification:new', {
+                title: 'Review Approved',
+                message: 'Your review has been approved and is now visible!',
+                type: 'review',
+                data: { reviewId }
+            });
+        }
+
         res.json({
             success: true,
             message: 'Review approved',
@@ -162,6 +173,17 @@ export const rejectReview = async (req, res) => {
             reviewId,
             adminId: req.user.userId
         });
+
+        // Notify Customer
+        const socketService = req.app.get('socketService');
+        if (socketService && review.customerId) {
+            socketService.notifyUser(review.customerId.toString(), 'notification:new', {
+                title: 'Review Update',
+                message: 'Your review was not approved. Please check guidelines.',
+                type: 'review',
+                data: { reviewId }
+            });
+        }
 
         res.json({
             success: true,

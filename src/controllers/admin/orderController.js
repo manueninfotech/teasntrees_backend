@@ -103,7 +103,7 @@ export const updateOrderStatus = async (req, res) => {
             });
         }
         const order = await Order.findById(req.params.id);
-        if (!Order) {
+        if (!order) {
             return res.status(404).json({
                 success: false,
                 message: 'Order not found'
@@ -149,6 +149,7 @@ export const updateOrderStatus = async (req, res) => {
             data: order
         });
     } catch (error) {
+        console.error('UpdateOrderStatus Error:', error);
         res.status(500).json({
             success: false,
             message: 'Error updating order status',

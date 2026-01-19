@@ -45,7 +45,7 @@ const orderSchema = new mongoose.Schema({
     riderEarning: Number,
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'in_transit', 'delivered', 'cancelled'],
+        enum: ['pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled'],
         default: 'pending'
     },
     paymentMethod: {
@@ -71,6 +71,8 @@ const orderSchema = new mongoose.Schema({
     review: String,
     specialInstructions: String,
     estimatedDeliveryTime: Date,
+    confirmedAt: Date,
+    outForDeliveryAt: Date,
     deliveredAt: Date,
     cancelReason: String
 }, {

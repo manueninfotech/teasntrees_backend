@@ -49,6 +49,23 @@ export const createReview = async (req, res) => {
             orderId,
             customerId
         });
+        // Notify Admin
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', 'notification:new', {
+                title: 'New Review Submitted',
+                message: `New review for Order #${order.orderNumber}`,
+                type: 'review',
+                data: { reviewId: newReview._id, orderId }
+            });
+            socketService.notifyRole('manager', 'notification:new', {
+                title: 'New Review Submitted',
+                message: `New review for Order #${order.orderNumber}`,
+                type: 'review',
+                data: { reviewId: newReview._id, orderId }
+            });
+        }
+
         res.status(201).json({
             success: true,
             message: 'Review submitted successfully',

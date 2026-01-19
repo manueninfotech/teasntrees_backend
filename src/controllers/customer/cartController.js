@@ -364,11 +364,22 @@ export const checkoutCart = async (req, res) => {
         // Emit socket event
         const socketService = req.app.get('socketService');
         if (socketService) {
+            // Notify Customer
             socketService.notifyUser(userId.toString(), 'order:created', {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
                 total: order.total
             });
+            // Notify Admin & Manager
+            const notificationData = {
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                total: order.total,
+                itemsCount: order.items.length,
+                createdAt: order.createdAt
+            };
+            socketService.notifyRole('admin', 'order:new', notificationData);
+            socketService.notifyRole('manager', 'order:new', notificationData);
         }
 
         res.status(201).json({
