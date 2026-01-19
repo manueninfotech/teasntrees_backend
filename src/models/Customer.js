@@ -32,7 +32,13 @@ const customerSchema = new mongoose.Schema({
     wishlist: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product'
-    }]
+    }],
+    notificationPreferences: {
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        offers: { type: Boolean, default: true }
+    }
 });
 
 const Customer = User.discriminator('Customer', customerSchema);
