@@ -28,6 +28,8 @@ const getProfile = async (req, res) => {
                     email: user.email,
                     address: user.address,
                     location: user.location,
+                    // Include customer specific fields if available
+                    notificationPreferences: user.notificationPreferences || undefined,
                     role: user.role,
                     isProfileComplete: user.isProfileComplete,
                     isActive: user.isActive,
@@ -49,7 +51,7 @@ const getProfile = async (req, res) => {
 // Update user profile
 const updateProfile = async (req, res) => {
     try {
-        const { name, email, address } = req.body;
+        const { name, email, address, notificationPreferences } = req.body;
         const userId = req.user.userId;
 
         // Find user
@@ -98,6 +100,20 @@ const updateProfile = async (req, res) => {
             updates.address = sanitizedAddress;
         }
 
+        if (notificationPreferences !== undefined) {
+            // Validate notificationPreferences object
+            if (typeof notificationPreferences !== 'object') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Notification preferences must be an object'
+                });
+            }
+            updates.notificationPreferences = {
+                ...user.notificationPreferences, // keep existing
+                ...notificationPreferences       // overwrite new
+            };
+        }
+
         // Check if there are any updates
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({
@@ -126,7 +142,11 @@ const updateProfile = async (req, res) => {
                     mobile: user.mobile,
                     email: user.email,
                     address: user.address,
+                    email: user.email,
+                    address: user.address,
                     location: user.location,
+                    // Include customer specific fields if available
+                    notificationPreferences: user.notificationPreferences || undefined,
                     role: user.role,
                     isProfileComplete: user.isProfileComplete,
                     updatedAt: user.updatedAt

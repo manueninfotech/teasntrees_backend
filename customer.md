@@ -522,6 +522,50 @@ Content-Type: application/json
 }
 ```
 
+### Update Profile with Notification Preferences
+```http
+PUT /api/customer/profile
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "Jane Customers",
+  "email": "jane@example.com",
+  "address": "456 Oak St",
+  "notificationPreferences": {
+    "email": true,
+    "sms": false,
+    "push": true,
+    "offers": true
+  }
+}
+```
+
+### Response
+```json
+{
+  "success": true,
+  "message": "Profile updated successfully",
+  "data": {
+    "user": {
+      "id": "60d0fe4f5311236168a109ca",
+      "name": "Jane Customers",
+      "email": "jane@example.com",
+      "address": "456 Oak St",
+      "notificationPreferences": {
+        "email": true,
+        "sms": false,
+        "push": true,
+        "offers": true
+      },
+      "role": "customer",
+      "isProfileComplete": true,
+      "updatedAt": "2023-10-27T10:00:00.000Z"
+    }
+  }
+}
+```
+
 ### Rate Specific Product
 ```http
 POST /api/customer/reviews/product
