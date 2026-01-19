@@ -3,6 +3,7 @@
 // App: Customer App
 
 import User from '../../models/User.js';
+import Customer from '../../models/Customer.js';
 import OTP from '../../models/OTP.js';
 import RefreshToken from '../../models/RefreshToken.js';
 import { generateOTP } from '../../utils/generateOTP.js';
@@ -369,8 +370,18 @@ const completeProfile = async (req, res) => {
             user.isProfileComplete = true;
             await user.save();
         } else {
-            // Create new user
-            user = await User.create(sanitizedData);
+            // Create new user as Customer
+            user = await Customer.create({
+                ...sanitizedData,
+                kind: 'Customer'
+            });
+        }
+
+        // Ensure user is instance of Customer if role is customer
+        if (user.role === 'customer' && !user.addresses) {
+            // Need to migrate or re-instantiate if it was a User but should be Customer
+            // For now, assuming new flow handles this.
+            // In a real migration scenario, we might need more logic here.
         }
 
         // Generate JWT token

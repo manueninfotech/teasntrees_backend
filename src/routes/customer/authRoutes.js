@@ -14,7 +14,8 @@ router.post('/verify-otp', authLimiter, verifyOTP);     // 5 req/15min
 router.post('/refresh-token', authLimiter, refreshAccessToken);
 
 // Protected routes (require authentication)
-router.post('/complete-profile', authenticate, completeProfile);
+// Public route (security handled by OTP verification)
+router.post('/complete-profile', completeProfile);
 router.post('/logout', authenticate, logout);
 
 export default router;

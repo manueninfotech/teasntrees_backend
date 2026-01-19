@@ -79,7 +79,8 @@ const userSchema = new mongoose.Schema({
     }
 
 }, {
-    timestamps: true
+    timestamps: true,
+    discriminatorKey: 'kind'
 });
 
 userSchema.methods.checkProfileComplete = function () {
