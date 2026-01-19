@@ -13,7 +13,8 @@ const scripts = [
     'test-profile.js',
     'test-reviews.js',
     'test-settings.js',
-    'test-upload.js'
+    'test-upload.js',
+    'test-socket-admin.js'
 ];
 
 async function runScript(scriptName) {

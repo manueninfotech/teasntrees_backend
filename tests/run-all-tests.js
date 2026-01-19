@@ -12,7 +12,9 @@ const scripts = [
     'test-order-features.js',
     'test-delivery.js',
     'test-notifications.js',
-    'test-reviews.js'
+    'test-notifications.js',
+    'test-reviews.js',
+    'test-socket-customer.js'
 ];
 
 async function runScript(scriptName) {
