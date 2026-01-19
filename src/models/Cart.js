@@ -40,11 +40,10 @@ const cartSchema = new mongoose.Schema({
 });
 
 // Calculate subtotal before saving
-cartSchema.pre('save', function (next) {
+cartSchema.pre('save', async function () {
     this.subtotal = this.items.reduce((total, item) => {
         return total + (item.price * item.quantity);
     }, 0);
-    next();
 });
 
 // Index for faster queries

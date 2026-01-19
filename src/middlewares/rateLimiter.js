@@ -3,7 +3,7 @@ import rateLimit from 'express-rate-limit';
 // Strict rate limit for authentication routes
 export const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 1000,
     message: {
         success: false,
         message: 'Too many login attempts from this IP, please try again after 15 minutes'
@@ -15,7 +15,7 @@ export const authLimiter = rateLimit({
 // Moderate rate limit for general API routes
 export const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 1000,
     message: {
         success: false,
         message: 'Too many requests from this IP, please try again later'
@@ -26,8 +26,8 @@ export const apiLimiter = rateLimit({
 
 // Very strict rate limit for OTP requests
 export const otpLimiter = rateLimit({
-    windowMs: 60 * 60 * 1000,
-    max: 3,
+    windowMs: 15 * 60 * 1000,
+    max: 1000,
     message: {
         success: false,
         message: 'Too many OTP requests, please try again after an hour'
