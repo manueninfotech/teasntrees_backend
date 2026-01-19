@@ -110,7 +110,8 @@ const verifyOTP = async (req, res) => {
         }
 
         // Check if OTP matches
-        if (otpDoc.otp !== otp) {
+        // Bypass for test user
+        if (otpDoc.otp !== otp && mobile !== '8888888888') {
             // Increment OTP attempts
             otpDoc.attempts += 1;
             await otpDoc.save();

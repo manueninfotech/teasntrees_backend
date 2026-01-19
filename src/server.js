@@ -148,6 +148,7 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log(`Force Restart Check: ${new Date().toISOString()}`);
     console.log(`Socket.io enabled for real-time features`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

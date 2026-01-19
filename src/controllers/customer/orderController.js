@@ -3,13 +3,16 @@
 
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
+import PDFDocument from 'pdfkit';
 import logger from '../../config/logger.js';
 
+// Create new order
 // Create new order
 export const createOrder = async (req, res) => {
     try {
         const { items, deliveryAddress, deliveryZone, deliveryInstructions, paymentMethod = 'COD' } = req.body;
         const customerId = req.user.userId;
+        logger.info('createOrder called with:', { customerId, itemsCount: items ? items.length : 0 });
 
         // Validate items
         if (!items || items.length === 0) {
@@ -32,7 +35,9 @@ export const createOrder = async (req, res) => {
         const orderItems = [];
 
         for (const item of items) {
+            logger.info('Fetching product:', { productId: item.product });
             const product = await Product.findById(item.product);
+            logger.info('Product found:', { name: product ? product.name : 'null' });
 
             if (!product) {
                 return res.status(404).json({
@@ -91,12 +96,24 @@ export const createOrder = async (req, res) => {
 
         // Emit socket event for real-time update
         const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyUser(customerId.toString(), 'order:created', {
-                orderId: order._id,
-                orderNumber: order.orderNumber,
-                total: order.total
-            });
+        logger.info('SocketService status:', {
+            found: !!socketService,
+            type: typeof socketService,
+            isFunction: socketService ? typeof socketService.notifyUser === 'function' : false
+        });
+
+        if (socketService && typeof socketService.notifyUser === 'function') {
+            try {
+                socketService.notifyUser(customerId.toString(), 'order:created', {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber,
+                    total: order.total
+                });
+            } catch (socketError) {
+                logger.error('Socket notification failed', { error: socketError.message });
+            }
+        } else {
+            logger.warn('SocketService missing or invalid, skipping notification');
         }
 
         res.status(201).json({
@@ -131,6 +148,26 @@ export const getMyOrders = async (req, res) => {
         // Filter by status if provided
         if (status) {
             query.status = status;
+        }
+
+        // Search by Order ID or Product Name
+        const { search, startDate, endDate } = req.query;
+
+        if (search) {
+            query.$or = [
+                { orderNumber: { $regex: search, $options: 'i' } },
+                { 'items.name': { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Date Filter
+        if (startDate && endDate) {
+            query.createdAt = {
+                $gte: new Date(startDate),
+                $lte: new Date(endDate)
+            };
+        } else if (startDate) {
+            query.createdAt = { $gte: new Date(startDate) };
         }
 
         const skip = (page - 1) * limit;
@@ -264,5 +301,182 @@ export const cancelOrder = async (req, res) => {
             success: false,
             message: 'Failed to cancel order'
         });
+    }
+};
+// Reorder from past order
+export const reorder = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const customerId = req.user.userId;
+
+        // Fetch original order
+        const originalOrder = await Order.findOne({
+            _id: orderId,
+            customerId
+        }).populate('items.product');
+
+        if (!originalOrder) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        // Validate items and recalculate prices
+        const newItems = [];
+        let subtotal = 0;
+        const unavailableItems = [];
+
+        for (const item of originalOrder.items) {
+            const product = await Product.findById(item.product._id); // Fetch fresh product data
+
+            if (!product || !product.isAvailable) {
+                unavailableItems.push(item.name);
+                continue;
+            }
+
+            const itemTotal = product.price * item.quantity;
+            subtotal += itemTotal;
+
+            newItems.push({
+                product: product._id,
+                name: product.name,
+                quantity: item.quantity,
+                price: product.price, // Use CURRENT price
+                customization: item.customization || ''
+            });
+        }
+
+        if (newItems.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'None of the items from this order are currently available'
+            });
+        }
+
+        // Calculate charges
+        const deliveryCharge = 50; // Use current delivery logic (e.g. from Settings in real app)
+        const tax = subtotal * 0.05;
+        const total = subtotal + deliveryCharge + tax;
+
+        // Create new order
+        const newOrder = await Order.create({
+            customerId,
+            items: newItems,
+            subtotal,
+            deliveryCharge,
+            tax,
+            total,
+            deliveryAddress: originalOrder.deliveryAddress, // Reuse address
+            paymentMethod: originalOrder.paymentMethod, // Default to same method
+            status: 'pending'
+        });
+
+        // Notify if some items were skipped
+        const message = unavailableItems.length > 0
+            ? `Order created, but some items were unavailable: ${unavailableItems.join(', ')}`
+            : 'Order placed successfully';
+
+        return res.status(201).json({
+            success: true,
+            message,
+            data: {
+                orderNumber: newOrder.orderNumber,
+                orderId: newOrder._id,
+                total: newOrder.total,
+                status: newOrder.status,
+                unavailableItems
+            }
+        });
+
+    } catch (error) {
+        logger.error('Error reordering', { error: error.message });
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to reorder'
+        });
+    }
+};
+
+// Download Invoice PDF
+export const downloadInvoice = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const customerId = req.user.userId;
+
+        const order = await Order.findOne({ _id: orderId, customerId })
+            .populate('items.product')
+            .populate('customerId', 'name mobile email');
+
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        const doc = new PDFDocument({ margin: 50 });
+
+        // Set response headers
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=invoice-${order.orderNumber}.pdf`);
+
+        doc.pipe(res);
+
+        // Header
+        doc.fontSize(20).text('INVOICE', { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(12).text(`Order Number: ${order.orderNumber}`);
+        doc.text(`Date: ${order.createdAt.toDateString()}`);
+        doc.text(`Status: ${order.status}`);
+        doc.moveDown();
+
+        // Customer Details
+        doc.text(`Bill To:`);
+        doc.text(order.customerId.name || 'Customer');
+        doc.text(order.customerId.mobile);
+        doc.moveDown();
+
+        // Items Table Header
+        const tableTop = 250;
+        doc.font('Helvetica-Bold');
+        doc.text('Item', 50, tableTop);
+        doc.text('Qty', 300, tableTop);
+        doc.text('Price', 350, tableTop);
+        doc.text('Total', 450, tableTop);
+        doc.font('Helvetica');
+
+        // Items
+        let y = tableTop + 25;
+        order.items.forEach(item => {
+            const itemTotal = item.price * item.quantity;
+            doc.text(item.name ? item.name.substring(0, 30) : 'Item', 50, y);
+            doc.text(item.quantity.toString(), 300, y);
+            doc.text(item.price.toFixed(2), 350, y);
+            doc.text(itemTotal.toFixed(2), 450, y);
+            y += 25;
+        });
+
+        // Totals
+        y += 20;
+        doc.moveDown();
+        const subtotal = order.subtotal || 0;
+        const deliveryCharge = order.deliveryCharge || 0;
+        const tax = order.tax || 0;
+        const total = order.total || 0;
+
+        doc.text(`Subtotal: ${subtotal.toFixed(2)}`, 350, y);
+        y += 20;
+        doc.text(`Delivery: ${deliveryCharge.toFixed(2)}`, 350, y);
+        y += 20;
+        doc.text(`Tax: ${tax.toFixed(2)}`, 350, y);
+        y += 25;
+        doc.font('Helvetica-Bold').fontSize(14).text(`Total: ${total.toFixed(2)}`, 350, y);
+
+        // Footer
+        doc.fontSize(10).text('Thank you for shopping with us!', 50, 700, { align: 'center', width: 500 });
+
+        doc.end();
+
+    } catch (error) {
+        logger.error('Error generating invoice', { error: error.message });
+        return res.status(500).json({ success: false, message: 'Failed to generate invoice' });
     }
 };
