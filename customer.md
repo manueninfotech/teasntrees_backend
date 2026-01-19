@@ -11,6 +11,7 @@ Complete API reference for customer-facing endpoints.
 6. [Order Management](#order-management)
 7. [Delivery Tracking](#delivery-tracking)
 8. [Reviews & Ratings](#reviews--ratings)
+9. [Address Book](#address-book)
 URL: `/api/customer`
 
 ---
@@ -584,3 +585,63 @@ Authorization: Bearer <token>
 - **Refresh Tokens**: 90-day validity with rotation
 - **Winston Logging**: All actions logged
 - **Socket.io**: Real-time order updates
+
+---
+
+## 9. Address Book
+
+### Get All Addresses
+```http
+GET /api/customer/address
+Authorization: Bearer {token}
+
+Response:
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "addressId",
+      "label": "Home",
+      "addressLine": "123 Main St, City",
+      "isDefault": true,
+      "location": { "type": "Point", "coordinates": [0,0] }
+    }
+  ]
+}
+```
+
+### Add New Address
+```http
+POST /api/customer/address
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "label": "Work",
+  "addressLine": "Office 4B, Tech Park",
+  "isDefault": false
+}
+```
+
+### Update Address
+```http
+PUT /api/customer/address/{addressId}
+Authorization: Bearer {token}
+
+{
+  "label": "Home",
+  "addressLine": "New Address Line"
+}
+```
+
+### Set Default Address
+```http
+PUT /api/customer/address/{addressId}/default
+Authorization: Bearer {token}
+```
+
+### Delete Address
+```http
+DELETE /api/customer/address/{addressId}
+Authorization: Bearer {token}
+```
