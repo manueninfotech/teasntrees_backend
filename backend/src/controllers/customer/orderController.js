@@ -94,6 +94,16 @@ export const createOrder = async (req, res) => {
             total
         });
 
+        // Update product statistics (increment orderCount)
+        // We do this asynchronously so it doesn't block the response
+        Promise.all(orderItems.map(item =>
+            Product.findByIdAndUpdate(item.product, {
+                $inc: { orderCount: item.quantity }
+            })
+        )).catch(err => {
+            logger.error('Failed to update product stats', { error: err.message });
+        });
+
         // Emit socket event for real-time update
         const socketService = req.app.get('socketService');
         logger.info('SocketService status:', {

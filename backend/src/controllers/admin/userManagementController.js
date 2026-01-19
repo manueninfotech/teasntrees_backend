@@ -353,21 +353,21 @@ export const deleteUser = async (req, res) => {
 // Get user statistics
 export const getUserStats = async (req, res) => {
     try {
-        const totalUsers = await user.countDocuments();
-        const customers = await user.countDocuments({ role: 'customer' });
-        const riders = await user.countDocuments({ role: 'rider' });
-        const admins = await user.countDocuments({ role: 'admin' });
-        const managers = await user.countDocuments({ role: 'manager' });
+        const totalUsers = await User.countDocuments();
+        const customers = await User.countDocuments({ role: 'customer' });
+        const riders = await User.countDocuments({ role: 'rider' });
+        const admins = await User.countDocuments({ role: 'admin' });
+        const managers = await User.countDocuments({ role: 'manager' });
         // users registered today
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const usersToday = await user.countDocuments({
+        const usersToday = await User.countDocuments({
             createdAt: {
                 $gte: today
             }
         });
         // users with complete profiles
-        const completeProfiles = await user.countDocuments({ isProfileComplete: true });
+        const completeProfiles = await User.countDocuments({ isProfileComplete: true });
         res.status(200).json({
             success: true,
             data: {
@@ -381,6 +381,7 @@ export const getUserStats = async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('GetUserStats Error:', error);
         res.status(500).json({
             success: false,
             message: 'Error fetching user statistics',
