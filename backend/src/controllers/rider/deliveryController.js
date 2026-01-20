@@ -4,6 +4,7 @@ import Rider from "../../models/Rider.js";
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
 import logger from "../../config/logger.js";
 import { uploadToCloudinary } from "../../utils/imageUpload.js";
+import { riderMetricsService } from "../../services/riderMetricsService.js";
 
 // Get current active delivery
 export const getActiveDelivery = async (req, res) => {
@@ -106,12 +107,15 @@ export const rejectDelivery = async (req, res) => {
             const socketService = req.app.get('socketService');
             if (socketService) {
                 // Notify New Rider (Assigned)
-                socketService.notifyUser(nextRider._id, 'delivery:assigned', {
+                socketService.notifyUser(nextRider._id.toString(), 'delivery:assigned', {
                     deliveryId: newDelivery._id,
                     orderId: newDelivery.orderId,
                     earning: newDelivery.totalEarning
                 });
             }
+
+            // Update Metrics
+            riderMetricsService.updateMetrics(req.user.userId);
 
             return res.json({
                 success: true,
@@ -121,14 +125,17 @@ export const rejectDelivery = async (req, res) => {
 
         } else {
             // No Riders Available!
-            // Notify Admin so they can manually handle it
+            // Notify Admin
             const socketService = req.app.get('socketService');
             if (socketService) {
-                socketService.broadcastToRole('admin', 'alert:no-riders-available', {
+                socketService.notifyRole('admin', 'alert:no-riders-available', {
                     orderId: delivery.orderId,
                     message: 'Order rejected and no backup riders found!'
                 });
             }
+
+            // Update Metrics
+            riderMetricsService.updateMetrics(req.user.userId);
 
             return res.json({
                 success: true,
@@ -175,6 +182,9 @@ export const updateDeliveryStatus = async (req, res) => {
 
             // Update Order
             await Order.findByIdAndUpdate(delivery.orderId, { status: 'delivered' });
+
+            // Update Metrics asynchronously
+            riderMetricsService.updateMetrics(req.user.userId);
         }
         delivery.status = status;
         await delivery.save();
