@@ -129,7 +129,7 @@ export const sendOtp = async (req, res) => {
         // Reusing User model logic if available, or just mocking for this snippet if common logic exists.
         // Assuming common `Otp` model or field.
         // Let's assume we use the same `Otp` model as Customer/Admin.
-        const Otp = (await import('../../../../models/OTP.js')).default;
+        const Otp = (await import('../../models/OTP.js')).default;
         await Otp.create({ mobile, otp, role: 'rider' }); // role specific OTP?
 
         res.json({
@@ -148,7 +148,7 @@ export const sendOtp = async (req, res) => {
 export const verifyOtp = async (req, res) => {
     try {
         const { mobile, otp } = req.body;
-        const Otp = (await import('../../../../models/OTP.js')).default;
+        const Otp = (await import('../../models/OTP.js')).default;
 
         const validOtp = await Otp.findOne({ mobile, otp, role: 'rider' });
         if (!validOtp) {
