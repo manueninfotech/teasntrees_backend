@@ -1,6 +1,9 @@
 import Order from "../../models/Order.js";
 import User from "../../models/User.js";
 import Product from "../../models/Product.js";
+import Delivery from "../../models/Delivery.js";
+import { riderAssignmentService } from "../../services/riderAssignmentService.js";
+import { getDistance } from "../../utils/geoUtils.js";
 
 // Get all orders with filters
 export const getAllOrders = async (req, res) => {
@@ -141,6 +144,77 @@ export const updateOrderStatus = async (req, res) => {
                 status: order.status,
                 customerId: order.customerId
             });
+        }
+
+        // --- AUTO-ASSIGNMENT LOGIC ---
+        if (status === 'confirmed') {
+            try {
+                // Fixed Outlet Location
+                const OUTLET_LOCATION = { lat: 12.9716, lng: 77.5946 };
+
+                // Get Customer Location from Order
+                const customerLoc = order.deliveryAddress?.location?.coordinates; // [lng, lat]
+                if (customerLoc) {
+                    const deliveryLocation = { lng: customerLoc[0], lat: customerLoc[1] };
+
+                    // Find Best Rider
+                    const bestRider = await riderAssignmentService.findBestRider(deliveryLocation);
+
+                    if (bestRider) {
+                        // Calculate Distance for Record
+                        const distMeters = getDistance(
+                            OUTLET_LOCATION.lat, OUTLET_LOCATION.lng,
+                            deliveryLocation.lat, deliveryLocation.lng
+                        );
+
+                        // Create Delivery Record
+                        const delivery = new Delivery({
+                            orderId: order._id,
+                            riderId: bestRider._id,
+                            customerId: order.customerId,
+                            pickupLocation: {
+                                type: 'Point',
+                                coordinates: [OUTLET_LOCATION.lng, OUTLET_LOCATION.lat],
+                                address: 'Teas N Trees Outlet'
+                            },
+                            deliveryLocation: order.deliveryAddress.location,
+                            distance: distMeters,
+                            baseEarning: 40, // Base Fee (Example)
+                            distanceBonus: Math.max(0, (distMeters / 1000 - 3) * 10), // Example: Bonus after 3km
+                            totalEarning: 40 + Math.max(0, (distMeters / 1000 - 3) * 10),
+                            status: 'assigned',
+                            assignedAt: new Date(),
+                            pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+                            deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
+                        });
+
+                        await delivery.save();
+
+                        // Notify Assigned Rider
+                        if (socketService) {
+                            socketService.notifyUser(bestRider._id.toString(), 'delivery:assigned', {
+                                deliveryId: delivery._id,
+                                orderId: order._id,
+                                earning: delivery.totalEarning,
+                                pickupAddress: 'Teas N Trees Outlet',
+                                deliveryAddress: order.deliveryAddress.address
+                            });
+                            console.log(`[Auto-Assign] Assigned Order ${order.orderNumber} to ${bestRider.name}`);
+                        }
+                    } else {
+                        console.warn(`[Auto-Assign] No online riders found for Order ${order.orderNumber}`);
+                        // Notify Admin of Failure
+                        if (socketService) {
+                            socketService.broadcastToRole('admin', 'alert:no-riders-available', {
+                                orderId: order._id,
+                                message: 'Order Confirmed but No Riders Available!'
+                            });
+                        }
+                    }
+                }
+            } catch (assignError) {
+                console.error('Auto-Assignment Failed:', assignError);
+            }
         }
 
         res.status(200).json({
