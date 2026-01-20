@@ -12,7 +12,7 @@ const deliverySchema = new mongoose.Schema({
     },
     riderId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'Rider',
         required: true
     },
     customerId: {
@@ -45,21 +45,36 @@ const deliverySchema = new mongoose.Schema({
     estimatedTime: Number,
     status: {
         type: String,
-        enum: ['assigned', 'heading_to_pickup', 'arrived_at_pickup', 'picked_up', 'in_transit', 'arrived', 'delivered', 'cancelled'],
+        enum: ['assigned', 'accepted', 'rejected', 'heading_to_pickup', 'arrived_at_pickup', 'picked_up', 'in_transit', 'arrived', 'delivered', 'cancelled'],
         default: 'assigned'
     },
     assignedAt: {
         type: Date,
         default: Date.now
     },
+    acceptedAt: Date,
+    rejectedAt: Date,
     pickedUpAt: Date,
     deliveredAt: Date,
     cancelledAt: Date,
+
+    // verification
+    pickupOtp: String,
+    deliveryOtp: String,
+
+    // Earnings
     baseEarning: {
         type: Number,
         required: true
     },
-    distanceBonus: Number,
+    distanceBonus: {
+        type: Number,
+        default: 0
+    },
+    surgeBonus: {
+        type: Number,
+        default: 0
+    },
     tipAmount: {
         type: Number,
         default: 0
@@ -68,6 +83,13 @@ const deliverySchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    isPaid: {
+        type: Boolean,
+        default: false
+    },
+    paidAt: Date,
+
+    // Metadata
     rating: {
         type: Number,
         min: 1,
@@ -76,12 +98,8 @@ const deliverySchema = new mongoose.Schema({
     feedback: String,
     notes: String,
     cancelReason: String,
+    rejectionReason: String,
     deliveryProof: String,
-    isPaid: {
-        type: Boolean,
-        default: false
-    },
-    paidAt: Date
 }, {
     timestamps: true
 });
