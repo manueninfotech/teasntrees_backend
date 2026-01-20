@@ -3,6 +3,7 @@ import User from "../../models/User.js";
 import Product from "../../models/Product.js";
 import Delivery from "../../models/Delivery.js";
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
+import { surgeService } from "../../services/surgeService.js";
 import { getDistance } from "../../utils/geoUtils.js";
 
 // Get all orders with filters
@@ -167,6 +168,13 @@ export const updateOrderStatus = async (req, res) => {
                             deliveryLocation.lat, deliveryLocation.lng
                         );
 
+                        // Calculate Surge
+                        const { multiplier, reason } = await surgeService.getSurgeMultiplier();
+                        const baseFee = 40;
+                        const distBonus = Math.max(0, (distMeters / 1000 - 3) * 10);
+                        const surgeAmount = Math.round((baseFee + distBonus) * (multiplier - 1));
+                        const totalEarning = Math.round((baseFee + distBonus) * multiplier);
+
                         // Create Delivery Record
                         const delivery = new Delivery({
                             orderId: order._id,
@@ -179,9 +187,11 @@ export const updateOrderStatus = async (req, res) => {
                             },
                             deliveryLocation: order.deliveryAddress.location,
                             distance: distMeters,
-                            baseEarning: 40, // Base Fee (Example)
-                            distanceBonus: Math.max(0, (distMeters / 1000 - 3) * 10), // Example: Bonus after 3km
-                            totalEarning: 40 + Math.max(0, (distMeters / 1000 - 3) * 10),
+                            baseEarning: baseFee,
+                            distanceBonus: distBonus,
+                            surgeBonus: surgeAmount,
+                            rejectionReason: reason !== 'Normal' ? `Surge: ${reason}` : undefined,
+                            totalEarning: totalEarning,
                             status: 'assigned',
                             assignedAt: new Date(),
                             pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
