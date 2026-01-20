@@ -28,6 +28,7 @@ import customerWishlistRoutes from './routes/customer/wishlistRoutes.js';
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminRoutes from './routes/admin/index.js';
+import riderAuthRoutes from './routes/rider/authRoutes.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
 import { socketAuth } from './middlewares/socketAuth.js';
@@ -118,6 +119,9 @@ app.use('/api/customer/wishlist', customerWishlistRoutes); // Wishlist
 app.use('/api/admin/auth', adminAuthRoutes);           // Admin authentication
 app.use('/api/admin/profile', adminProfileRoutes);     // Admin profile
 app.use('/api/admin', adminRoutes);                    // Admin CRUD operations
+
+// Rider Routes
+app.use('/api/rider/auth', riderAuthRoutes);           // Rider authenticaton
 
 // Test Route
 app.get("/", (req, res) => {
