@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import jwtConfig from '../config/jwt.js';
 
 // Generate a JWT access token (short-lived)
-const generateToken = (payload, expiresIn = '15m') => {  // Changed default to 15 minutes
+const generateToken = (payload, expiresIn = '30d') => {  
     return jwt.sign(payload, jwtConfig.secret, {
         expiresIn
     });

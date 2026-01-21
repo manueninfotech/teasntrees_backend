@@ -376,3 +376,96 @@ export const bulkUpdateProducts = async (req, res) => {
         });
     }
 }
+
+// Get all seasonal products
+export const getSeasonalProducts = async (req, res) => {
+    try {
+        const products = await Product.find({ isSeasonal: true })
+            .populate('category', 'name icon')
+            .select('name isSeasonal availableMonths isAvailable category price image')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: products,
+            count: products.length
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching seasonal products',
+            error: error.message
+        });
+    }
+};
+
+// Get products that are currently out of season
+export const getOutOfSeasonProducts = async (req, res) => {
+    try {
+        const { getCurrentMonth } = await import('../../utils/seasonUtils.js');
+        const currentMonth = getCurrentMonth();
+
+        const seasonalProducts = await Product.find({ isSeasonal: true })
+            .populate('category', 'name icon')
+            .select('name isSeasonal availableMonths isAvailable category price image');
+
+        // Filter products that don't include current month
+        const outOfSeason = seasonalProducts.filter(product =>
+            !product.availableMonths.includes(currentMonth)
+        );
+
+        res.status(200).json({
+            success: true,
+            data: outOfSeason,
+            count: outOfSeason.length,
+            currentMonth
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching out of season products',
+            error: error.message
+        });
+    }
+};
+
+// Update product seasonal settings
+export const updateProductSeason = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { isSeasonal, availableMonths } = req.body;
+
+        const product = await Product.findById(id);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found'
+            });
+        }
+
+        if (isSeasonal !== undefined) {
+            product.isSeasonal = isSeasonal;
+        }
+
+        if (availableMonths !== undefined) {
+            product.availableMonths = availableMonths;
+        }
+
+        await product.save();
+
+        const updatedProduct = await Product.findById(id)
+            .populate('category', 'name icon');
+
+        res.status(200).json({
+            success: true,
+            message: 'Product seasonal settings updated successfully',
+            data: updatedProduct
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating product season',
+            error: error.message
+        });
+    }
+};

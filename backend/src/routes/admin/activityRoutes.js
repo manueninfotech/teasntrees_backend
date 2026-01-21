@@ -9,19 +9,19 @@ import {
 
 const router = express.Router();
 
-// Get activity statistics
-router.get('/stats', getActivityStats);
-
-// Export logs
-router.get('/export', exportLogs);
-
 // Get all activity logs (with filters)
 router.get('/', getAllActivityLogs);
 
-// Get logs by specific admin
+// Get activity statistics (specific path before parameterized routes)
+router.get('/stats', getActivityStats);
+
+// Export logs (specific path before parameterized routes)
+router.get('/export', exportLogs);
+
+// Get logs by specific admin (parameterized route)
 router.get('/admin/:adminId', getLogsByAdmin);
 
-// Get single activity log by ID
+// Get single activity log by ID (catch-all at the end)
 router.get('/:id', getActivityLogById);
 
 export default router;
