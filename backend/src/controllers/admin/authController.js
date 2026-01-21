@@ -110,9 +110,20 @@ const verifyOTP = async (req, res) => {
 
         // Check if OTP matches
         // Bypass for test account in development
+        console.log('DEBUG verifyOTP:', {
+            env: process.env.NODE_ENV,
+            mobile,
+            otp,
+            isDev: process.env.NODE_ENV === 'development',
+            matchMobile: mobile === '9999999999',
+            matchOtp: otp === '123456'
+        });
+
+        // Check if OTP matches
+        // Bypass for test account in development
         const isTestBypass = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
-            mobile === '9999999999' &&
-            otp === '123456';
+            String(mobile) === '9999999999' &&
+            String(otp) === '123456';
 
         if (otpDoc.otp !== otp && !isTestBypass) {
             // Increment OTP attempts
@@ -384,6 +395,21 @@ const completeProfile = async (req, res) => {
             role: user.role
         });
 
+        // Generate refresh token
+        const refreshToken = generateRefreshToken();
+
+        // Store refresh token in database
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90); // 90 days
+
+        await RefreshToken.create({
+            token: refreshToken,
+            user: user._id,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
         // Delete OTP after profile completion
         await OTP.deleteOne({ _id: otpDoc._id });
 
@@ -392,6 +418,7 @@ const completeProfile = async (req, res) => {
             message: 'Profile completed successfully',
             data: {
                 token,
+                refreshToken,
                 user: {
                     id: user._id,
                     name: user.name,

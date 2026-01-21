@@ -11,10 +11,10 @@ const router = express.Router();
 // Public routes (with rate limiting)
 router.post('/send-otp', otpLimiter, sendOTP);          // 3 req/hour
 router.post('/verify-otp', authLimiter, verifyOTP);     // 5 req/15min
+router.post('/complete-profile', authLimiter, completeProfile); // Uses OTP verification, not JWT
 router.post('/refresh-token', authLimiter, refreshAccessToken);
 
 // Protected routes (require authentication)
-router.post('/complete-profile', authenticate, completeProfile);
 router.post('/logout', authenticate, logout);
 
 export default router;
