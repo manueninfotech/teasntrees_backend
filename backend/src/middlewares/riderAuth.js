@@ -14,12 +14,16 @@ export const riderAuth = async (req, res, next) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-        // Specifically look for a Rider
-        const rider = await Rider.findOne({
-            _id: decoded.userId,
-            'tokens.token': token,
-            role: 'rider'
-        });
+        // Check if the token is for a rider role
+        if (decoded.role !== 'rider') {
+            return res.status(401).json({
+                success: false,
+                message: 'Not authorized as a rider'
+            });
+        }
+
+        // Find the rider
+        const rider = await Rider.findById(decoded.userId);
 
         if (!rider) {
             return res.status(401).json({
