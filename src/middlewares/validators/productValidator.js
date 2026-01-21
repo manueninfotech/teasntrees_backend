@@ -63,6 +63,18 @@ export const validateCreateProduct = [
         .optional()
         .isFloat({ min: 0 }).withMessage('Size option price must be a positive number'),
 
+    body('isSeasonal')
+        .optional()
+        .isBoolean().withMessage('isSeasonal must be a boolean'),
+
+    body('availableMonths')
+        .optional()
+        .isArray().withMessage('availableMonths must be an array')
+        .custom((months) => {
+            if (!Array.isArray(months)) return false;
+            return months.every(m => Number.isInteger(m) && m >= 1 && m <= 12);
+        }).withMessage('availableMonths must contain integers between 1 and 12'),
+
     handleValidationErrors
 ];
 
@@ -108,6 +120,18 @@ export const validateUpdateProduct = [
             const validTags = ['new-intro', 'must-try', 'best-seller', 'egg-contains'];
             return tags.every(tag => validTags.includes(tag));
         }).withMessage('Tags must be one of: new-intro, must-try, best-seller, egg-contains'),
+
+    body('isSeasonal')
+        .optional()
+        .isBoolean().withMessage('isSeasonal must be a boolean'),
+
+    body('availableMonths')
+        .optional()
+        .isArray().withMessage('availableMonths must be an array')
+        .custom((months) => {
+            if (!Array.isArray(months)) return false;
+            return months.every(m => Number.isInteger(m) && m >= 1 && m <= 12);
+        }).withMessage('availableMonths must contain integers between 1 and 12'),
 
     handleValidationErrors
 ];

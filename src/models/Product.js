@@ -59,6 +59,20 @@ const productSchema = new mongoose.Schema({
         enum: ['new-intro', 'must-try', 'best-seller', 'egg-contains'],
         default: []
     },
+    isSeasonal: {
+        type: Boolean,
+        default: false
+    },
+    availableMonths: {
+        type: [Number],
+        validate: {
+            validator: function (months) {
+                return months.every(m => m >= 1 && m <= 12);
+            },
+            message: 'Months must be between 1 and 12'
+        },
+        default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] // All months by default
+    },
     sizeOptions: [{
         size: String,
         price: Number

@@ -468,6 +468,12 @@
                         <button class="example-btn" onclick="loadExample('admin', 'bulkUpdate')">Bulk Update</button>
                         <button class="example-btn" onclick="loadExample('admin', 'deleteProduct')">Delete
                             Product</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getSeasonalProducts')">Seasonal
+                            Products</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getOutOfSeasonProducts')">Out of
+                            Season</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateProductSeason')">Update
+                            Season</button>
                     </div>
 
                     <div class="example-section">
@@ -1019,8 +1025,21 @@
                     createProduct: { method: 'POST', endpoint: '/api/admin/products', body: JSON.stringify({ name: "Test Product", description: "Description", category: savedIds.category || "CATEGORY_ID", price: 299, isAvailable: true, ingredients: ["Tea Leaves"], allergens: ["None"] }, null, 2) },
                     updateProduct: { method: 'PUT', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}`, body: JSON.stringify({ name: "Updated Product", price: 399 }, null, 2) },
                     toggleAvailability: { method: 'PUT', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}/availability`, body: JSON.stringify({ isAvailable: false }, null, 2) },
-                    bulkUpdate: { method: 'PUT', endpoint: '/api/admin/products/bulk-update', body: JSON.stringify({ productIds: ["PRODUCT_ID_1", "PRODUCT_ID_2"], updates: { isAvailable: true } }, null, 2) },
+                    bulkUpdate: {
+                        method: 'PUT', endpoint: '/api/admin/products/bulk-update', body: JSON.stringify({
+                            productIds: ["695f9dd40680745ae36c938a", "695f9dd40680745ae36c938b"],
+                            updates: { isAvailable: true }
+                        }, null, 2)
+                    },
                     deleteProduct: { method: 'DELETE', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}`, body: '' },
+                    getSeasonalProducts: { method: 'GET', endpoint: '/api/admin/products/seasonal/all', body: '' },
+                    getOutOfSeasonProducts: { method: 'GET', endpoint: '/api/admin/products/seasonal/out-of-season', body: '' },
+                    updateProductSeason: {
+                        method: 'PUT', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}/season`, body: JSON.stringify({
+                            isSeasonal: true,
+                            availableMonths: [11, 12, 1, 2]
+                        }, null, 2)
+                    },
 
                     // Orders
                     getOrders: { method: 'GET', endpoint: '/api/admin/orders', body: '' },
@@ -1039,15 +1058,15 @@
                     completeDelivery: { method: 'PUT', endpoint: `/api/admin/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/complete`, body: JSON.stringify({ otp: "1234", notes: "Delivered" }, null, 2) },
 
                     // Activity Logs
-                    getAllActivityLogs: { method: 'GET', endpoint: '/api/admin/activity', body: '' },
-                    activityStats: { method: 'GET', endpoint: '/api/admin/activity/stats', body: '' },
-                    logsByAdmin: { method: 'GET', endpoint: `/api/admin/activity/admin/${savedIds.user || 'ADMIN_ID'}`, body: '' },
-                    activityLogById: { method: 'GET', endpoint: `/api/admin/activity/${savedIds.activityLog || 'LOG_ID'}`, body: '' },
-                    exportLogs: { method: 'GET', endpoint: '/api/admin/activity/export', body: '' },
+                    getAllActivityLogs: { method: 'GET', endpoint: '/api/admin/activity-logs', body: '' },
+                    activityStats: { method: 'GET', endpoint: '/api/admin/activity-logs/stats', body: '' },
+                    logsByAdmin: { method: 'GET', endpoint: `/api/admin/activity-logs/admin/${savedIds.user || 'ADMIN_ID'}`, body: '' },
+                    activityLogById: { method: 'GET', endpoint: `/api/admin/activity-logs/${savedIds.activityLog || 'LOG_ID'}`, body: '' },
+                    exportLogs: { method: 'GET', endpoint: '/api/admin/activity-logs/export', body: '' },
 
                     // Cart Analytics
-                    cartAnalytics: { method: 'GET', endpoint: '/api/admin/cart-analytics', body: '' },
-                    abandonedCarts: { method: 'GET', endpoint: '/api/admin/cart-analytics/abandoned', body: '' },
+                    cartAnalytics: { method: 'GET', endpoint: '/api/admin/analytics/carts', body: '' },
+                    abandonedCarts: { method: 'GET', endpoint: '/api/admin/analytics/carts/abandoned', body: '' },
 
                     // Payouts
                     payoutStats: { method: 'GET', endpoint: '/api/admin/payouts/stats', body: '' },
@@ -1070,7 +1089,7 @@
                     getSettings: { method: 'GET', endpoint: '/api/admin/settings', body: '' },
                     updateSettings: { method: 'PUT', endpoint: '/api/admin/settings', body: JSON.stringify({ deliveryCharge: 50, minOrderAmount: 100 }, null, 2) },
                     getDeliveryZones: { method: 'GET', endpoint: '/api/admin/settings/delivery-zones', body: '' },
-                    updateDeliveryZones: { method: 'PUT', endpoint: '/api/admin/settings/delivery-zones', body: JSON.stringify({ zones: [{ name: "Zone 1", charge: 30 }] }, null, 2) },
+                    updateDeliveryZones: { method: 'PUT', endpoint: '/api/admin/settings/delivery-zones', body: JSON.stringify({ deliveryZones: [{ name: "Zone 1", charge: 30 }] }, null, 2) },
                     getProfile: { method: 'GET', endpoint: '/api/admin/profile', body: '' },
                     updateProfile: { method: 'PUT', endpoint: '/api/admin/profile', body: JSON.stringify({ name: "Updated Admin", email: "admin@updated.com" }, null, 2) }
                 },
@@ -1099,15 +1118,15 @@
                     updateCartItem: { method: 'PUT', endpoint: `/api/customer/cart/item/${savedIds.cartItem || 'ITEM_ID'}`, body: JSON.stringify({ quantity: 3 }, null, 2) },
                     removeCartItem: { method: 'DELETE', endpoint: `/api/customer/cart/item/${savedIds.cartItem || 'ITEM_ID'}`, body: '' },
                     clearCart: { method: 'DELETE', endpoint: '/api/customer/cart/clear', body: '' },
-                    checkout: { method: 'POST', endpoint: '/api/customer/cart/checkout', body: JSON.stringify({ deliveryAddress: "123 Main St, Bangalore", paymentMethod: "cod", deliveryInstructions: "Ring doorbell" }, null, 2) },
+                    checkout: { method: 'POST', endpoint: '/api/customer/cart/checkout', body: JSON.stringify({ deliveryAddress: "123 Main St, Bangalore", paymentMethod: "COD", deliveryInstructions: "Ring doorbell" }, null, 2) },
 
                     // Orders
                     createOrder: { method: 'POST', endpoint: '/api/customer/orders', body: JSON.stringify({ items: [{ product: savedIds.product || "PRODUCT_ID", quantity: 2, price: 299 }], deliveryAddress: "123 Main St", paymentMethod: "COD" }, null, 2) },
-                    getMyOrders: { method: 'GET', endpoint: '/api/customer/orders', body: '' },
+                    getMyOrders: { method: 'GET', endpoint: '/api/customer/orders/my-orders', body: '' },
                     getOrderDetails: { method: 'GET', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}`, body: '' },
                     downloadInvoice: { method: 'GET', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}/invoice`, body: '' },
                     reorder: { method: 'POST', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}/reorder`, body: '' },
-                    cancelOrder: { method: 'PUT', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}/cancel`, body: JSON.stringify({ reason: "Changed my mind" }, null, 2) },
+                    cancelOrder: { method: 'DELETE', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}/cancel`, body: JSON.stringify({ reason: "Changed my mind" }, null, 2) },
 
                     // Deliveries
                     getMyDeliveries: { method: 'GET', endpoint: '/api/customer/deliveries', body: '' },
@@ -1128,7 +1147,7 @@
 
                     // Reviews
                     createReview: { method: 'POST', endpoint: '/api/customer/reviews', body: JSON.stringify({ orderId: savedIds.order || "ORDER_ID", foodRating: 5, riderRating: 5, review: "Excellent service!" }, null, 2) },
-                    getMyReviews: { method: 'GET', endpoint: '/api/customer/reviews', body: '' },
+                    getMyReviews: { method: 'GET', endpoint: '/api/customer/reviews/my-reviews', body: '' },
                     rateProduct: { method: 'POST', endpoint: '/api/customer/reviews/product', body: JSON.stringify({ productId: savedIds.product || "PRODUCT_ID", orderId: savedIds.order || "ORDER_ID", rating: 5, review: "Excellent!" }, null, 2) }
                 },
                 rider: {

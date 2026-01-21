@@ -7,7 +7,10 @@ import {
     updateProduct,
     deleteProduct,
     toggleProductAvailability,
-    bulkUpdateProducts
+    bulkUpdateProducts,
+    getSeasonalProducts,
+    getOutOfSeasonProducts,
+    updateProductSeason
 } from '../../controllers/admin/productController.js';
 import {
     validateCreateProduct,
@@ -43,5 +46,10 @@ router.put('/:id/availability', validateProductId, logActivity('update', 'produc
 
 // bulk update products
 router.put('/bulk-update', validateBulkUpdate, logActivity('update', 'product'), bulkUpdateProducts);
+
+// Seasonal product management
+router.get('/seasonal/all', getSeasonalProducts);
+router.get('/seasonal/out-of-season', getOutOfSeasonProducts);
+router.put('/:id/season', validateProductId, logActivity('update', 'product'), updateProductSeason);
 
 export default router;
