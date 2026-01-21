@@ -121,10 +121,16 @@ export const validateProductId = [
 
 export const validateBulkUpdate = [
     body('productIds')
-        .isArray({ min: 1 }).withMessage('Product IDs array is required'),
-
-    body('productIds.*')
-        .isMongoId().withMessage('Invalid product ID in array'),
+        .isArray({ min: 1 }).withMessage('Product IDs array is required')
+        .custom((productIds) => {
+            // Check if all elements are valid MongoDB ObjectIDs (24 hex characters)
+            const objectIdRegex = /^[0-9a-fA-F]{24}$/;
+            const allValid = productIds.every(id => typeof id === 'string' && objectIdRegex.test(id));
+            if (!allValid) {
+                throw new Error('All product IDs must be valid MongoDB ObjectIDs');
+            }
+            return true;
+        }),
 
     body('updates')
         .notEmpty().withMessage('Updates object is required')
