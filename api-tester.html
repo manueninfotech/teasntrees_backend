@@ -519,6 +519,22 @@
                     </div>
 
                     <div class="example-section">
+                        <strong>Rider Management:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getAllRiders')">Get All
+                            Riders</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getPendingRiders')">Pending
+                            Riders</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getRiderById')">Get Rider by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'approveRider')">Approve
+                            Rider</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'rejectRider')">Reject Rider</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'toggleRiderStatus')">Toggle
+                            Status</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deleteRider')">Delete Rider</button>
+                    </div>
+
+                    <div class="example-section">
                         <strong>Activity Logs:</strong>
                         <button class="example-btn" onclick="loadExample('admin', 'getAllActivityLogs')">All Activity
                             Logs</button>
@@ -772,6 +788,8 @@
 
                     <div class="example-section">
                         <strong>Authentication:</strong>
+                        <button class="example-btn" onclick="loadExample('rider', 'registerRider')">Register
+                            Rider</button>
                         <button class="example-btn" onclick="loadExample('rider', 'sendOTP')">Send OTP</button>
                         <button class="example-btn" onclick="loadExample('rider', 'verifyOTP')">Verify OTP</button>
                         <button class="example-btn" onclick="loadExample('rider', 'getProfile')">Get Profile</button>
@@ -1077,8 +1095,17 @@
                     getReviewById: { method: 'GET', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}`, body: '' },
                     getRiderReviews: { method: 'GET', endpoint: `/api/admin/reviews/rider/${savedIds.user || 'RIDER_ID'}`, body: '' },
                     reviewStats: { method: 'GET', endpoint: '/api/admin/reviews/stats', body: '' },
-                    approveReview: { method: 'PATCH', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}/approve`, body: '' },
-                    rejectReview: { method: 'PATCH', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}/reject`, body: JSON.stringify({ reason: "Inappropriate" }, null, 2) },
+                    approveReview: { method: 'PUT', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}/approve`, body: '' },
+                    rejectReview: { method: 'PUT', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}/reject`, body: '' },
+
+                    // Rider Management
+                    getAllRiders: { method: 'GET', endpoint: '/api/admin/riders', body: '' },
+                    getPendingRiders: { method: 'GET', endpoint: '/api/admin/riders/pending', body: '' },
+                    getRiderById: { method: 'GET', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}`, body: '' },
+                    approveRider: { method: 'PUT', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}/approve`, body: '' },
+                    rejectRider: { method: 'PUT', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}/reject`, body: JSON.stringify({ reason: "Documents not clear" }, null, 2) },
+                    toggleRiderStatus: { method: 'PUT', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}/status`, body: JSON.stringify({ isActive: false }, null, 2) },
+                    deleteRider: { method: 'DELETE', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}`, body: '' },
 
                     // Uploads
                     uploadImage: { method: 'POST', endpoint: '/api/admin/upload/image', body: 'NOTE: Use multipart/form-data with "image" field' },
@@ -1152,6 +1179,32 @@
                 },
                 rider: {
                     // Auth
+                    registerRider: {
+                        method: 'POST',
+                        endpoint: '/api/rider/auth/register',
+                        body: JSON.stringify({
+                            name: "Rider Name",
+                            mobile: "9876543210",
+                            email: "rider@example.com",
+                            vehicleType: "bike",
+                            vehicleNumber: "KA01AB1234",
+                            vehicleModel: "Honda Activa",
+                            licenseNumber: "DL1234567890",
+                            licenseExpiryDate: "2025-12-31",
+                            licensePhoto: "https://example.com/license.jpg",
+                            aadharNumber: "123456789012",
+                            aadharPhoto: "https://example.com/aadhar.jpg",
+                            panNumber: "ABCDE1234F",
+                            panPhoto: "https://example.com/pan.jpg",
+                            profilePhoto: "https://example.com/profile.jpg",
+                            bankAccountNumber: "1234567890",
+                            ifscCode: "SBIN0001234",
+                            accountHolderName: "Rider Name",
+                            emergencyContactName: "Emergency Contact",
+                            emergencyContactMobile: "9876543211",
+                            emergencyContactRelation: "Father"
+                        }, null, 2)
+                    },
                     sendOTP: { method: 'POST', endpoint: '/api/rider/auth/send-otp', body: JSON.stringify({ mobile: "9876543210" }, null, 2) },
                     verifyOTP: { method: 'POST', endpoint: '/api/rider/auth/verify-otp', body: JSON.stringify({ mobile: "9876543210", otp: "123456" }, null, 2) },
                     getProfile: { method: 'GET', endpoint: '/api/rider/auth/profile', body: '' },

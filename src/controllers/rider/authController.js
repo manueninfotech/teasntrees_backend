@@ -33,17 +33,19 @@ export const registerRider = async (req, res) => {
             });
         }
 
+
         const files = req.files || {};
 
-        const licensePhoto = files.licensePhoto ? files.licensePhoto[0].path : null;
-        const aadharPhoto = files.aadharPhoto ? files.aadharPhoto[0].path : null;
-        const panPhoto = files.panPhoto ? files.panPhoto[0].path : null;
-        const profilePhoto = files.profilePhoto ? files.profilePhoto[0].path : null;
+        // Accept either file uploads OR URLs from request body
+        const licensePhoto = files.licensePhoto ? files.licensePhoto[0].path : req.body.licensePhoto;
+        const aadharPhoto = files.aadharPhoto ? files.aadharPhoto[0].path : req.body.aadharPhoto;
+        const panPhoto = files.panPhoto ? files.panPhoto[0].path : req.body.panPhoto;
+        const profilePhoto = files.profilePhoto ? files.profilePhoto[0].path : req.body.profilePhoto;
 
         if (!licensePhoto || !aadharPhoto) {
             return res.status(400).json({
                 success: false,
-                message: 'License and Aadhar photos are mandatory'
+                message: 'License and Aadhar photos are mandatory (either upload files or provide URLs)'
             });
         }
 
@@ -119,28 +121,44 @@ export const sendOtp = async (req, res) => {
             });
         }
 
+        if (!rider.isApproved) {
+            return res.status(403).json({
+                success: false,
+                message: 'Your account is pending admin approval. Please wait for approval before logging in.'
+            });
+        }
+
         const otp = generateOTP();
-        // In production: await sendSMS(mobile, `Your login OTP is ${otp}`);
+
+        // Delete any existing OTPs for this mobile
+        const Otp = (await import('../../models/OTP.js')).default;
+        await Otp.deleteMany({ mobile });
+
+        // Create new OTP
+        await Otp.create({
+            mobile,
+            otp,
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+        });
 
         // For dev/test:
+        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
         console.log(`Rider Login OTP for ${mobile}: ${otp}`);
-
-        // Save OTP hash (assuming User model has method or separate OTP store, adapting from customer auth)
-        // Reusing User model logic if available, or just mocking for this snippet if common logic exists.
-        // Assuming common `Otp` model or field.
-        // Let's assume we use the same `Otp` model as Customer/Admin.
-        const Otp = (await import('../../models/OTP.js')).default;
-        await Otp.create({ mobile, otp, role: 'rider' }); // role specific OTP?
+        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
         res.json({
             success: true,
             message: 'OTP sent successfully',
-            // Convert to boolean for safety in prod
             otpSent: true
         });
 
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to send OTP' });
+        logger.error('Rider Send OTP Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to send OTP',
+            error: error.message
+        });
     }
 };
 
@@ -150,7 +168,7 @@ export const verifyOtp = async (req, res) => {
         const { mobile, otp } = req.body;
         const Otp = (await import('../../models/OTP.js')).default;
 
-        let validOtp = await Otp.findOne({ mobile, otp, role: 'rider' });
+        let validOtp = await Otp.findOne({ mobile, otp });
 
         // dev bypass
         const isBypass = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && otp === '123456';
@@ -200,6 +218,14 @@ export const toggleAvailability = async (req, res) => {
         const { isOnline, location } = req.body; // location: { lat, lng }
         const rider = req.rider; // From middleware
 
+        if (!rider) {
+            logger.error('Rider not found in request', { userId: req.user?.userId });
+            return res.status(401).json({
+                success: false,
+                message: 'Rider not authenticated'
+            });
+        }
+
         rider.isOnline = isOnline;
 
         if (location) {
@@ -212,15 +238,20 @@ export const toggleAvailability = async (req, res) => {
 
         await rider.save();
 
-        // Emit Socket Event (To be handled by socketService)
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            const event = isOnline ? 'rider:online' : 'rider:offline';
-            socketService.emitToRole('admin', event, {
-                riderId: rider._id,
-                name: rider.name,
-                location: rider.currentLocation
-            });
+        // Emit Socket Event (optional - only if socketService exists and has the method)
+        try {
+            const socketService = req.app?.get?.('socketService');
+            if (socketService && typeof socketService.emitToRole === 'function') {
+                const event = isOnline ? 'rider:online' : 'rider:offline';
+                socketService.emitToRole('admin', event, {
+                    riderId: rider._id,
+                    name: rider.name,
+                    location: rider.currentLocation
+                });
+            }
+        } catch (socketError) {
+            logger.warn('Socket emission failed (non-critical):', socketError.message);
+            // Continue anyway - this is not critical
         }
 
         res.json({
@@ -230,7 +261,12 @@ export const toggleAvailability = async (req, res) => {
         });
 
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to update status' });
+        logger.error('Error in toggleAvailability:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to update status',
+            error: error.message 
+        });
     }
 };
 
