@@ -110,7 +110,7 @@ export const registerRider = async (req, res) => {
 export const sendOtp = async (req, res) => {
     try {
         const { mobile } = req.body;
-        const rider = await Rider.findOne({ mobile, role: 'rider' });
+        const rider = await Rider.findOne({ mobile });
 
         if (!rider) {
             return res.status(404).json({
@@ -150,8 +150,12 @@ export const verifyOtp = async (req, res) => {
         const { mobile, otp } = req.body;
         const Otp = (await import('../../models/OTP.js')).default;
 
-        const validOtp = await Otp.findOne({ mobile, otp, role: 'rider' });
-        if (!validOtp) {
+        let validOtp = await Otp.findOne({ mobile, otp, role: 'rider' });
+
+        // dev bypass
+        const isBypass = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && otp === '123456';
+
+        if (!validOtp && !isBypass) {
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP'
