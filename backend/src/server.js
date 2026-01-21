@@ -28,6 +28,7 @@ import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 import riderAuthRoutes from './routes/rider/authRoutes.js';
 import riderDeliveryRoutes from './routes/rider/deliveryRoutes.js';
+import payoutRoutes from './routes/admin/payoutRoutes.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
 import { socketAuth } from './middlewares/socketAuth.js';
@@ -121,7 +122,8 @@ app.use('/api/admin', adminRoutes);                    // Admin CRUD operations
 
 // Rider Routes
 app.use('/api/rider/auth', riderAuthRoutes);           // Rider authenticaton
-app.use('/api/rider/deliveries', riderDeliveryRoutes); // Rider delivery management
+app.use('/api/rider/deliveries', riderDeliveryRoutes);
+app.use('/api/admin/payouts', payoutRoutes); // Rider delivery management
 
 // Test Route
 app.get("/", (req, res) => {
