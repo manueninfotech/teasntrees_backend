@@ -71,7 +71,7 @@ const productSchema = new mongoose.Schema({
             },
             message: 'Months must be between 1 and 12'
         },
-        default: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] // All months by default
+        default: []
     },
     sizeOptions: [{
         size: String,

@@ -110,6 +110,8 @@ export const createProduct = async (req, res) => {
             ingredients,
             allergens,
             tags,
+            isSeasonal,
+            availableMonths,
             sizeOptions,
             variants
         } = req.body;
@@ -142,6 +144,8 @@ export const createProduct = async (req, res) => {
             ingredients,
             allergens,
             tags,
+            isSeasonal,
+            availableMonths,
             sizeOptions,
             variants,
             createdBy: req.user.id
