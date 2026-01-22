@@ -11,7 +11,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
         image: '',
         isAvailable: true,
         isSeasonal: false,
-        availableMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        availableMonths: [],
         tags: ''
     });
     const [imageFile, setImageFile] = useState(null);
@@ -35,7 +35,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                     category: categoryId,
                     image: product.image || '',
                     isAvailable: product.isAvailable ?? true,
-                    isSeasonal: product.isSeasonal || false,
+                    isSeasonal: product.isSeasonal ?? false,
                     availableMonths: product.availableMonths || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                     tags: product.tags?.join(', ') || ''
                 });
@@ -53,7 +53,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                     image: '',
                     isAvailable: true,
                     isSeasonal: false,
-                    availableMonths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                    availableMonths: [],
                     tags: ''
                 });
                 setImagePreview('');
@@ -62,6 +62,16 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
             setError('');
         }
     }, [isOpen, product]);
+
+    const handleSeasonalChange = (checked) => {
+        setFormData({
+            ...formData,
+            isSeasonal: checked,
+            // When enabling seasonal, start with empty months so user can select which ones
+            // When disabling seasonal, set to all months (product available year-round)
+            availableMonths: checked ? [] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        });
+    };
 
     const fetchCategories = async () => {
         try {
@@ -141,8 +151,11 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
             setImageFile(null);
             setImagePreview('');
 
-            onSuccess();
-            onClose();
+            // Small delay to ensure database has committed changes
+            setTimeout(() => {
+                onSuccess();
+                onClose();
+            }, 100);
         } catch (error) {
             console.error('Error saving product:', error.response?.data || error.message);
 
@@ -342,7 +355,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                 <input
                                     type="checkbox"
                                     checked={formData.isSeasonal}
-                                    onChange={(e) => setFormData({ ...formData, isSeasonal: e.target.checked })}
+                                    onChange={(e) => handleSeasonalChange(e.target.checked)}
                                     className="w-4 h-4 text-orange-600 rounded"
                                 />
                                 <span className="text-sm font-medium text-gray-700">Seasonal Product</span>

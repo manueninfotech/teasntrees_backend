@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import ProductModal from '../components/ProductModal';
+import { useNavigate } from 'react-router-dom';
 import {
     Plus,
     Edit,
@@ -11,7 +12,9 @@ import {
     Eye,
     EyeOff,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    CheckSquare,
+    Square
 } from 'lucide-react';
 
 export default function Products() {
@@ -21,6 +24,9 @@ export default function Products() {
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [error, setError] = useState(null);
+    const [selectedProducts, setSelectedProducts] = useState(new Set());
+    const [bulkAction, setBulkAction] = useState(null);
+    const navigate = useNavigate();
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
@@ -107,6 +113,57 @@ export default function Products() {
             fetchProducts();
         } catch (error) {
             console.error('Failed to delete product:', error);
+        }
+    };
+
+    const toggleProductSelection = (productId) => {
+        const newSelected = new Set(selectedProducts);
+        if (newSelected.has(productId)) {
+            newSelected.delete(productId);
+        } else {
+            newSelected.add(productId);
+        }
+        setSelectedProducts(newSelected);
+    };
+
+    const toggleAllSelection = () => {
+        if (selectedProducts.size === filteredProducts.length) {
+            setSelectedProducts(new Set());
+        } else {
+            const allIds = new Set(filteredProducts.map(p => p._id));
+            setSelectedProducts(allIds);
+        }
+    };
+
+    const executeBulkAction = async () => {
+        if (!bulkAction || selectedProducts.size === 0) return;
+
+        try {
+            const productIds = Array.from(selectedProducts);
+
+            if (bulkAction === 'make-available') {
+                await api.put('/admin/products/bulk-update', {
+                    productIds,
+                    updates: { isAvailable: true }
+                });
+            } else if (bulkAction === 'make-unavailable') {
+                await api.put('/admin/products/bulk-update', {
+                    productIds,
+                    updates: { isAvailable: false }
+                });
+            } else if (bulkAction === 'delete') {
+                if (!window.confirm(`Delete ${productIds.length} products? This action cannot be undone.`)) return;
+                for (const id of productIds) {
+                    await api.delete(`/admin/products/${id}`);
+                }
+            }
+
+            setSelectedProducts(new Set());
+            setBulkAction(null);
+            fetchProducts();
+        } catch (error) {
+            console.error('Failed to execute bulk action:', error);
+            setError(error.response?.data?.message || 'Bulk action failed');
         }
     };
 
@@ -223,13 +280,64 @@ export default function Products() {
                 )}
             </div>
 
+            {/* Bulk Actions */}
+            {selectedProducts.size > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-sm p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <CheckSquare className="w-5 h-5 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-900">
+                            {selectedProducts.size} product(s) selected
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <select
+                            value={bulkAction}
+                            onChange={(e) => setBulkAction(e.target.value)}
+                            className="text-sm border border-blue-300 rounded-lg px-3 py-1 bg-white"
+                        >
+                            <option value="">Choose action...</option>
+                            <option value="make-available">Make Available</option>
+                            <option value="make-unavailable">Make Unavailable</option>
+                            <option value="delete">Delete All</option>
+                        </select>
+                        <button
+                            onClick={executeBulkAction}
+                            disabled={!bulkAction}
+                            className="btn-primary text-sm py-1 px-3 disabled:opacity-50"
+                        >
+                            Apply
+                        </button>
+                        <button
+                            onClick={() => setSelectedProducts(new Set())}
+                            className="btn-secondary text-sm py-1 px-3"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Products Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredProducts.map((product) => (
                     <div
                         key={product._id}
-                        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
+                        className={`relative bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-lg transition-shadow flex flex-col ${selectedProducts.has(product._id) ? 'border-green-400 ring-2 ring-green-200' : 'border-gray-200'}`}
                     >
+                        {/* Checkbox Overlay */}
+                        <div className="absolute top-3 left-3 z-10">
+                            <button
+                                onClick={() => toggleProductSelection(product._id)}
+                                className="p-2 bg-white/90 rounded-lg shadow-md hover:bg-white transition-colors"
+                            >
+                                {selectedProducts.has(product._id) ? (
+                                    <CheckSquare className="w-5 h-5 text-green-600" />
+                                ) : (
+                                    <Square className="w-5 h-5 text-gray-400" />
+                                )}
+                            </button>
+                        </div>
+
                         {/* Product Image */}
                         <div className="h-48 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center relative">
                             {product.image ? (
@@ -306,6 +414,13 @@ export default function Products() {
 
                             {/* Actions - Always at bottom */}
                             <div className="flex gap-2 mt-4">
+                                <button
+                                    onClick={() => navigate(`/products/${product._id}`)}
+                                    className="flex-1 btn-secondary flex items-center justify-center gap-2 text-sm py-2"
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    View
+                                </button>
                                 <button
                                     onClick={() => {
                                         setEditingProduct(product);

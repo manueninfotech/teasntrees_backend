@@ -8,7 +8,8 @@ import {
     Bike,
     LogOut,
     Coffee,
-    FolderTree
+    FolderTree,
+    Calendar
 } from 'lucide-react';
 
 export default function Layout() {
@@ -25,6 +26,7 @@ export default function Layout() {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: FolderTree, label: 'Categories', path: '/categories' },
         { icon: Package, label: 'Products', path: '/products' },
+        { icon: Calendar, label: 'Seasonal', path: '/products/seasonal' },
         { icon: ShoppingCart, label: 'Orders', path: '/orders' },
         { icon: Bike, label: 'Riders', path: '/riders' },
         { icon: Users, label: 'Customers', path: '/customers' },
