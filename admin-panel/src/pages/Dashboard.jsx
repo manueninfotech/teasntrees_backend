@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import {
     TrendingUp,
@@ -7,14 +8,14 @@ import {
     Package,
     Bike,
     DollarSign,
-    ArrowUp,
-    ArrowDown,
     Clock
 } from 'lucide-react';
+import OrderStatusBadge from '../components/OrderStatusBadge';
 
 export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         fetchStats();
@@ -45,48 +46,42 @@ export default function Dashboard() {
             value: `₹${stats?.totalRevenue?.toLocaleString() || 0}`,
             icon: DollarSign,
             color: 'green',
-            trend: '+12.5%',
-            trendUp: true
+            subtitle: `₹${stats?.todayRevenue || 0} today`
         },
         {
             title: 'Total Orders',
             value: stats?.totalOrders || 0,
             icon: ShoppingCart,
             color: 'blue',
-            trend: '+8.2%',
-            trendUp: true
+            subtitle: `${stats?.todayOrders || 0} today`
         },
         {
             title: 'Active Customers',
             value: stats?.totalCustomers || 0,
             icon: Users,
             color: 'purple',
-            trend: '+15.3%',
-            trendUp: true
+            subtitle: 'Registered users'
         },
         {
             title: 'Products',
             value: stats?.totalProducts || 0,
             icon: Package,
             color: 'orange',
-            trend: '+5',
-            trendUp: true
+            subtitle: 'In catalog'
         },
         {
             title: 'Active Riders',
-            value: stats?.activeRiders || 0,
+            value: `${stats?.activeRiders || 0}/${stats?.totalRiders || 0}`,
             icon: Bike,
             color: 'teal',
-            trend: '3 online',
-            trendUp: true
+            subtitle: 'Online now'
         },
         {
             title: 'Pending Orders',
             value: stats?.pendingOrders || 0,
             icon: Clock,
             color: 'red',
-            trend: '-2',
-            trendUp: false
+            subtitle: 'Need attention'
         }
     ];
 
@@ -123,17 +118,7 @@ export default function Dashboard() {
                             <div className="flex-1">
                                 <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
                                 <h3 className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</h3>
-                                <div className="flex items-center gap-1">
-                                    {stat.trendUp ? (
-                                        <ArrowUp className="w-4 h-4 text-green-600" />
-                                    ) : (
-                                        <ArrowDown className="w-4 h-4 text-red-600" />
-                                    )}
-                                    <span className={`text-sm font-medium ${stat.trendUp ? 'text-green-600' : 'text-red-600'}`}>
-                                        {stat.trend}
-                                    </span>
-                                    <span className="text-sm text-gray-500">vs last month</span>
-                                </div>
+                                <p className="text-sm text-gray-500">{stat.subtitle}</p>
                             </div>
                             <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${colorClasses[stat.color]} flex items-center justify-center shadow-lg`}>
                                 <stat.icon className="w-7 h-7 text-white" />
@@ -147,45 +132,77 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Recent Orders */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Orders</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
+                        <button
+                            onClick={() => navigate('/orders')}
+                            className="text-sm text-green-600 hover:text-green-700 font-medium"
+                        >
+                            View All
+                        </button>
+                    </div>
                     <div className="space-y-3">
-                        {[1, 2, 3, 4].map((i) => (
-                            <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                        <ShoppingCart className="w-5 h-5 text-green-600" />
+                        {stats?.recentOrders?.length > 0 ? (
+                            stats.recentOrders.map((order) => (
+                                <div
+                                    key={order._id}
+                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                                    onClick={() => navigate('/orders')}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                            <ShoppingCart className="w-5 h-5 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900">#{order.orderNumber}</p>
+                                            <p className="text-sm text-gray-500">
+                                                {order.customerId?.name || 'Customer'} • {order.items?.length || 0} items • ₹{order.total}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">Order #{1000 + i}</p>
-                                        <p className="text-sm text-gray-500">2 items • ₹250</p>
-                                    </div>
+                                    <OrderStatusBadge status={order.status} />
                                 </div>
-                                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                                    Pending
-                                </span>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p className="text-center text-gray-500 py-8">No recent orders</p>
+                        )}
                     </div>
                 </div>
 
                 {/* Top Products */}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">Top Products</h2>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">Top Products</h2>
+                        <button
+                            onClick={() => navigate('/products')}
+                            className="text-sm text-green-600 hover:text-green-700 font-medium"
+                        >
+                            View All
+                        </button>
+                    </div>
                     <div className="space-y-3">
-                        {['Masala Chai', 'Green Tea', 'Iced Coffee', 'Lemon Tea'].map((product, i) => (
-                            <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                                        <Package className="w-5 h-5 text-orange-600" />
+                        {stats?.topProducts?.length > 0 ? (
+                            stats.topProducts.map((product, i) => (
+                                <div
+                                    key={product._id}
+                                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
+                                    onClick={() => navigate(`/products/${product._id}`)}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                                            <Package className="w-5 h-5 text-orange-600" />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900">{product.name}</p>
+                                            <p className="text-sm text-gray-500">{product.orderCount || 0} sold</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">{product}</p>
-                                        <p className="text-sm text-gray-500">{120 - i * 20} sold</p>
-                                    </div>
+                                    <TrendingUp className="w-5 h-5 text-green-600" />
                                 </div>
-                                <TrendingUp className="w-5 h-5 text-green-600" />
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p className="text-center text-gray-500 py-8">No products data</p>
+                        )}
                     </div>
                 </div>
             </div>

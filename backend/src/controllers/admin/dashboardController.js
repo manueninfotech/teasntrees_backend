@@ -8,9 +8,11 @@ export const getDashboardStats = async (req, res) => {
     try {
         // Get total counts
         const totalOrders = await Order.countDocuments();
-        const totalUsers = await User.countDocuments();
+        const totalCustomers = await User.countDocuments({ role: 'customer' });
         const totalProducts = await Product.countDocuments();
-        const totalDeliveries = await Delivery.countDocuments();
+        const totalRiders = await User.countDocuments({ role: 'rider' });
+        const activeRiders = await User.countDocuments({ role: 'rider', isActive: true });
+        const pendingOrders = await Order.countDocuments({ status: 'pending' });
 
         // Get today's data
         const today = new Date();
@@ -43,22 +45,35 @@ export const getDashboardStats = async (req, res) => {
             { $group: { _id: '$status', count: { $sum: 1 } } }
         ]);
 
+        // Get recent orders
+        const recentOrders = await Order.find()
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .populate('customerId', 'name')
+            .select('orderNumber items total status createdAt');
+
+        // Get top products
+        const topProducts = await Product.find()
+            .sort({ orderCount: -1 })
+            .limit(4)
+            .select('name orderCount');
+
         res.status(200).json({
             success: true,
             data: {
-                overview: {
-                    totalOrders,
-                    totalUsers,
-                    totalProducts,
-                    totalDeliveries,
-                    totalRevenue,
-                    activeOrders
-                },
-                today: {
-                    orders: todayOrders,
-                    revenue: todayRevenue.length > 0 ? todayRevenue[0].total : 0
-                },
-                ordersByStatus
+                totalOrders,
+                totalCustomers,
+                totalProducts,
+                totalRiders,
+                activeRiders,
+                pendingOrders,
+                totalRevenue,
+                activeOrders,
+                todayOrders,
+                todayRevenue: todayRevenue.length > 0 ? todayRevenue[0].total : 0,
+                ordersByStatus,
+                recentOrders,
+                topProducts
             }
         });
     } catch (error) {

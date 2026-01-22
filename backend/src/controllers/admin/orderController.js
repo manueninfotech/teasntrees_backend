@@ -95,6 +95,47 @@ export const getOrderById = async (req, res) => {
     }
 };
 
+// Update payment status
+export const updatePaymentStatus = async (req, res) => {
+    try {
+        const { paymentStatus } = req.body;
+
+        if (!paymentStatus || !['pending', 'paid', 'refunded'].includes(paymentStatus)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid payment status'
+            });
+        }
+
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            { paymentStatus },
+            { new: true }
+        ).populate('customerId', 'name mobile email')
+            .populate('items.product', 'name price image')
+            .populate('riderId', 'name mobile');
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Payment status updated successfully',
+            data: order
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error updating payment status',
+            error: error.message
+        });
+    }
+};
+
 // Update order status
 export const updateOrderStatus = async (req, res) => {
     try {
@@ -391,20 +432,38 @@ export const getOrderStats = async (req, res) => {
         const deliveredOrders = await Order.countDocuments({ status: 'delivered' });
         const cancelledOrders = await Order.countDocuments({ status: 'cancelled' });
 
-        // Calculate total revenue
+        // In-progress orders (confirmed, preparing, ready, assigned, picked_up, out-for-delivery, in_transit)
+        const inProgressOrders = await Order.countDocuments({
+            status: { $in: ['confirmed', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit'] }
+        });
+
+        // Calculate total revenue from delivered orders
         const revenueData = await Order.aggregate([
             { $match: { status: 'delivered' } },
-            { $group: { _id: null, totalRevenue: { $sum: '$totalAmount' } } }
+            { $group: { _id: null, totalRevenue: { $sum: '$total' } } }
         ]);
 
         const totalRevenue = revenueData.length > 0 ? revenueData[0].totalRevenue : 0;
 
-        // Today's orders
+        // Today's orders and revenue
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayOrders = await Order.countDocuments({
             createdAt: { $gte: today }
         });
+
+        // Today's revenue from delivered orders
+        const todayRevenueData = await Order.aggregate([
+            {
+                $match: {
+                    status: 'delivered',
+                    deliveredAt: { $gte: today }
+                }
+            },
+            { $group: { _id: null, todayRevenue: { $sum: '$total' } } }
+        ]);
+
+        const todayRevenue = todayRevenueData.length > 0 ? todayRevenueData[0].todayRevenue : 0;
 
         res.status(200).json({
             success: true,
@@ -412,9 +471,11 @@ export const getOrderStats = async (req, res) => {
                 totalOrders,
                 pendingOrders,
                 confirmedOrders,
+                inProgressOrders,
                 deliveredOrders,
                 cancelledOrders,
                 totalRevenue,
+                todayRevenue,
                 todayOrders
             }
         });

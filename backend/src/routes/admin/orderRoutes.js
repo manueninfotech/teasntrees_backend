@@ -3,6 +3,7 @@ import {
     getAllOrders,
     getOrderById,
     updateOrderStatus,
+    updatePaymentStatus,
     assignDeliveryRider,
     cancelOrder,
     getOrderStats
@@ -27,6 +28,9 @@ router.get('/:id', validateOrderId, getOrderById);
 
 //Update order status
 router.put('/:id/status', validateUpdateOrderStatus, logActivity('update', 'order'), updateOrderStatus);
+
+// Update payment status
+router.put('/:id/payment-status', validateOrderId, logActivity('update', 'order'), updatePaymentStatus);
 
 // Assign delivery rider
 router.put('/:id/assign-rider', validateAssignRider, logActivity('assign', 'order'), assignDeliveryRider);
