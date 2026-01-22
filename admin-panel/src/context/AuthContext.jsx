@@ -28,8 +28,32 @@ export const AuthProvider = ({ children }) => {
         }
     }, []);
 
-    const login = async (mobile, otp) => {
+    const verifyOTP = async (mobile, otp) => {
         const response = await api.post('/admin/auth/verify-otp', { mobile, otp });
+        const data = response.data.data;
+
+        // Check if profile is complete
+        if (data.isProfileComplete === false) {
+            // Return user data for profile completion
+            return {
+                needsProfile: true,
+                mobile: mobile,
+                isNewUser: data.isNewUser
+            };
+        }
+
+        // Profile is complete, login directly
+        const { token } = data;
+        localStorage.setItem('adminToken', token);
+        setUser({ token });
+        return { needsProfile: false };
+    };
+
+    const completeProfile = async (mobile, profileData) => {
+        const response = await api.post('/admin/auth/complete-profile', {
+            mobile,
+            ...profileData
+        });
         const { token } = response.data.data;
         localStorage.setItem('adminToken', token);
         setUser({ token });
@@ -42,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, logout, loading }}>
+        <AuthContext.Provider value={{ user, verifyOTP, completeProfile, logout, loading }}>
             {children}
         </AuthContext.Provider>
     );

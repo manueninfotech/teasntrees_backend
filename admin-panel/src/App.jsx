@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
+import Products from './pages/Products.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -34,7 +35,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="categories" element={<div className="text-2xl">Categories (Coming Soon)</div>} />
-            <Route path="products" element={<div className="text-2xl">Products (Coming Soon)</div>} />
+            <Route path="products" element={<Products />} />
             <Route path="orders" element={<div className="text-2xl">Orders (Coming Soon)</div>} />
             <Route path="riders" element={<div className="text-2xl">Riders (Coming Soon)</div>} />
             <Route path="customers" element={<div className="text-2xl">Customers (Coming Soon)</div>} />

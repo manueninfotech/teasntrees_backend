@@ -1,15 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Coffee, ArrowRight, Sparkles } from 'lucide-react';
+import { Coffee, ArrowRight, Sparkles, User, Mail } from 'lucide-react';
 
 export default function Login() {
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
-    const [step, setStep] = useState('mobile');
+    const [step, setStep] = useState('mobile'); // 'mobile', 'otp', 'profile'
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const [profileData, setProfileData] = useState({
+        name: '',
+        email: '',
+        address: ''
+    });
+    const { verifyOTP, completeProfile } = useAuth();
     const navigate = useNavigate();
 
     const sendOTP = async (e) => {
@@ -38,16 +43,38 @@ export default function Login() {
         }
     };
 
-    const verifyOTP = async (e) => {
+    const handleVerifyOTP = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            await login(mobile, otp);
-            navigate('/');
+            const result = await verifyOTP(mobile, otp);
+
+            if (result.needsProfile) {
+                // New user needs to complete profile
+                setStep('profile');
+            } else {
+                // Existing user, redirect to dashboard
+                navigate('/');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Invalid OTP');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCompleteProfile = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        try {
+            await completeProfile(mobile, profileData);
+            navigate('/');
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to complete profile');
         } finally {
             setLoading(false);
         }
@@ -85,8 +112,8 @@ export default function Login() {
                     </div>
                 )}
 
-                {/* Forms */}
-                {step === 'mobile' ? (
+                {/* Step 1: Mobile Number */}
+                {step === 'mobile' && (
                     <form onSubmit={sendOTP} className="space-y-6">
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -126,8 +153,11 @@ export default function Login() {
                             )}
                         </button>
                     </form>
-                ) : (
-                    <form onSubmit={verifyOTP} className="space-y-6">
+                )}
+
+                {/* Step 2: OTP Verification */}
+                {step === 'otp' && (
+                    <form onSubmit={handleVerifyOTP} className="space-y-6">
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                             <p className="text-sm text-gray-700">
                                 OTP sent to <strong className="text-green-700">+91 {mobile}</strong>
@@ -177,7 +207,84 @@ export default function Login() {
                                 </>
                             ) : (
                                 <>
-                                    Verify & Login
+                                    Verify & Continue
+                                    <ArrowRight className="w-5 h-5" />
+                                </>
+                            )}
+                        </button>
+                    </form>
+                )}
+
+                {/* Step 3: Complete Profile */}
+                {step === 'profile' && (
+                    <form onSubmit={handleCompleteProfile} className="space-y-6">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                            <p className="text-sm text-blue-700 font-medium">
+                                Welcome! Please complete your profile to continue.
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Full Name
+                            </label>
+                            <div className="relative">
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="text"
+                                    value={profileData.name}
+                                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                                    placeholder="Enter your full name"
+                                    className="input pl-10"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Email Address
+                            </label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <input
+                                    type="email"
+                                    value={profileData.email}
+                                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                                    placeholder="Enter your email"
+                                    className="input pl-10"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Address
+                            </label>
+                            <textarea
+                                value={profileData.address}
+                                onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                                placeholder="Enter your address"
+                                className="input resize-none"
+                                rows="3"
+                                required
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading || !profileData.name || !profileData.email || !profileData.address}
+                            className="btn-primary w-full py-3 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Creating Account...
+                                </>
+                            ) : (
+                                <>
+                                    Complete Profile
                                     <ArrowRight className="w-5 h-5" />
                                 </>
                             )}

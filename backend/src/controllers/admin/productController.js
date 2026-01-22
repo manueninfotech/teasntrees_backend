@@ -223,6 +223,9 @@ export const updateProduct = async (req, res) => {
             // Upload new image
             const uploadResult = await uploadToCloudinary(req.file.buffer, 'products');
             product.image = uploadResult.url;
+        } else if (req.body.image) {
+            // If image URL is provided in body (already uploaded to Cloudinary via frontend)
+            product.image = req.body.image;
         }
 
         // update other fields
