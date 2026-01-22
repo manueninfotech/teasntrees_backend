@@ -18,9 +18,18 @@ export const validateAssignRider = [
     param('id')
         .isMongoId().withMessage('Invalid order ID'),
 
-    body('riderId')
-        .notEmpty().withMessage('Rider ID is required')
-        .isMongoId().withMessage('Invalid rider ID'),
+    body()
+        .custom((value) => {
+            // Either riderId or auto must be provided
+            if (!value.riderId && !value.auto) {
+                throw new Error('Either riderId or auto: true is required');
+            }
+            // If riderId is provided, it must be a valid MongoDB ID
+            if (value.riderId && !value.riderId.match(/^[0-9a-fA-F]{24}$/)) {
+                throw new Error('Invalid rider ID format');
+            }
+            return true;
+        }),
 
     handleValidationErrors
 ];
