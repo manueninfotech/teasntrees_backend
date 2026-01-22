@@ -286,21 +286,7 @@ export const updateOrderStatus = async (req, res) => {
 // Assign delivery rider to order
 export const assignDeliveryRider = async (req, res) => {
     try {
-        const { riderId } = req.body;
-        if (!riderId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Rider ID is required'
-            });
-        }
-        // verify rider exists and has rider role
-        const rider = await User.findById(riderId);
-        if (!rider || rider.role !== 'rider') {
-            return res.status(404).json({
-                success: false,
-                message: 'Rider not found or invalid rider'
-            });
-        }
+        const { riderId, auto } = req.body;
         const order = await Order.findById(req.params.id);
         if (!order) {
             return res.status(404).json({
@@ -308,7 +294,72 @@ export const assignDeliveryRider = async (req, res) => {
                 message: 'Order not found'
             });
         }
-        order.riderId = riderId;
+
+        let assignedRiderId = riderId;
+
+        // Handle auto-assignment
+        if (auto === true) {
+            // Find riders who are approved and active
+            const allRiders = await User.find({
+                role: 'rider',
+                isActive: true,
+                isApproved: true
+            });
+
+            if (allRiders.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No available riders found for auto-assignment'
+                });
+            }
+
+            // Find active order counts for each rider
+            const riderAssignments = await Order.aggregate([
+                {
+                    $match: {
+                        riderId: { $in: allRiders.map(r => r._id) },
+                        status: { $in: ['assigned', 'picked_up', 'out-for-delivery', 'in_transit'] }
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$riderId',
+                        activeOrders: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            // Create a map of rider IDs to active order counts
+            const riderOrderMap = {};
+            riderAssignments.forEach(assignment => {
+                riderOrderMap[assignment._id.toString()] = assignment.activeOrders;
+            });
+
+            // Find the rider with the least active orders
+            let selectedRider = null;
+            let minOrders = Infinity;
+
+            for (const rider of allRiders) {
+                const activeOrders = riderOrderMap[rider._id.toString()] || 0;
+                if (activeOrders < minOrders) {
+                    minOrders = activeOrders;
+                    selectedRider = rider;
+                }
+            }
+
+            assignedRiderId = selectedRider._id;
+        }
+
+        // Verify rider exists and has rider role
+        const rider = await User.findById(assignedRiderId);
+        if (!rider || rider.role !== 'rider') {
+            return res.status(404).json({
+                success: false,
+                message: 'Rider not found or invalid rider'
+            });
+        }
+
+        order.riderId = assignedRiderId;
         order.status = 'out-for-delivery';
         order.dispatchedAt = new Date();
 
@@ -321,7 +372,7 @@ export const assignDeliveryRider = async (req, res) => {
         const socketService = req.app.get('socketService');
         if (socketService) {
             // Notify the assigned rider
-            socketService.notifyUser(riderId, 'delivery:assigned', {
+            socketService.notifyUser(assignedRiderId.toString(), 'delivery:assigned', {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
                 deliveryAddress: order.deliveryAddress
@@ -337,7 +388,7 @@ export const assignDeliveryRider = async (req, res) => {
             // Notify managers/admin
             socketService.notifyRole('manager', 'delivery:assigned', {
                 orderId: order._id,
-                riderId: riderId,
+                riderId: assignedRiderId,
                 riderName: rider.name
             });
         }

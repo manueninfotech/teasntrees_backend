@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, User, MapPin, Package, DollarSign, Bike, Calendar, Phone, Mail } from 'lucide-react';
 import OrderStatusBadge from './OrderStatusBadge';
 import api from '../utils/api';
@@ -11,6 +11,27 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [newPaymentStatus, setNewPaymentStatus] = useState('');
     const [showPaymentUpdate, setShowPaymentUpdate] = useState(false);
+    const [showRiderAssignment, setShowRiderAssignment] = useState(false);
+    const [riders, setRiders] = useState([]);
+    const [selectedRider, setSelectedRider] = useState('');
+
+    useEffect(() => {
+        if (showRiderAssignment) {
+            fetchRiders();
+        }
+    }, [showRiderAssignment]);
+
+    const fetchRiders = async () => {
+        try {
+            const response = await api.get('/admin/riders');
+            // Response structure: { success: true, data: { riders: [...], pagination: {...} } }
+            const ridersData = response.data.data?.riders || response.data.riders || [];
+            setRiders(Array.isArray(ridersData) ? ridersData : []);
+        } catch (error) {
+            console.error('Failed to fetch riders:', error);
+            setRiders([]);
+        }
+    };
 
     if (!isOpen || !order) return null;
 
@@ -68,6 +89,40 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
         } catch (error) {
             console.error('Failed to update payment status:', error);
             alert(error.response?.data?.message || 'Failed to update payment status');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleManualAssignment = async () => {
+        if (!selectedRider) {
+            alert('Please select a rider');
+            return;
+        }
+
+        setUpdating(true);
+        try {
+            await api.put(`/admin/orders/${order._id}/assign-rider`, { riderId: selectedRider });
+            onSuccess();
+            setShowRiderAssignment(false);
+            setSelectedRider('');
+        } catch (error) {
+            console.error('Failed to assign rider:', error);
+            alert(error.response?.data?.message || 'Failed to assign rider');
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleAutoAssignment = async () => {
+        setUpdating(true);
+        try {
+            await api.put(`/admin/orders/${order._id}/assign-rider`, { auto: true });
+            onSuccess();
+            setShowRiderAssignment(false);
+        } catch (error) {
+            console.error('Failed to auto-assign rider:', error);
+            alert(error.response?.data?.message || 'Failed to auto-assign rider');
         } finally {
             setUpdating(false);
         }
@@ -237,12 +292,22 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                     </div>
 
                     {/* Rider Information */}
-                    {order.riderId && (
-                        <div className="bg-gray-50 rounded-xl p-4">
-                            <div className="flex items-center gap-2 mb-3">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-2">
                                 <Bike className="w-5 h-5 text-gray-600" />
                                 <h3 className="font-semibold text-gray-900">Delivery Rider</h3>
                             </div>
+                            {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                                <button
+                                    onClick={() => setShowRiderAssignment(true)}
+                                    className="text-xs px-3 py-1 bg-teal-50 text-teal-600 rounded hover:bg-teal-100 font-medium"
+                                >
+                                    {order.riderId ? 'Reassign' : 'Assign Rider'}
+                                </button>
+                            )}
+                        </div>
+                        {order.riderId ? (
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <p className="text-sm text-gray-500">Name</p>
@@ -259,8 +324,10 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <p className="text-sm text-gray-500">No rider assigned yet</p>
+                        )}
+                    </div>
 
                     {/* Timestamps */}
                     <div className="bg-gray-50 rounded-xl p-4">
@@ -388,6 +455,67 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                     className="flex-1 btn-primary disabled:opacity-50"
                                 >
                                     {updating ? 'Updating...' : 'Update'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Rider Assignment Modal */}
+                {showRiderAssignment && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-xl p-6 w-full max-w-md">
+                            <h3 className="text-lg font-bold mb-4">Assign Delivery Rider</h3>
+
+                            {/* Auto Assignment Button */}
+                            <button
+                                onClick={handleAutoAssignment}
+                                disabled={updating}
+                                className="w-full mb-4 px-4 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
+                            >
+                                <Bike className="w-5 h-5" />
+                                {updating ? 'Assigning...' : 'Auto-Assign Best Rider'}
+                            </button>
+
+                            <div className="relative my-4">
+                                <div className="absolute inset-0 flex items-center">
+                                    <div className="w-full border-t border-gray-300"></div>
+                                </div>
+                                <div className="relative flex justify-center text-sm">
+                                    <span className="px-2 bg-white text-gray-500">or select manually</span>
+                                </div>
+                            </div>
+
+                            {/* Manual Selection */}
+                            <select
+                                value={selectedRider}
+                                onChange={(e) => setSelectedRider(e.target.value)}
+                                className="input mb-4"
+                            >
+                                <option value="">Select a rider</option>
+                                {riders.map(rider => (
+                                    <option key={rider._id} value={rider._id}>
+                                        {rider.name} - {rider.mobile} {rider.isActive ? '(Online)' : '(Offline)'}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => {
+                                        setShowRiderAssignment(false);
+                                        setSelectedRider('');
+                                    }}
+                                    className="flex-1 btn-secondary"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleManualAssignment}
+                                    disabled={updating || !selectedRider}
+                                    className="flex-1 btn-primary disabled:opacity-50"
+                                >
+                                    {updating ? 'Assigning...' : 'Assign Selected'}
                                 </button>
                             </div>
                         </div>
