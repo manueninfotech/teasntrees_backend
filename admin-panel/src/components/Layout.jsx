@@ -37,6 +37,7 @@ export default function Layout() {
         { icon: Bike, label: 'Riders', path: '/riders' },
         { icon: Users, label: 'Customers', path: '/customers' },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
+        { icon: ShoppingCart, label: 'Cart Analytics', path: '/cart-analytics' },
         { icon: Shield, label: 'Staff & Users', path: '/users' },
         { icon: History, label: 'Activity Logs', path: '/activity-logs' },
         { icon: Settings, label: 'Settings', path: '/settings' },
