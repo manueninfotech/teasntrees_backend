@@ -15,6 +15,7 @@ import Settings from './pages/Settings.jsx';
 import Reviews from './pages/Reviews.jsx';
 import Profile from './pages/Profile.jsx';
 import Users from './pages/Users.jsx';
+import ActivityLogs from './pages/ActivityLogs.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -57,6 +58,7 @@ function App() {
             <Route path="reviews" element={<Reviews />} />
             <Route path="profile" element={<Profile />} />
             <Route path="users" element={<Users />} />
+            <Route path="activity-logs" element={<ActivityLogs />} />
           </Route>
         </Routes>
       </BrowserRouter>

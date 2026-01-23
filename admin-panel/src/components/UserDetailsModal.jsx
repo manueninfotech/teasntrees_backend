@@ -3,13 +3,15 @@ import {
     X, User, Mail, Phone, Calendar,
     Shield, Bike, Briefcase, CheckCircle,
     XCircle, Clock, ShoppingBag, MapPin,
-    TrendingUp, Heart
+    TrendingUp, Heart, History
 } from 'lucide-react';
 import api from '../utils/api';
 
 const UserDetailsModal = ({ user, isOpen, onClose }) => {
     const [details, setDetails] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [activityLogs, setActivityLogs] = useState([]);
+    const [logsLoading, setLogsLoading] = useState(false);
 
     useEffect(() => {
         if (isOpen && user) {
@@ -24,10 +26,29 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
             if (response.data.success) {
                 setDetails(response.data.data);
             }
+
+            // Fetch activity if user is admin/manager
+            if (user.role === 'admin' || user.role === 'manager') {
+                fetchLogs();
+            }
         } catch (error) {
             console.error('Error fetching user details:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchLogs = async () => {
+        setLogsLoading(true);
+        try {
+            const response = await api.get(`/admin/activity-logs/admin/${user._id}`);
+            if (response.data.success) {
+                setActivityLogs(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching admin logs:', error);
+        } finally {
+            setLogsLoading(false);
         }
     };
 
@@ -46,15 +67,35 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
 
     const RoleIcon = roleBadge(user.role).icon;
 
+    const getActionColor = (action) => {
+        switch (action) {
+            case 'create': return 'text-green-600 bg-green-100';
+            case 'update': return 'text-blue-600 bg-blue-100';
+            case 'delete': return 'text-red-600 bg-red-100';
+            default: return 'text-indigo-600 bg-indigo-100';
+        }
+    };
+
+    const formatRelativeTime = (date) => {
+        const now = new Date();
+        const past = new Date(date);
+        const diffInSeconds = Math.floor((now - past) / 1000);
+
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return `${Math.floor(diffInSeconds / 86400)}d ago`;
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden relative z-10 flex flex-col">
                 {/* Header */}
                 <div className={`p-6 text-white flex items-center justify-between ${user.role === 'admin' ? 'bg-purple-600' :
-                        user.role === 'rider' ? 'bg-orange-500' :
-                            user.role === 'manager' ? 'bg-blue-600' :
-                                'bg-emerald-600'
+                    user.role === 'rider' ? 'bg-orange-500' :
+                        user.role === 'manager' ? 'bg-blue-600' :
+                            'bg-emerald-600'
                     }`}>
                     <div className="flex items-center gap-4">
                         <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center font-bold text-2xl uppercase">
@@ -168,6 +209,52 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                                 {details?.isOnline ? 'Online' : 'Offline'}
                                             </p>
                                         </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Staff Activity History */}
+                            {(user.role === 'admin' || user.role === 'manager') && (
+                                <div className="space-y-4">
+                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                        <History className="w-4 h-4 text-indigo-500" />
+                                        Activity History (Recent)
+                                    </h3>
+                                    <div className="space-y-3">
+                                        {logsLoading ? (
+                                            <div className="flex items-center gap-3 animate-pulse p-2">
+                                                <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+                                                    <div className="h-2 bg-gray-50 rounded w-1/4"></div>
+                                                </div>
+                                            </div>
+                                        ) : activityLogs.length === 0 ? (
+                                            <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                                <p className="text-xs text-gray-400 font-medium">No recent activity recorded</p>
+                                            </div>
+                                        ) : (
+                                            activityLogs.slice(0, 5).map((log) => (
+                                                <div key={log._id} className="flex items-start gap-4 p-3 bg-white border border-gray-100 rounded-xl hover:shadow-sm transition-all group">
+                                                    <div className={`p-2 rounded-lg shrink-0 ${getActionColor(log.action)}`}>
+                                                        <Clock className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-bold text-gray-900 capitalize">
+                                                                {log.action} {log.resource}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-gray-400 uppercase">
+                                                                {formatRelativeTime(log.createdAt)}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-xs text-gray-500 truncate mt-0.5 italic">
+                                                            ID: {log.resourceId || 'System'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        )}
                                     </div>
                                 </div>
                             )}
