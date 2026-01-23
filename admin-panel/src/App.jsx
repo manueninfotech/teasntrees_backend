@@ -10,6 +10,7 @@ import CategoryDetail from './pages/CategoryDetail.jsx';
 import SeasonalProducts from './pages/SeasonalProducts.jsx';
 import Orders from './pages/Orders.jsx';
 import Riders from './pages/Riders.jsx';
+import Customers from './pages/Customers.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -47,7 +48,7 @@ function App() {
             <Route path="products/seasonal" element={<SeasonalProducts />} />
             <Route path="orders" element={<Orders />} />
             <Route path="riders" element={<Riders />} />
-            <Route path="customers" element={<div className="text-2xl">Customers (Coming Soon)</div>} />
+            <Route path="customers" element={<Customers />} />
           </Route>
         </Routes>
       </BrowserRouter>
