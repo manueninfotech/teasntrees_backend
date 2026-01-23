@@ -36,7 +36,14 @@ export const updateSettings = async (req, res) => {
             taxRate,
             gstRate,
             minOrderAmount,
-            deliveryZones
+            serviceAreas,
+            riderBaseEarning,
+            distanceBonusPerKm,
+            contactPhone,
+            contactEmail,
+            address,
+            operatingHours,
+            socialMedia
         } = req.body;
 
         let settings = await Settings.findOne();
@@ -51,7 +58,14 @@ export const updateSettings = async (req, res) => {
             if (taxRate !== undefined) settings.taxRate = taxRate;
             if (gstRate !== undefined) settings.gstRate = gstRate;
             if (minOrderAmount !== undefined) settings.minOrderAmount = minOrderAmount;
-            if (deliveryZones !== undefined) settings.deliveryZones = deliveryZones;
+            if (serviceAreas !== undefined) settings.serviceAreas = serviceAreas;
+            if (riderBaseEarning !== undefined) settings.riderBaseEarning = riderBaseEarning;
+            if (distanceBonusPerKm !== undefined) settings.distanceBonusPerKm = distanceBonusPerKm;
+            if (contactPhone !== undefined) settings.contactPhone = contactPhone;
+            if (contactEmail !== undefined) settings.contactEmail = contactEmail;
+            if (address !== undefined) settings.address = address;
+            if (operatingHours !== undefined) settings.operatingHours = operatingHours;
+            if (socialMedia !== undefined) settings.socialMedia = socialMedia;
 
             await settings.save();
         }
@@ -81,11 +95,11 @@ export const updateSettings = async (req, res) => {
     }
 };
 
-// Get delivery zones
+// Get delivery zones (mapped to serviceAreas)
 export const getDeliveryZones = async (req, res) => {
     try {
         const settings = await Settings.findOne();
-        if (!settings || !settings.deliveryZones) {
+        if (!settings || !settings.serviceAreas) {
             return res.status(200).json({
                 success: true,
                 data: []
@@ -93,7 +107,7 @@ export const getDeliveryZones = async (req, res) => {
         }
         res.status(200).json({
             success: true,
-            data: settings.deliveryZones
+            data: settings.serviceAreas
         });
     } catch (error) {
         res.status(500).json({
@@ -104,24 +118,24 @@ export const getDeliveryZones = async (req, res) => {
     }
 };
 
-// update delivery zones
+// update delivery zones (mapped to serviceAreas)
 export const updateDeliveryZones = async (req, res) => {
     try {
-        const { deliveryZones } = req.body;
+        const { serviceAreas } = req.body; // Expect serviceAreas in body now
 
-        if (!Array.isArray(deliveryZones)) {
+        if (!Array.isArray(serviceAreas)) {
             return res.status(400).json({
                 success: false,
-                message: 'Delivery zones must be an array'
+                message: 'Service areas must be an array'
             });
         }
 
         let settings = await Settings.findOne();
 
         if (!settings) {
-            settings = await Settings.create({ deliveryZones });
+            settings = await Settings.create({ serviceAreas });
         } else {
-            settings.deliveryZones = deliveryZones;
+            settings.serviceAreas = serviceAreas;
             await settings.save();
         }
 
@@ -129,10 +143,10 @@ export const updateDeliveryZones = async (req, res) => {
         const socketService = req.app.get('socketService');
         if (socketService) {
             socketService.notifyRole('manager', 'delivery-zones:updated', {
-                zonesCount: deliveryZones.length
+                zonesCount: serviceAreas.length
             });
             socketService.notifyRole('admin', 'delivery-zones:updated', {
-                zonesCount: deliveryZones.length
+                zonesCount: serviceAreas.length
             });
             // Notify customers about new delivery zones
             socketService.notifyRole('customer', 'delivery-zones:updated', {
@@ -143,7 +157,7 @@ export const updateDeliveryZones = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Delivery zones updated successfully',
-            data: settings.deliveryZones
+            data: settings.serviceAreas
         });
     } catch (error) {
         res.status(500).json({
