@@ -162,6 +162,84 @@ export const updateOrderStatus = async (req, res) => {
             order.outForDeliveryAt = new Date();
         } else if (status === 'delivered') {
             order.deliveredAt = new Date();
+
+            // Update rider stats when delivery is completed
+            if (order.riderId) {
+                const rider = await User.findById(order.riderId);
+                if (rider) {
+                    // Set isOnDelivery to false
+                    rider.isOnDelivery = false;
+
+                    // Increment total deliveries
+                    rider.totalDeliveries = (rider.totalDeliveries || 0) + 1;
+
+                    // Calculate rider earning if not set
+                    // Formula: Base Amount + (Order %) + (Distance × Rate)
+                    if (!order.riderEarning) {
+                        const BASE_AMOUNT = 15;           // ₹15 base per delivery
+                        const ORDER_PERCENTAGE = 0.05;    // 5% of order total
+                        const DISTANCE_RATE = 5;          // ₹5 per km
+
+                        // Calculate distance from outlet to delivery location
+                        let distance = 2; // Default 2 km if location not available
+                        const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 }; // Teas N Trees, Guntur
+
+                        if (order.deliveryAddress?.location?.coordinates &&
+                            Array.isArray(order.deliveryAddress.location.coordinates) &&
+                            order.deliveryAddress.location.coordinates.length === 2) {
+
+                            const deliveryCoords = order.deliveryAddress.location.coordinates;
+                            const deliveryLng = Number(deliveryCoords[0]);
+                            const deliveryLat = Number(deliveryCoords[1]);
+
+                            // Validate coordinates are valid numbers
+                            if (!isNaN(deliveryLat) && !isNaN(deliveryLng) &&
+                                deliveryLat !== 0 && deliveryLng !== 0) {
+
+                                // Calculate distance using Haversine formula (in km)
+                                const R = 6371; // Earth's radius in km
+                                const dLat = (deliveryLat - OUTLET_LOCATION.lat) * Math.PI / 180;
+                                const dLng = (deliveryLng - OUTLET_LOCATION.lng) * Math.PI / 180;
+                                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                    Math.cos(OUTLET_LOCATION.lat * Math.PI / 180) * Math.cos(deliveryLat * Math.PI / 180) *
+                                    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                                const calc = R * c;
+
+                                if (!isNaN(calc) && calc > 0) {
+                                    distance = calc;
+                                }
+                            }
+                        }
+
+                        // Calculate total earning
+                        const baseEarning = BASE_AMOUNT;
+                        const orderTotal = Number(order.total) || 0;
+                        const orderEarning = orderTotal * ORDER_PERCENTAGE;
+                        const distanceEarning = distance * DISTANCE_RATE;
+
+                        const totalEarning = baseEarning + orderEarning + distanceEarning;
+                        order.riderEarning = Math.max(Math.round(totalEarning), 20);
+
+                        // Final validation to prevent NaN
+                        if (isNaN(order.riderEarning)) {
+                            order.riderEarning = 20;
+                        }
+                    }
+
+                    // Update earnings
+                    const earning = order.riderEarning || 0;
+                    rider.totalEarnings = (rider.totalEarnings || 0) + earning;
+                    rider.pendingEarnings = (rider.pendingEarnings || 0) + earning;
+
+                    await rider.save();
+                }
+            }
+        } else if (status === 'cancelled') {
+            // Set rider's isOnDelivery to false if order was assigned
+            if (order.riderId) {
+                await User.findByIdAndUpdate(order.riderId, { isOnDelivery: false });
+            }
         }
         await order.save();
 
@@ -299,17 +377,18 @@ export const assignDeliveryRider = async (req, res) => {
 
         // Handle auto-assignment
         if (auto === true) {
-            // Find riders who are approved and active
+            // Find riders who are approved, active, and online
             const allRiders = await User.find({
                 role: 'rider',
                 isActive: true,
-                isApproved: true
+                isApproved: true,
+                isOnline: true  // Only online riders
             });
 
             if (allRiders.length === 0) {
                 return res.status(404).json({
                     success: false,
-                    message: 'No available riders found for auto-assignment'
+                    message: 'No online riders available for auto-assignment. Please try manual assignment or wait for riders to come online.'
                 });
             }
 
@@ -358,6 +437,32 @@ export const assignDeliveryRider = async (req, res) => {
                 message: 'Rider not found or invalid rider'
             });
         }
+
+        // Strict validation: Check if rider is active, approved, and online
+        if (!rider.isActive) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot assign order to ${rider.name}. Rider account is inactive. Please activate the rider first.`
+            });
+        }
+
+        if (!rider.isApproved) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot assign order to ${rider.name}. Rider is not approved yet. Please approve the rider first.`
+            });
+        }
+
+        if (!rider.isOnline) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot assign order to ${rider.name}. Rider is currently offline. Please wait for the rider to come online or select another rider.`
+            });
+        }
+
+        // Update rider status to on delivery
+        rider.isOnDelivery = true;
+        await rider.save();
 
         order.riderId = assignedRiderId;
         order.status = 'out-for-delivery';
@@ -488,9 +593,9 @@ export const getOrderStats = async (req, res) => {
             status: { $in: ['confirmed', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit'] }
         });
 
-        // Calculate total revenue from delivered orders
+        // Calculate total revenue from delivered orders with paid payment status
         const revenueData = await Order.aggregate([
-            { $match: { status: 'delivered' } },
+            { $match: { status: 'delivered', paymentStatus: 'paid' } },
             { $group: { _id: null, totalRevenue: { $sum: '$total' } } }
         ]);
 
@@ -503,11 +608,12 @@ export const getOrderStats = async (req, res) => {
             createdAt: { $gte: today }
         });
 
-        // Today's revenue from delivered orders
+        // Today's revenue from delivered orders with paid payment status
         const todayRevenueData = await Order.aggregate([
             {
                 $match: {
                     status: 'delivered',
+                    paymentStatus: 'paid',
                     deliveredAt: { $gte: today }
                 }
             },

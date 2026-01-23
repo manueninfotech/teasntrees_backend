@@ -22,8 +22,15 @@ export const getDashboardStats = async (req, res) => {
             createdAt: { $gte: today }
         });
 
+        // Today's revenue from orders delivered today with paid status
         const todayRevenue = await Order.aggregate([
-            { $match: { createdAt: { $gte: today }, status: 'delivered' } },
+            {
+                $match: {
+                    deliveredAt: { $gte: today },
+                    status: 'delivered',
+                    paymentStatus: 'paid'
+                }
+            },
             { $group: { _id: null, total: { $sum: '$total' } } }
         ]);
 
@@ -32,9 +39,9 @@ export const getDashboardStats = async (req, res) => {
             status: { $in: ['pending', 'confirmed', 'preparing', 'ready', 'out-for-delivery'] }
         });
 
-        // Get total revenue
+        // Get total revenue from delivered orders with paid status
         const revenueData = await Order.aggregate([
-            { $match: { status: 'delivered' } },
+            { $match: { status: 'delivered', paymentStatus: 'paid' } },
             { $group: { _id: null, total: { $sum: '$total' } } }
         ]);
 
