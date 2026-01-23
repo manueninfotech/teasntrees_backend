@@ -1,4 +1,7 @@
 import mongoose from 'mongoose';
+import './Order.js';
+import './User.js';
+import './Rider.js';
 
 const deliverySchema = new mongoose.Schema({
     deliveryNumber: {
@@ -108,12 +111,11 @@ deliverySchema.index({ riderId: 1, status: 1 });
 deliverySchema.index({ deliveryNumber: 1 });
 deliverySchema.index({ createdAt: -1 });
 
-deliverySchema.pre('save', async function (next) {
+deliverySchema.pre('save', async function () {
     if (!this.deliveryNumber) {
         const count = await mongoose.model('Delivery').countDocuments();
         this.deliveryNumber = `DEL${String(count + 1).padStart(6, '0')}`;
     }
-    next();
 });
 
 export default mongoose.model('Delivery', deliverySchema);

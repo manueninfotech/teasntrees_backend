@@ -8,7 +8,7 @@ export const validateUpdateOrderStatus = [
 
     body('status')
         .notEmpty().withMessage('Status is required')
-        .isIn(['pending', 'confirmed', 'preparing', 'ready', 'out-for-delivery', 'delivered', 'cancelled'])
+        .isIn(['pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled'])
         .withMessage('Invalid order status'),
 
     handleValidationErrors
