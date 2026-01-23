@@ -13,7 +13,8 @@ import {
     Settings,
     MessageSquare,
     Wallet,
-    User
+    User,
+    Shield
 } from 'lucide-react';
 
 export default function Layout() {
@@ -35,6 +36,7 @@ export default function Layout() {
         { icon: Bike, label: 'Riders', path: '/riders' },
         { icon: Users, label: 'Customers', path: '/customers' },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
+        { icon: Shield, label: 'Staff & Users', path: '/users' },
         { icon: Settings, label: 'Settings', path: '/settings' },
         { icon: User, label: 'My Profile', path: '/profile' },
     ];
