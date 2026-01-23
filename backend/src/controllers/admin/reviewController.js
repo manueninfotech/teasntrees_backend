@@ -18,6 +18,17 @@ export const getAllReviews = async (req, res) => {
             query.isApproved = false;
         }
 
+        // Filter by Review Type
+        const { type } = req.query;
+        if (type === 'food') {
+            query.$or = [
+                { foodRating: { $exists: true } },
+                { productRating: { $exists: true } }
+            ];
+        } else if (type === 'rider') {
+            query.riderRating = { $exists: true };
+        }
+
         if (productId) {
             query.productId = productId;
         }

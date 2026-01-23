@@ -10,7 +10,9 @@ import {
     Coffee,
     FolderTree,
     Calendar,
-    Settings
+    Settings,
+    MessageSquare,
+    Wallet
 } from 'lucide-react';
 
 export default function Layout() {
@@ -31,6 +33,7 @@ export default function Layout() {
         { icon: ShoppingCart, label: 'Orders', path: '/orders' },
         { icon: Bike, label: 'Riders', path: '/riders' },
         { icon: Users, label: 'Customers', path: '/customers' },
+        { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
         { icon: Settings, label: 'Settings', path: '/settings' },
     ];
 
