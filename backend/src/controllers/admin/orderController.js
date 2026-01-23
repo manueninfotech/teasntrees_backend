@@ -140,7 +140,7 @@ export const updatePaymentStatus = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'out-for-delivery', 'delivered', 'cancelled'];
+        const validStatuses = ['pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -154,6 +154,16 @@ export const updateOrderStatus = async (req, res) => {
                 message: 'Order not found'
             });
         }
+
+        // --- NEW: Validation for Delivery Statuses ---
+        const deliveryStatuses = ['assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered'];
+        if (deliveryStatuses.includes(status) && !order.riderId) {
+            return res.status(400).json({
+                success: false,
+                message: `Cannot set status to '${status}' without an assigned rider. Please assign a rider first.`
+            });
+        }
+
         order.status = status;
         // Update timestamps based on status
         if (status === 'confirmed') {
@@ -242,6 +252,59 @@ export const updateOrderStatus = async (req, res) => {
             }
         }
         await order.save();
+
+        // --- NEW: Sync with Delivery Model ---
+        try {
+            const deliveryRelatedStatuses = ['assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered'];
+            let delivery = await Delivery.findOne({ orderId: order._id });
+
+            if (!delivery && deliveryRelatedStatuses.includes(status)) {
+                // Create missing delivery record
+                const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 };
+                const baseFee = 30;
+                const totalEarning = order.riderEarning || Math.max(Math.round(baseFee + (order.total * 0.05)), 20);
+
+                delivery = new Delivery({
+                    orderId: order._id,
+                    riderId: order.riderId,
+                    customerId: order.customerId,
+                    pickupLocation: {
+                        type: 'Point',
+                        coordinates: [OUTLET_LOCATION.lng, OUTLET_LOCATION.lat],
+                        address: 'Teas N Trees Outlet'
+                    },
+                    deliveryLocation: order.deliveryAddress?.location || { type: 'Point', coordinates: [80.4308257, 16.3090716] },
+                    distance: 2000,
+                    baseEarning: baseFee,
+                    totalEarning: totalEarning,
+                    status: 'assigned',
+                    assignedAt: new Date()
+                });
+            }
+
+            if (delivery) {
+                // Map Order status to Delivery status (some might be different)
+                let deliveryStatus = status;
+
+                if (['pending', 'confirmed', 'accepted', 'preparing', 'ready'].includes(status)) {
+                    deliveryStatus = 'assigned';
+                } else if (status === 'out-for-delivery') {
+                    deliveryStatus = 'in_transit';
+                }
+
+                delivery.status = deliveryStatus;
+
+                // Update timestamps in delivery record
+                if (status === 'picked_up') delivery.pickedUpAt = new Date();
+                if (status === 'out-for-delivery') delivery.pickedUpAt = delivery.pickedUpAt || new Date(); // Ensure pickedUpAt is set
+                if (status === 'delivered') delivery.deliveredAt = new Date();
+                if (status === 'cancelled') delivery.status = 'cancelled'; // Correct enum value
+
+                await delivery.save();
+            }
+        } catch (syncError) {
+            console.error('Failed to sync delivery status:', syncError);
+        }
 
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
@@ -467,8 +530,63 @@ export const assignDeliveryRider = async (req, res) => {
         order.riderId = assignedRiderId;
         order.status = 'out-for-delivery';
         order.dispatchedAt = new Date();
+        order.outForDeliveryAt = new Date(); // Map to model field
 
         await order.save();
+
+        // --- NEW: Create/Update Delivery Record ---
+        try {
+            // Outlet Location
+            const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 }; // T&T Guntur
+
+            // Get Customer Location
+            const customerLoc = order.deliveryAddress?.location?.coordinates;
+            const deliveryLocation = customerLoc ? { lng: customerLoc[0], lat: customerLoc[1] } : null;
+
+            let delivery = await Delivery.findOne({ orderId: order._id });
+
+            const distMeters = deliveryLocation ? getDistance(
+                OUTLET_LOCATION.lat, OUTLET_LOCATION.lng,
+                deliveryLocation.lat, deliveryLocation.lng
+            ) : 2000; // Default 2km
+
+            const baseFee = 30;
+            const distBonus = Math.max(0, (distMeters / 1000 - 3) * 5);
+            const totalEarning = Math.round(baseFee + distBonus + (order.total * 0.05));
+
+            if (!delivery) {
+                delivery = new Delivery({
+                    orderId: order._id,
+                    riderId: assignedRiderId,
+                    customerId: order.customerId,
+                    pickupLocation: {
+                        type: 'Point',
+                        coordinates: [OUTLET_LOCATION.lng, OUTLET_LOCATION.lat],
+                        address: 'Teas N Trees Outlet'
+                    },
+                    deliveryLocation: order.deliveryAddress.location,
+                    distance: distMeters,
+                    baseEarning: baseFee,
+                    distanceBonus: distBonus,
+                    totalEarning: totalEarning,
+                    status: 'in_transit',
+                    assignedAt: new Date(),
+                    pickedUpAt: new Date(),
+                    pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+                    deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
+                });
+            } else {
+                delivery.riderId = assignedRiderId;
+                delivery.status = 'in_transit';
+                delivery.assignedAt = delivery.assignedAt || new Date();
+                delivery.pickedUpAt = delivery.pickedUpAt || new Date();
+                delivery.totalEarning = totalEarning;
+            }
+
+            await delivery.save();
+        } catch (deliveryError) {
+            console.error('Failed to create/update delivery record:', deliveryError);
+        }
 
         const updatedOrder = await Order.findById(order._id)
             .populate('riderId', 'name mobile');

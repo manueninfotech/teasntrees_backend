@@ -29,9 +29,9 @@ export const getAllDeliveries = async (req, res) => {
             }
         }
         const deliveries = await Delivery.find(query)
-            .populate('order', 'orderNumber totalAmount')
-            .populate('rider', 'name mobile')
-            .populate('customer', 'name mobile address')
+            .populate('orderId', 'orderNumber total')
+            .populate('riderId', 'name mobile')
+            .populate('customerId', 'name mobile address')
             .sort({ [sortBy]: order })
             .limit(limit)
             .skip(skip);
@@ -61,9 +61,9 @@ export const getAllDeliveries = async (req, res) => {
 export const getDeliveryById = async (req, res) => {
     try {
         const delivery = await Delivery.findById(req.params.id)
-            .populate('order', 'orderNumber totalAmount items')
-            .populate('rider', 'name mobile email')
-            .populate('customer', 'name mobile address')
+            .populate('orderId', 'orderNumber total items')
+            .populate('riderId', 'name mobile email')
+            .populate('customerId', 'name mobile address')
             .sort({ createdAt: -1 });
 
         if (!delivery) {
@@ -90,7 +90,7 @@ export const getDeliveryById = async (req, res) => {
 export const updateDeliveryStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const validStatuses = ['assigned', 'picked-up', 'in-transit', 'delivered', 'failed'];
+        const validStatuses = ['assigned', 'picked_up', 'in_transit', 'delivered', 'failed'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -106,7 +106,7 @@ export const updateDeliveryStatus = async (req, res) => {
         }
         delivery.status = status;
         // update timestamps based on status
-        if (status === 'picked-up') {
+        if (status === 'picked_up') {
             delivery.pickedUpAt = new Date();
         } else if (status === 'delivered') {
             delivery.deliveredAt = new Date();
@@ -115,22 +115,22 @@ export const updateDeliveryStatus = async (req, res) => {
         await delivery.save();
         // update order status if delivery is completed
         if (status === 'delivered') {
-            await Order.findByIdAndUpdate(delivery.order, { status: 'delivered', deliveredAt: new Date() });
+            await Order.findByIdAndUpdate(delivery.orderId, { status: 'delivered', deliveredAt: new Date() });
         }
 
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
             // Notify customer
-            if (delivery.customer) {
-                socketService.notifyUser(delivery.customer.toString(), 'delivery:status-updated', {
+            if (delivery.customerId) {
+                socketService.notifyUser(delivery.customerId.toString(), 'delivery:status-updated', {
                     deliveryId: delivery._id,
                     status: status
                 });
             }
             // Notify rider
-            if (delivery.rider) {
-                socketService.notifyUser(delivery.rider.toString(), 'delivery:status-updated', {
+            if (delivery.riderId) {
+                socketService.notifyUser(delivery.riderId.toString(), 'delivery:status-updated', {
                     deliveryId: delivery._id,
                     status: status
                 });
@@ -139,7 +139,7 @@ export const updateDeliveryStatus = async (req, res) => {
             socketService.notifyRole('manager', 'delivery:status-updated', {
                 deliveryId: delivery._id,
                 status: status,
-                riderId: delivery.rider
+                riderId: delivery.riderId
             });
         }
 
@@ -187,8 +187,8 @@ export const updateDeliveryLocation = async (req, res) => {
 
         // Emit Socket.io event for live tracking
         const socketService = req.app.get('socketService');
-        if (socketService && delivery.customer) {
-            socketService.notifyUser(delivery.customer.toString(), 'rider:location-update', {
+        if (socketService && delivery.customerId) {
+            socketService.notifyUser(delivery.customerId.toString(), 'rider:location-update', {
                 deliveryId: delivery._id,
                 location: { latitude, longitude }
             });
@@ -244,7 +244,7 @@ export const completeDelivery = async (req, res) => {
         await delivery.save();
 
         // Update order status
-        await Order.findByIdAndUpdate(delivery.order, {
+        await Order.findByIdAndUpdate(delivery.orderId, {
             status: 'delivered',
             deliveredAt: new Date()
         });
@@ -268,7 +268,7 @@ export const getDeliveryStats = async (req, res) => {
     try {
         const totalDeliveries = await Delivery.countDocuments();
         const activeDeliveries = await Delivery.countDocuments({
-            status: { $in: ['assigned', 'picked-up', 'in-transit'] }
+            status: { $in: ['assigned', 'picked_up', 'in_transit'] }
         });
         const completedDeliveries = await Delivery.countDocuments({ status: 'delivered' });
         const failedDeliveries = await Delivery.countDocuments({ status: 'failed' });
@@ -276,7 +276,7 @@ export const getDeliveryStats = async (req, res) => {
         // Calculate total earnings
         const earningsData = await Delivery.aggregate([
             { $match: { status: 'delivered' } },
-            { $group: { _id: null, totalEarnings: { $sum: '$riderEarnings' } } }
+            { $group: { _id: null, totalEarnings: { $sum: '$totalEarning' } } }
         ]);
 
         const totalEarnings = earningsData.length > 0 ? earningsData[0].totalEarnings : 0;

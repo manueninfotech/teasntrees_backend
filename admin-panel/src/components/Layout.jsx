@@ -15,7 +15,8 @@ import {
     Wallet,
     User,
     Shield,
-    History
+    History,
+    Truck
 } from 'lucide-react';
 
 export default function Layout() {
@@ -35,6 +36,7 @@ export default function Layout() {
         { icon: Calendar, label: 'Seasonal', path: '/products/seasonal' },
         { icon: ShoppingCart, label: 'Orders', path: '/orders' },
         { icon: Bike, label: 'Riders', path: '/riders' },
+        { icon: Truck, label: 'Delivery Tracking', path: '/deliveries' },
         { icon: Users, label: 'Customers', path: '/customers' },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
         { icon: ShoppingCart, label: 'Cart Analytics', path: '/cart-analytics' },

@@ -97,7 +97,7 @@ const CartDetailsModal = ({ cart, onClose }) => {
                         Close Details
                     </button>
                     <a
-                        href={`https://wa.me/${cart.userMobile}?text=Hi ${cart.userName}, we noticed you left some items in your cart at LittleH. Would you like to complete your order?`}
+                        href={`https://wa.me/${cart.userMobile}?text=Hi ${cart.userName}, we noticed you left some items in your cart at TeasNTrees. Would you like to complete your order?`}
                         target="_blank"
                         rel="noreferrer"
                         className="flex-3 px-8 py-4 bg-indigo-600 hover:bg-black text-white rounded-2xl text-sm font-black transition-all shadow-lg shadow-indigo-100 uppercase tracking-widest flex items-center justify-center gap-2"

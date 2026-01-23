@@ -40,8 +40,8 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
     if (!isOpen || !order) return null;
 
     const statusOptions = [
-        'pending', 'confirmed', 'preparing', 'ready', 'assigned',
-        'picked_up', 'out-for-delivery', 'in_transit', 'delivered'
+        'pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned',
+        'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled'
     ];
 
     const handleUpdateStatus = async () => {
@@ -377,9 +377,19 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 className="input mb-4"
                             >
                                 <option value="">Select new status</option>
-                                {statusOptions.map(status => (
-                                    <option key={status} value={status}>{status}</option>
-                                ))}
+                                {statusOptions.map(status => {
+                                    const isDeliveryStatus = ['assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered'].includes(status);
+                                    const isDisabled = isDeliveryStatus && !order.riderId;
+                                    return (
+                                        <option
+                                            key={status}
+                                            value={status}
+                                            disabled={isDisabled}
+                                        >
+                                            {status} {isDisabled ? '(Assign rider first)' : ''}
+                                        </option>
+                                    );
+                                })}
                             </select>
                             <div className="flex gap-2">
                                 <button
