@@ -52,28 +52,40 @@ export const getAllUsers = async (req, res) => {
 // Get single user by id
 export const getUserById = async (req, res) => {
     try {
-        let user = await User.findById(req.params.id).select('-__v');
+        const { id } = req.params;
 
-        if (!user) {
+        // Find user first to check role
+        const baseUser = await User.findById(id).select('-password -__v');
+
+        if (!baseUser) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
 
-        // If user is a Customer, populate their wishlist
-        if (user.role === 'customer') {
-            user = await User.findById(req.params.id)
-                .select('-__v')
+        let userData = baseUser.toObject();
+
+        // If user is a Customer, populate their wishlist and addresses
+        if (baseUser.role === 'customer') {
+            const customer = await User.findById(id)
+                .select('-password -__v')
                 .populate({
                     path: 'wishlist',
                     select: 'name price image isAvailable'
                 });
+            userData = customer.toObject();
+        }
+        // If user is a Rider, they might have specific fields (vehicle details, etc.)
+        else if (baseUser.role === 'rider') {
+            const rider = await User.findById(id).select('-password -__v');
+            userData = rider.toObject();
+            // In the future, we could populate rider-specific stats here
         }
 
         res.status(200).json({
             success: true,
-            data: user
+            data: userData
         });
     } catch (error) {
         res.status(500).json({
@@ -88,6 +100,8 @@ export const getUserById = async (req, res) => {
 export const updateUserRole = async (req, res) => {
     try {
         const { role } = req.body;
+        const { id } = req.params;
+
         const validRoles = ['customer', 'rider', 'admin', 'manager'];
         if (!validRoles.includes(role)) {
             return res.status(400).json({
@@ -95,14 +109,38 @@ export const updateUserRole = async (req, res) => {
                 message: 'Invalid role value'
             });
         }
-        const user = await User.findById(req.params.id);
+
+        const user = await User.findById(id);
         if (!user) {
             return res.status(404).json({
                 success: false,
                 message: 'User not found'
             });
         }
+
+        // If role is unchanged, just return
+        if (user.role === role) {
+            return res.status(200).json({
+                success: true,
+                message: 'Role is already set to ' + role,
+                data: user
+            });
+        }
+
+        // Important: Update role AND the discriminator key 'kind' to ensure
+        // Mongoose uses the correct model for subsequent queries.
         user.role = role;
+
+        // Map roles to discriminator keys
+        const roleToKind = {
+            'customer': 'Customer',
+            'rider': 'Rider',
+            'admin': 'User',
+            'manager': 'User'
+        };
+
+        user.kind = roleToKind[role] || 'User';
+
         await user.save();
 
         // Emit Socket.io event
@@ -125,7 +163,7 @@ export const updateUserRole = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'User role updated successfully',
+            message: `User role updated to ${role} successfully`,
             data: user
         });
     } catch (error) {
@@ -191,9 +229,10 @@ export const activateUser = async (req, res) => {
         }
 
         if (user.isActive) {
-            return res.status(400).json({
-                success: false,
-                message: 'User is already active'
+            return res.status(200).json({
+                success: true,
+                message: 'User is already active',
+                data: user
             });
         }
 
@@ -261,9 +300,10 @@ export const deactivateUser = async (req, res) => {
         }
 
         if (!user.isActive) {
-            return res.status(400).json({
-                success: false,
-                message: 'User is already inactive'
+            return res.status(200).json({
+                success: true,
+                message: 'User is already inactive',
+                data: user
             });
         }
 
@@ -322,7 +362,7 @@ export const deleteUser = async (req, res) => {
         }
 
         // Prevent deleting own account
-        if (user._id.toString() === req.user._id.toString()) {
+        if (user._id.toString() === req.user.userId.toString()) {
             return res.status(400).json({
                 success: false,
                 message: 'Cannot delete your own account'
