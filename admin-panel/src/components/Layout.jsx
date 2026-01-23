@@ -12,7 +12,8 @@ import {
     Calendar,
     Settings,
     MessageSquare,
-    Wallet
+    Wallet,
+    User
 } from 'lucide-react';
 
 export default function Layout() {
@@ -35,6 +36,7 @@ export default function Layout() {
         { icon: Users, label: 'Customers', path: '/customers' },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
         { icon: Settings, label: 'Settings', path: '/settings' },
+        { icon: User, label: 'My Profile', path: '/profile' },
     ];
 
     const isActive = (path) => {

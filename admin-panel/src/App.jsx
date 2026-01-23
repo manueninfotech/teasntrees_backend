@@ -13,6 +13,7 @@ import Riders from './pages/Riders.jsx';
 import Customers from './pages/Customers.jsx';
 import Settings from './pages/Settings.jsx';
 import Reviews from './pages/Reviews.jsx';
+import Profile from './pages/Profile.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -53,6 +54,7 @@ function App() {
             <Route path="customers" element={<Customers />} />
             <Route path="settings" element={<Settings />} />
             <Route path="reviews" element={<Reviews />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>
       </BrowserRouter>
