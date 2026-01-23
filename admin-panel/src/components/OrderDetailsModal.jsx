@@ -23,9 +23,13 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
 
     const fetchRiders = async () => {
         try {
-            const response = await api.get('/admin/riders');
+            const response = await api.get('/admin/riders?isApproved=true&isActive=true');
             // Response structure: { success: true, data: { riders: [...], pagination: {...} } }
-            const ridersData = response.data.data?.riders || response.data.riders || [];
+            let ridersData = response.data.data?.riders || response.data.riders || [];
+
+            // Filter to only show online riders
+            ridersData = ridersData.filter(rider => rider.isOnline === true);
+
             setRiders(Array.isArray(ridersData) ? ridersData : []);
         } catch (error) {
             console.error('Failed to fetch riders:', error);
@@ -491,14 +495,23 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 value={selectedRider}
                                 onChange={(e) => setSelectedRider(e.target.value)}
                                 className="input mb-4"
+                                disabled={riders.length === 0}
                             >
-                                <option value="">Select a rider</option>
+                                <option value="">
+                                    {riders.length === 0 ? 'No online riders available' : 'Select a rider'}
+                                </option>
                                 {riders.map(rider => (
                                     <option key={rider._id} value={rider._id}>
-                                        {rider.name} - {rider.mobile} {rider.isActive ? '(Online)' : '(Offline)'}
+                                        {rider.name} - {rider.mobile} (Online)
                                     </option>
                                 ))}
                             </select>
+
+                            {riders.length === 0 && (
+                                <p className="text-sm text-orange-600 mb-4">
+                                    ⚠️ No riders are currently online. Please wait for riders to come online or try auto-assign later.
+                                </p>
+                            )}
 
                             <div className="flex gap-2">
                                 <button
