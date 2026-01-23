@@ -9,7 +9,8 @@ import {
     LogOut,
     Coffee,
     FolderTree,
-    Calendar
+    Calendar,
+    Settings
 } from 'lucide-react';
 
 export default function Layout() {
@@ -30,6 +31,7 @@ export default function Layout() {
         { icon: ShoppingCart, label: 'Orders', path: '/orders' },
         { icon: Bike, label: 'Riders', path: '/riders' },
         { icon: Users, label: 'Customers', path: '/customers' },
+        { icon: Settings, label: 'Settings', path: '/settings' },
     ];
 
     const isActive = (path) => {
@@ -48,7 +50,7 @@ export default function Layout() {
                         </div>
                         <div>
                             <h1 className="font-bold text-xl bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                                Teas n Trees
+                                TeasNTrees
                             </h1>
                             <p className="text-xs text-gray-500 font-medium">Admin Panel</p>
                         </div>
