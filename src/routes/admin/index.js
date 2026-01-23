@@ -35,7 +35,7 @@ router.use('/settings', settingsRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/activity-logs', activityRoutes);
-router.use('/analytics/carts', cartAnalyticsRoutes);
+router.use('/cart-analytics', cartAnalyticsRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/riders', riderRoutes);
 router.use('/customers', customerRoutes);
