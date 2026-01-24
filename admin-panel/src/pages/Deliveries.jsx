@@ -5,9 +5,11 @@ import {
     RefreshCw, Eye, Calendar, MapPin, TrendingUp
 } from 'lucide-react';
 import api from '../utils/api';
+import { useSocket } from '../context/SocketContext';
 import DeliveryDetailsModal from '../components/DeliveryDetailsModal';
 
 const Deliveries = () => {
+    const { socket } = useSocket();
     const [deliveries, setDeliveries] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -26,6 +28,27 @@ const Deliveries = () => {
     useEffect(() => {
         fetchDeliveries();
     }, [page, statusFilter]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on('delivery:status-updated', (data) => {
+            console.log('Delivery Update Received:', data);
+            fetchStats();
+            fetchDeliveries();
+        });
+
+        socket.on('order:status-updated', (data) => {
+            console.log('Order Update Received:', data);
+            fetchStats();
+            fetchDeliveries();
+        });
+
+        return () => {
+            socket.off('delivery:status-updated');
+            socket.off('order:status-updated');
+        };
+    }, [socket, statusFilter]); // statusFilter included to ensure fresh data for current view
 
     const fetchStats = async () => {
         setStatsLoading(true);
@@ -214,10 +237,10 @@ const Deliveries = () => {
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
                                                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black shadow-sm group-hover:scale-110 transition-transform">
-                                                    #{delivery.orderId?.orderNumber?.slice(-4)}
+                                                    #{delivery.orderId?.orderNumber?.slice(-4) || '---'}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{delivery.customerId?.name}</p>
+                                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{delivery.customerId?.name || 'Unknown'}</p>
                                                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{new Date(delivery.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                                 </div>
                                             </div>

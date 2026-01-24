@@ -2,19 +2,129 @@ import React from 'react';
 import {
     X, Package, User, Bike, MapPin,
     Clock, Phone, CheckCircle2, AlertCircle,
-    Navigation, ShieldCheck, Mail, IndianRupee
+    Navigation, ShieldCheck, Mail, IndianRupee,
+    Navigation2
 } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { useSocket } from '../context/SocketContext';
+
+// Fix Leaflet icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Custom Icons
+const riderIcon = new L.Icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/713/713438.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+    popupAnchor: [0, -35],
+});
+
+const storeIcon = new L.Icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/606/606363.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+});
+
+const customerIcon = new L.Icon({
+    iconUrl: 'https://cdn-icons-png.flaticon.com/512/1673/1673188.png',
+    iconSize: [35, 35],
+    iconAnchor: [17, 35],
+});
+
+// Internal Truck Icon
+const Truck = ({ className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+    >
+        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
+        <path d="M15 18H9" />
+        <path d="M19 18h2a1 1 0 0 0 1-1v-5l-4-4h-3v10" />
+        <circle cx="7" cy="18" r="2" />
+        <circle cx="17" cy="18" r="2" />
+    </svg>
+);
+
+const isValidCoord = (coords) => {
+    return Array.isArray(coords) &&
+        coords.length >= 2 &&
+        typeof coords[0] === 'number' &&
+        typeof coords[1] === 'number' &&
+        !isNaN(coords[0]) &&
+        !isNaN(coords[1]);
+};
+
+const MapUpdater = ({ center }) => {
+    const map = useMap();
+    React.useEffect(() => {
+        if (isValidCoord(center)) {
+            map.setView(center, map.getZoom());
+        }
+    }, [center, map]);
+    return null;
+};
 
 const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
+    const { socket } = useSocket();
+    const [riderPos, setRiderPos] = React.useState(null);
+
+    React.useEffect(() => {
+        const coords = delivery?.currentLocation?.coordinates;
+        if (isValidCoord(coords)) {
+            setRiderPos([coords[1], coords[0]]); // Leaflet uses [lat, lng]
+        }
+    }, [delivery]);
+
+    React.useEffect(() => {
+        if (!socket || !delivery) return;
+
+        socket.on('rider:location-update', (data) => {
+            if (data.deliveryId === delivery._id && data.location) {
+                const newPos = [data.location.latitude, data.location.longitude];
+                if (isValidCoord(newPos)) {
+                    console.log('📍 Live Location Update:', newPos);
+                    setRiderPos(newPos);
+                }
+            }
+        });
+
+        return () => socket.off('rider:location-update');
+    }, [socket, delivery]);
+
     if (!isOpen || !delivery) return null;
 
     const timeline = [
-        { status: 'assigned', label: 'Rider Assigned', time: delivery.createdAt, icon: User, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { status: 'assigned', label: 'Rider Assigned', time: delivery.assignedAt || delivery.createdAt, icon: User, color: 'text-blue-500', bg: 'bg-blue-50' },
         { status: 'picked_up', label: 'Order Picked Up', time: delivery.pickedUpAt, icon: Package, color: 'text-indigo-500', bg: 'bg-indigo-50' },
         { status: 'in_transit', label: 'Out for Delivery', time: delivery.pickedUpAt, icon: Navigation, color: 'text-orange-500', bg: 'bg-orange-50' },
         { status: 'delivered', label: 'Successfully Delivered', time: delivery.deliveredAt, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50' },
         { status: 'cancelled', label: 'Delivery Cancelled', time: delivery.cancelledAt, icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
-    ].filter(step => step.time || step.status === delivery.status);
+    ].filter(step => {
+        // Show step if it has a timestamp
+        if (step.time) {
+            // Special case: don't show "Out for Delivery" (in_transit) if the current status is just "picked_up"
+            // even though they share the same timestamp source.
+            if (step.status === 'in_transit' && delivery.status === 'picked_up') return false;
+            return true;
+        }
+        // Always show the current status step
+        return step.status === delivery.status;
+    });
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -33,7 +143,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                     {delivery.status}
                                 </span>
                             </div>
-                            <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-0.5">Order #{delivery.orderId?.orderNumber}</p>
+                            <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-0.5">Order #{delivery.orderId?.orderNumber || 'N/A'}</p>
                         </div>
                     </div>
                     <button
@@ -66,12 +176,12 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-lg font-black text-gray-900 truncate">{delivery.customerId?.name}</p>
-                                        <p className="text-sm text-gray-500 font-medium mt-1">{delivery.customerId?.mobile}</p>
+                                        <p className="text-lg font-black text-gray-900 truncate">{delivery.customerId?.name || 'Unknown Customer'}</p>
+                                        <p className="text-sm text-gray-500 font-medium mt-1">{delivery.customerId?.mobile || 'No Mobile'}</p>
                                     </div>
                                     <div className="pt-3 border-t border-gray-100">
                                         <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Delivery Address</p>
-                                        <p className="text-xs text-gray-600 font-bold leading-relaxed">{delivery.customerId?.address}</p>
+                                        <p className="text-xs text-gray-600 font-bold leading-relaxed">{delivery.customerId?.address || delivery.deliveryLocation?.address || 'Address Not Available'}</p>
                                     </div>
                                 </div>
 
@@ -87,7 +197,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                     </div>
                                     <div>
                                         <p className="text-lg font-black text-gray-900 truncate">{delivery.riderId?.name || 'Searching...'}</p>
-                                        <p className="text-sm text-gray-500 font-medium mt-1">{delivery.riderId?.mobile || 'N/A'}</p>
+                                        <p className="text-sm text-gray-500 font-medium mt-1">{delivery.riderId?.mobile || 'Rider Not Assigned'}</p>
                                     </div>
                                     <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                                         <div>
@@ -154,19 +264,76 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
 
                             {/* Location Context */}
                             <div className="pt-6 border-t border-gray-100">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Live Location</p>
-                                <div className="h-40 bg-gray-100 rounded-3xl flex flex-col items-center justify-center gap-3 border border-gray-200 border-dashed group transition-all hover:bg-indigo-50 hover:border-indigo-200">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-300 group-hover:text-indigo-400 shadow-sm transition-all group-hover:scale-110">
-                                        <MapPin className="w-5 h-5" />
-                                    </div>
-                                    <div className="text-center">
-                                        <p className={`text-xs font-black uppercase transition-colors ${delivery.currentLocation?.coordinates ? 'text-green-600' : 'text-gray-500'}`}>
-                                            {delivery.currentLocation?.coordinates ? 'Rider is Live' : 'Location Sync Pending'}
-                                        </p>
-                                        <p className="text-[10px] text-gray-400 font-bold mt-0.5">
-                                            {delivery.currentLocation?.coordinates ? 'Positioning active' : 'Rider location not available'}
-                                        </p>
-                                    </div>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Live Tracking Map</p>
+                                <div className="h-64 bg-gray-100 rounded-3xl overflow-hidden border border-gray-100 shadow-inner relative z-0">
+                                    <MapContainer
+                                        center={[16.3090716, 80.4308257]}
+                                        zoom={14}
+                                        style={{ height: '100%', width: '100%' }}
+                                        zoomControl={false}
+                                    >
+                                        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                                        {/* Store Marker */}
+                                        <Marker position={[16.3090716, 80.4308257]} icon={storeIcon}>
+                                            <Popup>
+                                                <div className="text-xs font-bold text-gray-900 uppercase">Teas N Trees Outlet</div>
+                                                <div className="text-[10px] text-gray-500 mt-0.5">Order Pickup point</div>
+                                            </Popup>
+                                        </Marker>
+
+                                        {/* Customer Marker */}
+                                        {isValidCoord([delivery.deliveryLocation?.coordinates?.[1], delivery.deliveryLocation?.coordinates?.[0]]) && (
+                                            <Marker
+                                                position={[delivery.deliveryLocation.coordinates[1], delivery.deliveryLocation.coordinates[0]]}
+                                                icon={customerIcon}
+                                            >
+                                                <Popup>
+                                                    <div className="text-xs font-bold text-gray-900 uppercase">Delivery Destination</div>
+                                                    <div className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[150px]">{delivery.customerId?.name || 'Customer'}</div>
+                                                </Popup>
+                                            </Marker>
+                                        )}
+
+                                        {/* Rider Marker */}
+                                        {isValidCoord(riderPos) && (
+                                            <>
+                                                <Marker position={riderPos} icon={riderIcon}>
+                                                    <Popup>
+                                                        <div className="text-xs font-bold text-gray-900 uppercase">Rider is Live</div>
+                                                        <div className="text-[10px] text-indigo-600 mt-0.5 font-bold mb-1">MOVING TO DESTINATION</div>
+                                                    </Popup>
+                                                </Marker>
+                                                <MapUpdater center={riderPos} />
+                                            </>
+                                        )}
+
+                                        {/* Route Line */}
+                                        {isValidCoord([delivery.deliveryLocation?.coordinates?.[1], delivery.deliveryLocation?.coordinates?.[0]]) && (
+                                            <Polyline
+                                                positions={[
+                                                    [16.3090716, 80.4308257],
+                                                    isValidCoord(riderPos) ? riderPos : [16.3090716, 80.4308257],
+                                                    [delivery.deliveryLocation.coordinates[1], delivery.deliveryLocation.coordinates[0]]
+                                                ]}
+                                                color="indigo"
+                                                weight={3}
+                                                dashArray="10, 10"
+                                            />
+                                        )}
+                                    </MapContainer>
+
+                                    {!riderPos && (
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-300 shadow-sm animate-pulse">
+                                                <MapPin className="w-5 h-5" />
+                                            </div>
+                                            <div className="text-center">
+                                                <p className="text-xs font-black text-gray-500 uppercase">Awaiting GPS Sync</p>
+                                                <p className="text-[10px] text-gray-400 font-bold mt-0.5">Rider location not available yet</p>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -194,30 +361,9 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
-// Internal Truck Icon as it was used in code but not imported
-const Truck = ({ className }) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-    >
-        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" />
-        <path d="M15 18H9" />
-        <path d="M19 18h2a1 1 0 0 0 1-1v-5l-4-4h-3v10" />
-        <circle cx="7" cy="18" r="2" />
-        <circle cx="17" cy="18" r="2" />
-    </svg>
-);
 
 export default DeliveryDetailsModal;

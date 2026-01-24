@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -36,36 +37,38 @@ function ProtectedRoute({ children }) {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="categories" element={<Categories />} />
-            <Route path="categories/:id" element={<CategoryDetail />} />
-            <Route path="products" element={<Products />} />
-            <Route path="products/:id" element={<ProductDetail />} />
-            <Route path="products/seasonal" element={<SeasonalProducts />} />
-            <Route path="orders" element={<Orders />} />
-            <Route path="riders" element={<Riders />} />
-            <Route path="customers" element={<Customers />} />
-            <Route path="settings" element={<Settings />} />
-            <Route path="reviews" element={<Reviews />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="users" element={<Users />} />
-            <Route path="activity-logs" element={<ActivityLogs />} />
-            <Route path="cart-analytics" element={<CartAnalytics />} />
-            <Route path="deliveries" element={<Deliveries />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+      <SocketProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="categories" element={<Categories />} />
+              <Route path="categories/:id" element={<CategoryDetail />} />
+              <Route path="products" element={<Products />} />
+              <Route path="products/:id" element={<ProductDetail />} />
+              <Route path="products/seasonal" element={<SeasonalProducts />} />
+              <Route path="orders" element={<Orders />} />
+              <Route path="riders" element={<Riders />} />
+              <Route path="customers" element={<Customers />} />
+              <Route path="settings" element={<Settings />} />
+              <Route path="reviews" element={<Reviews />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="users" element={<Users />} />
+              <Route path="activity-logs" element={<ActivityLogs />} />
+              <Route path="cart-analytics" element={<CartAnalytics />} />
+              <Route path="deliveries" element={<Deliveries />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </SocketProvider>
     </AuthProvider>
   );
 }
