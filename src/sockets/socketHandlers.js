@@ -7,7 +7,7 @@ export const setupSocketHandlers = (io) => {
     io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
         const { userId, role, name } = socket.user;
 
-        console.log(`✅ Socket connected: ${name} (${userId}) - Role: ${role}`);
+        console.log(`Socket connected: ${name} (${userId}) - Role: ${role}`);
 
         // Join user-specific room
         socket.join(SOCKET_ROOMS.user(userId));
@@ -34,7 +34,7 @@ export const setupSocketHandlers = (io) => {
 
         // Handle disconnect
         socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-            console.log(`❌ Socket disconnected: ${name} (${userId})`);
+            console.log(`Socket disconnected: ${name} (${userId})`);
 
             // If rider, notify managers they went offline
             if (role === 'rider') {
