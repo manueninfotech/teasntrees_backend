@@ -118,12 +118,11 @@ app.use('/api/customer/wishlist', customerWishlistRoutes); // Wishlist
 // Admin Routes  
 app.use('/api/admin/auth', adminAuthRoutes);           // Admin authentication
 app.use('/api/admin/profile', adminProfileRoutes);     // Admin profile
-app.use('/api/admin', adminRoutes);                    // Admin CRUD operations
+app.use('/api/admin', adminRoutes);                    // Admin CRUD operations (includes Payouts)
 
 // Rider Routes
 app.use('/api/rider/auth', riderAuthRoutes);           // Rider authenticaton
 app.use('/api/rider/deliveries', riderDeliveryRoutes);
-app.use('/api/admin/payouts', payoutRoutes); // Rider delivery management
 
 // Test Route
 app.get("/", (req, res) => {

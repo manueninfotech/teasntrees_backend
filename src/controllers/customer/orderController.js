@@ -82,7 +82,8 @@ export const createOrder = async (req, res) => {
             tax,
             total,
             deliveryAddress: {
-                address: deliveryAddress
+                address: typeof deliveryAddress === 'object' ? deliveryAddress.address : deliveryAddress,
+                location: req.body.location || (typeof deliveryAddress === 'object' ? deliveryAddress.location : null)
             },
             paymentMethod,
             specialInstructions: deliveryInstructions,
@@ -391,7 +392,7 @@ export const reorder = async (req, res) => {
             deliveryCharge,
             tax,
             total,
-            deliveryAddress: originalOrder.deliveryAddress, // Reuse address
+            deliveryAddress: originalOrder.deliveryAddress, // Reuse full address object including location
             paymentMethod: originalOrder.paymentMethod, // Default to same method
             status: 'pending'
         });
