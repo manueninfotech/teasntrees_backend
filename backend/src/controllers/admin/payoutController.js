@@ -73,6 +73,31 @@ export const processPayout = async (req, res) => {
             return res.status(404).json({ success: false, message: 'No unpaid deliveries found for this rider' });
         }
 
+        // --- NEW: Notifications ---
+        try {
+            const rider = await User.findById(riderId);
+            if (rider) {
+                // Socket.io update
+                const socketService = req.app.get('socketService');
+                if (socketService) {
+                    socketService.notifyUser(riderId, 'payout:processed', {
+                        message: `Your payout of ₹${result.modifiedCount} deliveries has been processed.`,
+                        count: result.modifiedCount
+                    });
+                }
+
+                // Push Notification
+                const { notificationService } = await import('../../services/notificationService.js');
+                await notificationService.sendPush(rider, {
+                    title: 'Payout Processed! ',
+                    body: `Your earnings for ${result.modifiedCount} deliveries have been transferred. Check your bank account.`,
+                    data: { type: 'payout', count: result.modifiedCount }
+                });
+            }
+        } catch (notifError) {
+            logger.error('Failed to send payout notification:', notifError);
+        }
+
         res.json({
             success: true,
             message: `Successfully processed payout for ${result.modifiedCount} deliveries`,

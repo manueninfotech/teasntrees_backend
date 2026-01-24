@@ -1,7 +1,9 @@
 import Review from '../../models/Review.js';
 import Order from '../../models/Order.js';
+import User from '../../models/User.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
+import { notificationService } from '../../services/notificationService.js';
 
 // Submit review for order
 export const createReview = async (req, res) => {
@@ -64,6 +66,18 @@ export const createReview = async (req, res) => {
                 type: 'review',
                 data: { reviewId: newReview._id, orderId }
             });
+        }
+
+        // Push Notification to Admin/Manager
+        try {
+            const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
+            await notificationService.sendPushToMany(admins, {
+                title: 'New Review',
+                body: `Review received for Order #${order.orderNumber}. Food: ${foodRating}/5, Rider: ${riderRating}/5`,
+                data: { type: 'new_review', reviewId: newReview._id }
+            });
+        } catch (pushErr) {
+            logger.error('Failed to send review push notify:', pushErr);
         }
 
         res.status(201).json({

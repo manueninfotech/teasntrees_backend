@@ -37,6 +37,7 @@ export default function Layout() {
         { icon: ShoppingCart, label: 'Orders', path: '/orders' },
         { icon: Bike, label: 'Riders', path: '/riders' },
         { icon: Truck, label: 'Delivery Tracking', path: '/deliveries' },
+        { icon: Wallet, label: 'Payouts', path: '/payouts' },
         { icon: Users, label: 'Customers', path: '/customers' },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
         { icon: ShoppingCart, label: 'Cart Analytics', path: '/cart-analytics' },

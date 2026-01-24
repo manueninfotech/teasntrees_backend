@@ -1,5 +1,7 @@
 import Rider from '../../models/Rider.js';
+import Delivery from '../../models/Delivery.js';
 import logger from '../../config/logger.js';
+import mongoose from 'mongoose';
 
 // Get all riders (with filters)
 export const getAllRiders = async (req, res) => {
@@ -20,14 +22,50 @@ export const getAllRiders = async (req, res) => {
             .select('-__v')
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
-            .skip(skip);
+            .skip(skip)
+            .lean(); // Use lean for performance and to allow manual decoration
+
+        const riderIds = riders.map(r => r._id);
+
+        // Calculate earnings for these riders
+        const earningsStats = await Delivery.aggregate([
+            {
+                $match: {
+                    riderId: { $in: riderIds },
+                    status: 'delivered'
+                }
+            },
+            {
+                $group: {
+                    _id: '$riderId',
+                    totalEarnings: { $sum: '$totalEarning' },
+                    pendingEarnings: {
+                        $sum: {
+                            $cond: [{ $eq: ['$isPaid', false] }, '$totalEarning', 0]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        // Map stats to riders
+        const statsMap = earningsStats.reduce((acc, curr) => {
+            acc[curr._id.toString()] = curr;
+            return acc;
+        }, {});
+
+        const decoratedRiders = riders.map(r => ({
+            ...r,
+            totalEarnings: statsMap[r._id.toString()]?.totalEarnings || 0,
+            pendingEarnings: statsMap[r._id.toString()]?.pendingEarnings || 0
+        }));
 
         const totalRiders = await Rider.countDocuments(query);
 
         res.json({
             success: true,
             data: {
-                riders,
+                riders: decoratedRiders,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(totalRiders / limit),
@@ -71,7 +109,7 @@ export const getPendingRiders = async (req, res) => {
 // Get rider by ID
 export const getRiderById = async (req, res) => {
     try {
-        const rider = await Rider.findById(req.params.id).select('-__v');
+        const rider = await Rider.findById(req.params.id).select('-__v').lean();
 
         if (!rider) {
             return res.status(404).json({
@@ -80,9 +118,36 @@ export const getRiderById = async (req, res) => {
             });
         }
 
+        // Calculate earnings for this specific rider
+        const earningsStats = await Delivery.aggregate([
+            {
+                $match: {
+                    riderId: new mongoose.Types.ObjectId(req.params.id),
+                    status: 'delivered'
+                }
+            },
+            {
+                $group: {
+                    _id: '$riderId',
+                    totalEarnings: { $sum: '$totalEarning' },
+                    pendingEarnings: {
+                        $sum: {
+                            $cond: [{ $eq: ['$isPaid', false] }, '$totalEarning', 0]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        const stats = earningsStats[0] || { totalEarnings: 0, pendingEarnings: 0 };
+
         res.json({
             success: true,
-            data: rider
+            data: {
+                ...rider,
+                totalEarnings: stats.totalEarnings,
+                pendingEarnings: stats.pendingEarnings
+            }
         });
     } catch (error) {
         logger.error('Get Rider By ID Error:', error);
