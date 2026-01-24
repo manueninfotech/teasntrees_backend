@@ -5,6 +5,7 @@ import Delivery from "../../models/Delivery.js";
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
 import { surgeService } from "../../services/surgeService.js";
 import { getDistance } from "../../utils/geoUtils.js";
+import { notificationService } from "../../services/notificationService.js";
 
 // Get all orders with filters
 export const getAllOrders = async (req, res) => {
@@ -186,7 +187,7 @@ export const updateOrderStatus = async (req, res) => {
                     // Calculate rider earning if not set
                     // Formula: Base Amount + (Order %) + (Distance × Rate)
                     if (!order.riderEarning) {
-                        const BASE_AMOUNT = 15;           // ₹15 base per delivery
+                        const BASE_AMOUNT = 20;           // ₹20 base per delivery
                         const ORDER_PERCENTAGE = 0.05;    // 5% of order total
                         const DISTANCE_RATE = 5;          // ₹5 per km
 
@@ -261,7 +262,7 @@ export const updateOrderStatus = async (req, res) => {
             if (!delivery && deliveryRelatedStatuses.includes(status)) {
                 // Create missing delivery record
                 const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 };
-                const baseFee = 30;
+                const baseFee = 20;
                 const totalEarning = order.riderEarning || Math.max(Math.round(baseFee + (order.total * 0.05)), 20);
 
                 delivery = new Delivery({
@@ -301,6 +302,29 @@ export const updateOrderStatus = async (req, res) => {
                 if (status === 'cancelled') delivery.status = 'cancelled'; // Correct enum value
 
                 await delivery.save();
+
+                // Push Notification for Status Update
+                try {
+                    const customer = await User.findById(order.customerId);
+                    if (customer) {
+                        const statusLabels = {
+                            'confirmed': 'Order Confirmed',
+                            'preparing': 'Preparing your meal',
+                            'ready': 'Ready for pickup',
+                            'picked_up': 'Order picked up',
+                            'in_transit': 'Out for delivery',
+                            'delivered': 'Order Delivered'
+                        };
+
+                        await notificationService.sendPush(customer, {
+                            title: statusLabels[status] || 'Order Update',
+                            body: `Your Order #${order.orderNumber} is now ${statusLabels[status] || status}.`,
+                            data: { orderId: order._id, status }
+                        });
+                    }
+                } catch (pushErr) {
+                    console.error('Failed to send status push:', pushErr);
+                }
             }
         } catch (syncError) {
             console.error('Failed to sync delivery status:', syncError);
@@ -352,10 +376,10 @@ export const updateOrderStatus = async (req, res) => {
 
                         // Calculate Surge
                         const { multiplier, reason } = await surgeService.getSurgeMultiplier();
-                        const baseFee = 40;
-                        const distBonus = Math.max(0, (distMeters / 1000 - 3) * 10);
+                        const baseFee = 20;
+                        const distBonus = (distMeters / 1000) * 5;
                         const surgeAmount = Math.round((baseFee + distBonus) * (multiplier - 1));
-                        const totalEarning = Math.round((baseFee + distBonus) * multiplier);
+                        const totalEarning = Math.round((baseFee + distBonus + (orderTotal * 0.05)) * multiplier);
 
                         // Create Delivery Record
                         const delivery = new Delivery({
@@ -393,6 +417,17 @@ export const updateOrderStatus = async (req, res) => {
                             });
                             console.log(`[Auto-Assign] Assigned Order ${order.orderNumber} to ${bestRider.name}`);
                         }
+
+                        // Push Notification to Rider
+                        try {
+                            await notificationService.sendPush(bestRider, {
+                                title: 'New Delivery Assigned! 🛵',
+                                body: `New order #${order.orderNumber} from Teas N Trees. Earn ₹${delivery.totalEarning}.`,
+                                data: { type: 'delivery_assigned', deliveryId: delivery._id, orderId: order._id }
+                            });
+                        } catch (pErr) {
+                            console.error('Auto-assign push failed:', pErr);
+                        }
                     } else {
                         console.warn(`[Auto-Assign] No online riders found for Order ${order.orderNumber}`);
                         // Notify Admin of Failure
@@ -401,6 +436,18 @@ export const updateOrderStatus = async (req, res) => {
                                 orderId: order._id,
                                 message: 'Order Confirmed but No Riders Available!'
                             });
+                        }
+
+                        // Push Notification to Admin (High Priority Alert)
+                        try {
+                            const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
+                            await notificationService.sendPushToMany(admins, {
+                                title: '🚨 No Riders Available!',
+                                body: `Order #${order.orderNumber} is confirmed but no online riders were found for auto-assignment.`,
+                                data: { type: 'assignment_failure', orderId: order._id }
+                            });
+                        } catch (aPushErr) {
+                            console.error('Failure alert push failed:', aPushErr);
                         }
                     }
                 }
@@ -550,8 +597,8 @@ export const assignDeliveryRider = async (req, res) => {
                 deliveryLocation.lat, deliveryLocation.lng
             ) : 2000; // Default 2km
 
-            const baseFee = 30;
-            const distBonus = Math.max(0, (distMeters / 1000 - 3) * 5);
+            const baseFee = 20;
+            const distBonus = (distMeters / 1000) * 5;
             const totalEarning = Math.round(baseFee + distBonus + (order.total * 0.05));
 
             if (!delivery) {
@@ -614,6 +661,17 @@ export const assignDeliveryRider = async (req, res) => {
                 riderId: assignedRiderId,
                 riderName: rider.name
             });
+        }
+
+        // Push Notification to Rider (Manual Assignment)
+        try {
+            await notificationService.sendPush(rider, {
+                title: 'New Delivery Assigned! ',
+                body: `You have been assigned order #${order.orderNumber}. Tap to view details.`,
+                data: { type: 'delivery_assigned', orderId: order._id }
+            });
+        } catch (mPushErr) {
+            console.error('Manual assign push failed:', mPushErr);
         }
 
         res.status(200).json({

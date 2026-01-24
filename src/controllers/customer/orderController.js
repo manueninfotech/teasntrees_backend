@@ -3,8 +3,10 @@
 
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
+import User from '../../models/User.js';
 import PDFDocument from 'pdfkit';
 import logger from '../../config/logger.js';
+import { notificationService } from '../../services/notificationService.js';
 
 // Create new order
 // Create new order
@@ -124,6 +126,18 @@ export const createOrder = async (req, res) => {
             }
         } else {
             logger.warn('SocketService missing or invalid, skipping notification');
+        }
+
+        // --- NEW: Push Notification to Admin ---
+        try {
+            const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
+            await notificationService.sendPushToMany(admins, {
+                title: 'New Order Received! 🛍️',
+                body: `Order #${order.orderNumber} for ₹${order.total} has been placed.`,
+                data: { type: 'new_order', orderId: order._id }
+            });
+        } catch (adminPushErr) {
+            logger.error('Admin push notification failed', { error: adminPushErr.message });
         }
 
         res.status(201).json({

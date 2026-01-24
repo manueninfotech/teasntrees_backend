@@ -76,6 +76,10 @@ const userSchema = new mongoose.Schema({
     isApproved: {
         type: Boolean,
         default: null  // null = not applicable (customer/admin), true/false for manager/rider
+    },
+    fcmToken: {
+        type: String,
+        default: null
     }
 
 }, {
