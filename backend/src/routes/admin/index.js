@@ -17,6 +17,7 @@ import cartAnalyticsRoutes from './cartAnalyticsRoutes.js';
 import reviewRoutes from './reviewRoutes.js';
 import riderRoutes from './riderRoutes.js';
 import customerRoutes from './customerRoutes.js';
+import payoutRoutes from './payoutRoutes.js';
 
 const router = express.Router();
 
@@ -39,5 +40,6 @@ router.use('/cart-analytics', cartAnalyticsRoutes);
 router.use('/reviews', reviewRoutes);
 router.use('/riders', riderRoutes);
 router.use('/customers', customerRoutes);
+router.use('/payouts', payoutRoutes);
 
 export default router;

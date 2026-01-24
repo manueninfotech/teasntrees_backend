@@ -356,8 +356,8 @@ export const updateOrderStatus = async (req, res) => {
         // --- AUTO-ASSIGNMENT LOGIC ---
         if (status === 'confirmed') {
             try {
-                // Fixed Outlet Location
-                const OUTLET_LOCATION = { lat: 12.9716, lng: 77.5946 };
+                // Fixed Outlet Location (Guntur)
+                const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 };
 
                 // Get Customer Location from Order
                 const customerLoc = order.deliveryAddress?.location?.coordinates; // [lng, lat]
@@ -487,56 +487,30 @@ export const assignDeliveryRider = async (req, res) => {
 
         // Handle auto-assignment
         if (auto === true) {
-            // Find riders who are approved, active, and online
-            const allRiders = await User.find({
-                role: 'rider',
-                isActive: true,
-                isApproved: true,
-                isOnline: true  // Only online riders
-            });
+            const customerLoc = order.deliveryAddress?.location?.coordinates;
 
-            if (allRiders.length === 0) {
-                return res.status(404).json({
+            if (!customerLoc || !Array.isArray(customerLoc) || customerLoc.length !== 2) {
+                logger.warn(`[Assign] Auto-assignment failed for Order ${order.orderNumber}: Customer location missing.`);
+                return res.status(400).json({
                     success: false,
-                    message: 'No online riders available for auto-assignment. Please try manual assignment or wait for riders to come online.'
+                    message: 'Cannot auto-assign: This order is missing GPS coordinates. Please assign a rider manually.'
                 });
             }
 
-            // Find active order counts for each rider
-            const riderAssignments = await Order.aggregate([
-                {
-                    $match: {
-                        riderId: { $in: allRiders.map(r => r._id) },
-                        status: { $in: ['assigned', 'picked_up', 'out-for-delivery', 'in_transit'] }
-                    }
-                },
-                {
-                    $group: {
-                        _id: '$riderId',
-                        activeOrders: { $sum: 1 }
-                    }
-                }
-            ]);
+            const deliveryLocation = { lng: customerLoc[0], lat: customerLoc[1] };
 
-            // Create a map of rider IDs to active order counts
-            const riderOrderMap = {};
-            riderAssignments.forEach(assignment => {
-                riderOrderMap[assignment._id.toString()] = assignment.activeOrders;
-            });
+            // Find Best Rider using service (Location & Rating based)
+            const bestRider = await riderAssignmentService.findBestRider(deliveryLocation);
 
-            // Find the rider with the least active orders
-            let selectedRider = null;
-            let minOrders = Infinity;
-
-            for (const rider of allRiders) {
-                const activeOrders = riderOrderMap[rider._id.toString()] || 0;
-                if (activeOrders < minOrders) {
-                    minOrders = activeOrders;
-                    selectedRider = rider;
-                }
+            if (!bestRider) {
+                logger.warn(`[Assign] Auto-assignment failed for Order ${order.orderNumber}: No suitable riders found.`);
+                return res.status(400).json({
+                    success: false,
+                    message: 'No online riders found meeting the service criteria (Location, Rating, etc.). Please try manual assignment.'
+                });
             }
 
-            assignedRiderId = selectedRider._id;
+            assignedRiderId = bestRider._id;
         }
 
         // Verify rider exists and has rider role
