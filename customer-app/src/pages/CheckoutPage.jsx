@@ -14,7 +14,7 @@ const CheckoutPage = () => {
     const navigate = useNavigate();
     const { cartItems, getCartTotal, clearCart, checkout } = useCart();
 
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, openLoginModal } = useAuth(); // Assuming openLoginModal exists or just redirect
 
     // Dynamic settings state
     const [configDeliveryFee, setConfigDeliveryFee] = useState(30); // Default fallback
@@ -48,6 +48,19 @@ const CheckoutPage = () => {
         };
         fetchSettings();
     }, []);
+
+    // Redirect or guard if not authenticated
+    useEffect(() => {
+        if (!isAuthenticated) {
+            openLoginModal();
+            // Optional: navigate('/') if you want them off the page, but modal overlay is better
+            // If we stay, the modal opens. If they cancel, they are still on checkout?
+            // User requested "openloginmodal when the user tries to checkout"
+            // Let's redirect to menu or home AND open modal so background isn't empty checkout
+            navigate('/');
+        }
+    }, [isAuthenticated, navigate, openLoginModal]);
+
 
     const subtotal = getCartTotal();
     const tax = subtotal * 0.05;

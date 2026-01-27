@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     // Initialize auth state from localStorage
     useEffect(() => {
@@ -40,6 +41,7 @@ export const AuthProvider = ({ children }) => {
         const handleLogout = () => {
             setUser(null);
             setIsAuthenticated(false);
+            setIsLoginModalOpen(false);
         };
 
         window.addEventListener('auth:logout', handleLogout);
@@ -111,6 +113,9 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    const openLoginModal = () => setIsLoginModalOpen(true);
+    const closeLoginModal = () => setIsLoginModalOpen(false);
+
     /**
      * Update user data
      */
@@ -127,7 +132,10 @@ export const AuthProvider = ({ children }) => {
         verifyOTP,
         completeProfile,
         logout,
-        updateUser
+        updateUser,
+        isLoginModalOpen,
+        openLoginModal,
+        closeLoginModal
     };
 
     return (

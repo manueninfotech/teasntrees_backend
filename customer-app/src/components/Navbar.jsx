@@ -6,17 +6,15 @@ import { Link, useLocation } from 'react-router-dom';
 import { ShoppingCart, User, Menu, X, Heart, Package, Truck, LogOut } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
-import LoginModal from './LoginModal';
 import './Navbar.css';
 
 const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
     const { getCartCount } = useCart();
-    const { user, isAuthenticated, logout } = useAuth();
+    const { user, isAuthenticated, logout, openLoginModal } = useAuth();
     const location = useLocation();
     const cartCount = getCartCount();
 
@@ -37,7 +35,7 @@ const Navbar = () => {
     const isActive = (path) => location.pathname === path ? 'active' : '';
 
     const handleLoginClick = () => {
-        setIsLoginModalOpen(true);
+        openLoginModal();
         setIsMobileMenuOpen(false);
     };
 
@@ -180,12 +178,6 @@ const Navbar = () => {
                     </div>
                 )}
             </nav>
-
-            {/* Login Modal */}
-            <LoginModal
-                isOpen={isLoginModalOpen}
-                onClose={() => setIsLoginModalOpen(false)}
-            />
         </header>
     );
 };

@@ -9,6 +9,7 @@ const AddressModal = ({ isOpen, onClose, onAddressSelect, selectedAddressId }) =
     const [addresses, setAddresses] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isAdding, setIsAdding] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
     const [formData, setFormData] = useState({
         label: '',
@@ -67,18 +68,42 @@ const AddressModal = ({ isOpen, onClose, onAddressSelect, selectedAddressId }) =
         );
     };
 
-    const handleAddAddress = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         try {
-            await addressService.addAddress(formData);
+            if (editingId) {
+                await addressService.updateAddress(editingId, formData);
+                alert('Address updated successfully!');
+            } else {
+                await addressService.addAddress(formData);
+                alert('Address added successfully!');
+            }
+
             setFormData({ label: '', addressLine: '', location: { type: 'Point', coordinates: [0, 0] } });
             setIsAdding(false);
+            setEditingId(null);
             fetchAddresses();
         } catch (error) {
-            console.error('Error adding address:', error);
-            alert('Failed to add address. Please try again.');
+            console.error('Error saving address:', error);
+            alert(`Failed to ${editingId ? 'update' : 'add'} address. Please try again.`);
         }
+    };
+
+    const handleEditClick = (address) => {
+        setFormData({
+            label: address.label,
+            addressLine: address.addressLine,
+            location: address.location || { type: 'Point', coordinates: [0, 0] }
+        });
+        setEditingId(address._id);
+        setIsAdding(true);
+    };
+
+    const handleCancel = () => {
+        setIsAdding(false);
+        setEditingId(null);
+        setFormData({ label: '', addressLine: '', location: { type: 'Point', coordinates: [0, 0] } });
     };
 
     const handleDeleteAddress = async (addressId) => {
@@ -131,14 +156,18 @@ const AddressModal = ({ isOpen, onClose, onAddressSelect, selectedAddressId }) =
                             {!isAdding && (
                                 <button
                                     className="btn btn-primary btn-sm"
-                                    onClick={() => setIsAdding(true)}
+                                    onClick={() => {
+                                        setEditingId(null);
+                                        setFormData({ label: '', addressLine: '', location: { type: 'Point', coordinates: [0, 0] } });
+                                        setIsAdding(true);
+                                    }}
                                 >
                                     + Add New Address
                                 </button>
                             )}
 
                             {isAdding && (
-                                <form className="address-form" onSubmit={handleAddAddress}>
+                                <form className="address-form" onSubmit={handleSubmit}>
                                     <div className="form-group">
                                         <label>Label (e.g., Home, Office)</label>
                                         <input
@@ -176,12 +205,12 @@ const AddressModal = ({ isOpen, onClose, onAddressSelect, selectedAddressId }) =
                                         <button
                                             type="button"
                                             className="btn btn-outline btn-sm"
-                                            onClick={() => setIsAdding(false)}
+                                            onClick={handleCancel}
                                         >
                                             Cancel
                                         </button>
                                         <button type="submit" className="btn btn-primary btn-sm">
-                                            Save Address
+                                            {editingId ? 'Update Address' : 'Save Address'}
                                         </button>
                                     </div>
                                 </form>
@@ -221,6 +250,12 @@ const AddressModal = ({ isOpen, onClose, onAddressSelect, selectedAddressId }) =
                                                         Set Default
                                                     </button>
                                                 )}
+                                                <button
+                                                    className="btn btn-outline btn-sm"
+                                                    onClick={() => handleEditClick(address)}
+                                                >
+                                                    Edit
+                                                </button>
                                                 <button
                                                     className="btn btn-outline btn-sm"
                                                     onClick={() => handleDeleteAddress(address._id)}
