@@ -6,6 +6,7 @@ import { riderAssignmentService } from "../../services/riderAssignmentService.js
 import { surgeService } from "../../services/surgeService.js";
 import { getDistance } from "../../utils/geoUtils.js";
 import { notificationService } from "../../services/notificationService.js";
+import logger from "../../config/logger.js";
 
 // Get all orders with filters
 export const getAllOrders = async (req, res) => {
@@ -564,6 +565,10 @@ export const assignDeliveryRider = async (req, res) => {
             const customerLoc = order.deliveryAddress?.location?.coordinates;
             const deliveryLocation = customerLoc ? { lng: customerLoc[0], lat: customerLoc[1] } : null;
 
+            const orderId = order._id;
+            const orderTotal = Number(order.total) || 0;
+            console.log(`[Assign] Processing Delivery record for Order ${order.orderNumber}. ID: ${orderId}, Total: ${orderTotal}`);
+
             let delivery = await Delivery.findOne({ orderId: order._id });
 
             const distMeters = deliveryLocation ? getDistance(
@@ -571,9 +576,14 @@ export const assignDeliveryRider = async (req, res) => {
                 deliveryLocation.lat, deliveryLocation.lng
             ) : 2000; // Default 2km
 
+            // Calculate estimated travel time (in minutes)
+            // Rule: 10 mins base + 3 mins per km
+            const estimatedTravelTime = Math.round(10 + (distMeters / 1000) * 3);
+
             const baseFee = 20;
             const distBonus = (distMeters / 1000) * 5;
-            const totalEarning = Math.round(baseFee + distBonus + (order.total * 0.05));
+            const totalEarning = Math.round(baseFee + distBonus + (orderTotal * 0.05));
+            console.log(`[Assign] Calculated Earning: ${totalEarning} (Base: ${baseFee}, DistBonus: ${distBonus.toFixed(2)}). Est Time: ${estimatedTravelTime}m`);
 
             if (!delivery) {
                 delivery = new Delivery({
@@ -585,8 +595,13 @@ export const assignDeliveryRider = async (req, res) => {
                         coordinates: [OUTLET_LOCATION.lng, OUTLET_LOCATION.lat],
                         address: 'Teas N Trees Outlet'
                     },
-                    deliveryLocation: order.deliveryAddress.location,
+                    deliveryLocation: {
+                        type: 'Point',
+                        coordinates: order.deliveryAddress.location.coordinates,
+                        address: order.deliveryAddress.address
+                    },
                     distance: distMeters,
+                    estimatedTime: estimatedTravelTime, // Set the estimated time
                     baseEarning: baseFee,
                     distanceBonus: distBonus,
                     totalEarning: totalEarning,
@@ -599,6 +614,13 @@ export const assignDeliveryRider = async (req, res) => {
             } else {
                 delivery.riderId = assignedRiderId;
                 delivery.status = 'in_transit';
+                delivery.deliveryLocation = {
+                    type: 'Point',
+                    coordinates: order.deliveryAddress.location.coordinates,
+                    address: order.deliveryAddress.address
+                };
+                delivery.distance = distMeters;
+                delivery.estimatedTime = estimatedTravelTime; // Update the estimated time
                 delivery.assignedAt = delivery.assignedAt || new Date();
                 delivery.pickedUpAt = delivery.pickedUpAt || new Date();
                 delivery.totalEarning = totalEarning;
@@ -654,6 +676,7 @@ export const assignDeliveryRider = async (req, res) => {
             data: updatedOrder
         });
     } catch (error) {
+        console.error('Error in assignDeliveryRider:', error);
         res.status(500).json({
             success: false,
             message: 'Error assigning rider to order',

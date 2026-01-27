@@ -23,6 +23,7 @@ import customerDeliveryRoutes from './routes/customer/deliveryRoutes.js';
 import customerReviewRoutes from './routes/customer/reviewRoutes.js';
 import customerAddressRoutes from './routes/customer/addressRoutes.js';
 import customerWishlistRoutes from './routes/customer/wishlistRoutes.js';
+import customerSettingsRoutes from './routes/customer/settingsRoutes.js';
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminRoutes from './routes/admin/index.js';
@@ -113,6 +114,7 @@ app.use('/api/customer/deliveries', customerDeliveryRoutes); // Delivery trackin
 app.use('/api/customer/reviews', customerReviewRoutes);    // Product reviews
 app.use('/api/customer/address', customerAddressRoutes);   // Address Book
 app.use('/api/customer/wishlist', customerWishlistRoutes); // Wishlist
+app.use('/api/customer/settings', customerSettingsRoutes); // App Settings (Delivery Charge etc.)
 
 
 // Admin Routes  

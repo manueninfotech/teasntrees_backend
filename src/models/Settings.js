@@ -65,7 +65,7 @@ const settingsSchema = new mongoose.Schema({
     }],
     riderBaseEarning: {
         type: Number,
-        default: 15
+        default: 20
     },
     distanceBonusPerKm: {
         type: Number,
