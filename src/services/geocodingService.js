@@ -57,6 +57,40 @@ class GeocodingService {
             return null;
         }
     }
+
+    /**
+     * Get address from coordinates (Reverse Geocoding)
+     * @param {number} lat - Latitude
+     * @param {number} lng - Longitude
+     * @returns {Promise<object|null>} Address details
+     */
+    async getAddress(lat, lng) {
+        try {
+            if (!lat || !lng) return null;
+
+            const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+                params: {
+                    lat,
+                    lon: lng,
+                    format: 'json',
+                },
+                headers: {
+                    'User-Agent': 'TeasNTreesApp/1.0'
+                }
+            });
+
+            if (response.data && response.data.display_name) {
+                return {
+                    formattedAddress: response.data.display_name,
+                    details: response.data.address
+                };
+            }
+            return null;
+        } catch (error) {
+            logger.error('Reverse geocoding error:', error.message);
+            return null;
+        }
+    }
 }
 
 export const geocodingService = new GeocodingService();

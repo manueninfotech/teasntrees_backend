@@ -5,7 +5,8 @@ import {
     getAddresses,
     updateAddress,
     deleteAddress,
-    setDefaultAddress
+    setDefaultAddress,
+    reverseGeocode
 } from '../../controllers/customer/addressController.js';
 
 const router = express.Router();
@@ -14,6 +15,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Routes
+router.get('/reverse-geocode', reverseGeocode);
 router.post('/', addAddress);
 router.get('/', getAddresses);
 router.put('/:addressId', updateAddress);
