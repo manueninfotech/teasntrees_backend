@@ -200,6 +200,13 @@ const OrdersPage = () => {
                                     </div>
 
                                     <div className="order-actions">
+                                        <button
+                                            className="btn btn-secondary btn-sm"
+                                            onClick={() => navigate(`/orders/${order._id}`)}
+                                        >
+                                            View Details
+                                        </button>
+
                                         {order.status !== 'cancelled' && order.status !== 'delivered' && (
                                             <button
                                                 className="btn btn-outline btn-sm"
