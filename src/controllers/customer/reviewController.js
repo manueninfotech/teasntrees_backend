@@ -25,9 +25,60 @@ export const createReview = async (req, res) => {
         // check if review already exists
         const existingReview = await Review.findOne({ orderId });
         if (existingReview) {
-            return res.status(400).json({
-                success: false,
-                message: 'Review already submitted for this order'
+            // NEW: Check if the existing review itself is incomplete/corrupted
+            if (!existingReview.foodRating || !existingReview.riderRating) {
+                console.log('EXISTING REVIEW IS CORRUPT. OVERWRITING WITH NEW DATA...');
+
+                existingReview.foodRating = foodRating;
+                existingReview.riderRating = riderRating;
+                existingReview.review = review;
+                if (images) existingReview.images = images;
+
+                // DATA FIX: Ensure required fields are present (Schema Validation Fix)
+                if (!existingReview.riderId && order.riderId) existingReview.riderId = order.riderId;
+                if (!existingReview.productId && order.items && order.items.length > 0) {
+                    existingReview.productId = order.items[0].product;
+                }
+
+                // Reset approval status on update/fix
+                existingReview.isApproved = false;
+
+                await existingReview.save();
+
+                // Now heal the order
+                order.foodRating = foodRating;
+                order.riderRating = riderRating;
+                order.review = review;
+                await order.save();
+
+                console.log('CORRUPTION FIXED. SAVED NEW RATINGS.');
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'Review updated successfully',
+                    data: existingReview
+                });
+            }
+
+            console.log('DUPLICATE REVIEW FOUND - STARTING SELF-HEAL CHECK for Order:', orderId);
+
+            // Self-healing: Ensure order has the ratings even if previously failed
+            if (!order.foodRating || !order.riderRating) {
+                console.log('ORDER MISSING RATINGS -> HEALING NOW...');
+                order.foodRating = existingReview.foodRating;
+                order.riderRating = existingReview.riderRating;
+                order.review = existingReview.review;
+                await order.save();
+                logger.info('Self-healed order ratings from existing review', { orderId });
+                console.log('HEALING COMPLETE');
+            } else {
+                console.log('ORDER ALREADY HAS RATINGS. No healing needed.');
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: 'Review already submitted (Auto-Healed)',
+                data: existingReview
             });
         }
         // create review
@@ -35,10 +86,12 @@ export const createReview = async (req, res) => {
             orderId,
             customerId,
             riderId: order.riderId,
+            productId: (order.items && order.items.length > 0) ? order.items[0].product : null, // REQUIRED by Schema
             foodRating,
             riderRating,
             review,
-            images: images || []
+            images: images || [],
+            isApproved: false // Explicitly ensure pending
         });
         // update order with ratings
         order.foodRating = foodRating;
@@ -90,7 +143,7 @@ export const createReview = async (req, res) => {
         console.error('Error in createReview:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to submit review',
+            message: 'Failed to submit review: ' + error.message,
         });
     }
 };
@@ -104,7 +157,7 @@ export const rateProduct = async (req, res) => {
         const order = await Order.findOne({
             _id: orderId,
             customerId,
-            'items.productId': productId
+            'items.product': productId
         });
         if (!order) {
             return res.status(404).json({
@@ -119,7 +172,8 @@ export const rateProduct = async (req, res) => {
                 customerId,
                 productId,
                 productRating: rating,
-                review
+                review,
+                isApproved: false // Reset to pending on update
             },
             { upsert: true, new: true }
         );
@@ -164,9 +218,15 @@ export const getProductReviews = async (req, res) => {
             .limit(parseInt(limit))
             .skip(skip);
         const total = await Review.countDocuments(query);
-        // calculate average rating
+        // calculate average rating (ONLY for approved reviews)
         const avgResult = await Review.aggregate([
-            { $match: { productId: new mongoose.Types.ObjectId(productId), productRating: { $exists: true } } },
+            {
+                $match: {
+                    productId: new mongoose.Types.ObjectId(productId),
+                    productRating: { $exists: true },
+                    isApproved: true // FIX: Only include approved reviews in average
+                }
+            },
             { $group: { _id: null, avgRating: { $avg: '$productRating' }, count: { $sum: 1 } } }
         ]);
         const avgRating = avgResult.length > 0 ? avgResult[0].avgRating.toFixed(1) : 0;
