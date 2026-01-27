@@ -10,11 +10,12 @@ import './DeliveryTrackingPage.css';
 const DeliveryTrackingPage = () => {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const { orderId } = useParams();
+    const { orderId, deliveryId } = useParams();
 
     const [delivery, setDelivery] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [searchId, setSearchId] = useState('');
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -22,12 +23,32 @@ const DeliveryTrackingPage = () => {
             return;
         }
 
-        if (orderId) {
+        if (deliveryId) {
+            fetchDeliveryById();
+        } else if (orderId) {
             fetchDeliveryByOrder();
         } else {
             fetchMyDeliveries();
         }
-    }, [isAuthenticated, orderId, navigate]);
+    }, [isAuthenticated, orderId, deliveryId, navigate]);
+
+    const fetchDeliveryById = async () => {
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const response = await deliveryService.trackDelivery(deliveryId);
+
+            if (response.success && response.data) {
+                setDelivery(response.data);
+            }
+        } catch (err) {
+            console.error('Error fetching delivery:', err);
+            setError('Failed to load delivery information');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const fetchDeliveryByOrder = async () => {
         setIsLoading(true);
@@ -63,6 +84,20 @@ const DeliveryTrackingPage = () => {
             setError('Failed to load deliveries');
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleSearch = (e) => {
+        e.preventDefault();
+        if (!searchId.trim()) return;
+
+        // Simple heuristic: if it starts with 'DEL-', assume delivery ID
+        // Otherwise assume Order ID
+        // Real logic could be handled by backend or trying both
+        if (searchId.trim().toUpperCase().startsWith('DEL')) {
+            navigate(`/delivery/track/${searchId.trim()}`);
+        } else {
+            navigate(`/delivery/${searchId.trim()}`);
         }
     };
 
@@ -125,6 +160,23 @@ const DeliveryTrackingPage = () => {
             <div className="container">
                 <div className="tracking-header">
                     <h1>Track Delivery</h1>
+                    {/* Search Bar */}
+                    <form onSubmit={handleSearch} className="tracking-search">
+                        <input
+                            type="text"
+                            placeholder="Enter Order ID or Delivery ID"
+                            value={searchId}
+                            onChange={(e) => setSearchId(e.target.value)}
+                            className="search-input"
+                        />
+                        <button
+                            type="button"
+                            className="btn btn-primary"
+                            onClick={handleSearch}
+                        >
+                            Track
+                        </button>
+                    </form>
                     <div className="tracking-ids">
                         <span className="order-no">Order #{delivery.order?.orderNumber || delivery.order?._id?.slice(-6)}</span>
                         {delivery.deliveryNumber && (

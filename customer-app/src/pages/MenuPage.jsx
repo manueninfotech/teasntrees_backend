@@ -2,6 +2,7 @@
 // Browse menu items with category filtering from backend API
 
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
 import MenuCard from '../components/MenuCard';
@@ -9,6 +10,7 @@ import ProductModal from '../components/ProductModal';
 import './MenuPage.css';
 
 const MenuPage = () => {
+    const { categoryId } = useParams();
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedItem, setSelectedItem] = useState(null);
     const [products, setProducts] = useState([]);
@@ -22,6 +24,13 @@ const MenuPage = () => {
     useEffect(() => {
         fetchCategories();
     }, []);
+
+    // Handle initial category from URL
+    useEffect(() => {
+        if (categoryId) {
+            fetchCategoryDetails(categoryId);
+        }
+    }, [categoryId]);
 
     // Fetch products when category changes
     useEffect(() => {
@@ -52,6 +61,22 @@ const MenuPage = () => {
             console.error('Error fetching categories:', err);
             // Use default categories as fallback
             setCategories(['All', 'Tea', 'Coffee', 'Snacks', 'Desserts']);
+        }
+    };
+
+    const fetchCategoryDetails = async (id) => {
+        try {
+            setIsLoading(true);
+            const response = await categoryService.getCategoryById(id);
+            if (response.success && response.data) {
+                // Ensure categories are loaded before setting selected
+                // This might need better coordination, but for now:
+                setSelectedCategory(response.data.name);
+            }
+        } catch (err) {
+            console.error('Error fetching category details:', err);
+        } finally {
+            setIsLoading(false);
         }
     };
 

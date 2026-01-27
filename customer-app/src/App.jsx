@@ -30,6 +30,7 @@ const AppContent = () => {
         <main className="main-content">
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/menu/category/:categoryId" element={<MenuPage />} />
             <Route path="/menu" element={<MenuPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
@@ -37,6 +38,7 @@ const AppContent = () => {
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
+            <Route path="/delivery/track/:deliveryId" element={<DeliveryTrackingPage />} />
             <Route path="/delivery/:orderId" element={<DeliveryTrackingPage />} />
             <Route path="/delivery" element={<DeliveryTrackingPage />} />
           </Routes>

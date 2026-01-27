@@ -4,6 +4,7 @@
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import productService from '../services/productService';
+import categoryService from '../services/categoryService';
 import MenuCard from '../components/MenuCard';
 import ProductModal from '../components/ProductModal';
 import './HomePage.css';
@@ -11,6 +12,7 @@ import './HomePage.css';
 const HomePage = () => {
     const [selectedItem, setSelectedItem] = useState(null);
     const [featuredItems, setFeaturedItems] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -68,7 +70,20 @@ const HomePage = () => {
             }
         };
 
+        const fetchCategories = async () => {
+            try {
+                const response = await categoryService.getAllCategories();
+                if (response.success && response.data) {
+                    // Limit to top 4 categories
+                    setCategories(response.data.slice(0, 4));
+                }
+            } catch (err) {
+                console.error('Error fetching categories:', err);
+            }
+        };
+
         fetchFeaturedItems();
+        fetchCategories();
     }, []);
 
     const handleViewDetails = (item) => {
@@ -105,6 +120,28 @@ const HomePage = () => {
                     <span className="leaf-icon">🍃</span>
                     <span className="leaf-icon">🍃</span>
                     <span className="leaf-icon">🍃</span>
+                </div>
+            </section>
+
+            {/* Categories Section */}
+            <section className="categories-section">
+                <div className="container">
+                    <div className="section-header">
+                        <h2 className="section-title">Shop by Category</h2>
+                        <p className="section-subtitle">Find your favorites</p>
+                    </div>
+                    <div className="categories-grid">
+                        {categories.map(cat => (
+                            <Link to={`/menu/category/${cat._id}`} key={cat._id} className="category-card">
+                                <div className="category-icon">
+                                    {cat.name === 'Tea' ? '🍵' :
+                                        cat.name === 'Coffee' ? '☕' :
+                                            cat.name === 'Dessert' ? '🍰' : '🍴'}
+                                </div>
+                                <h3>{cat.name}</h3>
+                            </Link>
+                        ))}
+                    </div>
                 </div>
             </section>
 

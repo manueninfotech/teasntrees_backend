@@ -84,11 +84,18 @@ export const trackDelivery = async (req, res) => {
         const { deliveryId } = req.params;
         const customerId = req.user.userId;
 
-        const delivery = await Delivery.findOne({
-            _id: deliveryId,
-            customerId
-        })
-            .populate('orderId', 'orderNumber items total deliveryAddress')
+        // Check if deliveryId is a valid ObjectId
+        const isObjectId = deliveryId.match(/^[0-9a-fA-F]{24}$/);
+
+        let query = { customerId };
+        if (isObjectId) {
+            query._id = deliveryId;
+        } else {
+            query.deliveryNumber = deliveryId; // Assuming schema has deliveryNumber
+        }
+
+        const delivery = await Delivery.findOne(query)
+            .populate('orderId', 'orderNumber items total deliveryAddress estimatedDeliveryTime')
             .populate('riderId', 'name mobile');
 
         if (!delivery) {
@@ -148,10 +155,17 @@ export const getDeliveryByOrder = async (req, res) => {
         const customerId = req.user.userId;
 
         // Verify order belongs to customer
-        const order = await Order.findOne({
-            _id: orderId,
-            customerId
-        });
+        // Check if orderId is a valid ObjectId
+        const isObjectId = orderId.match(/^[0-9a-fA-F]{24}$/);
+
+        let query = { customerId };
+        if (isObjectId) {
+            query._id = orderId;
+        } else {
+            query.orderNumber = orderId;
+        }
+
+        const order = await Order.findOne(query);
 
         if (!order) {
             return res.status(404).json({
@@ -160,7 +174,10 @@ export const getDeliveryByOrder = async (req, res) => {
             });
         }
 
-        const delivery = await Delivery.findOne({ orderId })
+        // Use the found order's _id to look up the delivery
+        const deliveryQuery = { orderId: order._id };
+
+        const delivery = await Delivery.findOne(deliveryQuery)
             .populate('riderId', 'name mobile');
 
         if (!delivery) {
