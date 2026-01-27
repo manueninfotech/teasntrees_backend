@@ -17,6 +17,7 @@ const OrdersPage = () => {
     const [error, setError] = useState('');
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [selectedOrderId, setSelectedOrderId] = useState(null);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -65,8 +66,9 @@ const OrdersPage = () => {
         fetchOrders();
     };
 
-    const handleOpenReview = (product) => {
+    const handleOpenReview = (product, orderId) => {
         setSelectedProduct(product);
+        setSelectedOrderId(orderId);
         setIsReviewModalOpen(true);
     };
 
@@ -184,7 +186,7 @@ const OrdersPage = () => {
                                             {order.status === 'delivered' && (
                                                 <button
                                                     className="rate-btn"
-                                                    onClick={() => handleOpenReview(item.product)}
+                                                    onClick={() => handleOpenReview(item.product, order._id)}
                                                 >
                                                     Rate Product
                                                 </button>
@@ -252,6 +254,7 @@ const OrdersPage = () => {
                     isOpen={isReviewModalOpen}
                     onClose={() => setIsReviewModalOpen(false)}
                     product={selectedProduct}
+                    orderId={selectedOrderId}
                     onReviewSubmitted={handleReviewSubmitted}
                 />
             </div>

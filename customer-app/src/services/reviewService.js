@@ -20,13 +20,17 @@ const reviewService = {
 
     /**
      * Rate a product
-     * @param {string} productId - Product ID
-     * @param {number} rating - Rating (1-5)
+     * @param {object} rateData - { productId, orderId, rating, review }
      * @returns {Promise} - Rating confirmation
      */
-    rateProduct: async (productId, rating) => {
+    rateProduct: async ({ productId, orderId, rating, review }) => {
         try {
-            const response = await apiClient.post('/reviews/product', { productId, rating });
+            const response = await apiClient.post('/reviews/product', {
+                productId,
+                orderId,
+                rating,
+                review
+            });
             return response;
         } catch (error) {
             throw error;

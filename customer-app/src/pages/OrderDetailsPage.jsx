@@ -5,16 +5,18 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import orderService from '../services/orderService';
+import ReviewModal from '../components/ReviewModal';
 import './OrderDetailsPage.css';
 
 const OrderDetailsPage = () => {
     const { orderId } = useParams();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
 
     const [order, setOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -32,6 +34,7 @@ const OrderDetailsPage = () => {
         try {
             const response = await orderService.getOrderById(orderId);
             if (response.success && response.data) {
+                console.log('Fetched Order:', response.data); // DEBUG: Check status and foodRating
                 setOrder(response.data);
             } else {
                 setError('Order not found');
@@ -82,6 +85,11 @@ const OrderDetailsPage = () => {
             console.error('Error downloading invoice:', err);
             alert('Failed to download invoice');
         }
+    };
+
+    const handleReviewSubmitted = () => {
+        setIsReviewModalOpen(false);
+        fetchOrderDetails();
     };
 
     const getStatusBadgeClass = (status) => {
@@ -222,11 +230,11 @@ const OrderDetailsPage = () => {
                         <div className="card address-card">
                             <h2>Delivery Details</h2>
                             <div className="address-content">
-                                <p className="user-name">{useAuth().user?.name}</p>
+                                <p className="user-name">{user?.name}</p>
                                 <p className="address-text">
                                     {order.deliveryAddress?.address || 'Address not available'}
                                 </p>
-                                <p className="user-phone">{useAuth().user?.mobile}</p>
+                                <p className="user-phone">{user?.mobile}</p>
                             </div>
                         </div>
 
@@ -243,9 +251,20 @@ const OrderDetailsPage = () => {
                             </button>
 
                             {order.status === 'delivered' && (
-                                <button onClick={handleDownloadInvoice} className="btn btn-secondary full-width">
-                                    Download Invoice
-                                </button>
+                                <>
+                                    {!order.foodRating ? (
+                                        <button onClick={() => setIsReviewModalOpen(true)} className="btn btn-primary full-width">
+                                            Rate Order & Rider
+                                        </button>
+                                    ) : (
+                                        <div className="btn btn-outline full-width" style={{ cursor: 'default', opacity: 0.8, borderColor: '#10b981', color: '#10b981' }}>
+                                            ✓ Review Submitted (★ {order.foodRating})
+                                        </div>
+                                    )}
+                                    <button onClick={handleDownloadInvoice} className="btn btn-secondary full-width">
+                                        Download Invoice
+                                    </button>
+                                </>
                             )}
 
                             {order.status !== 'cancelled' && order.status !== 'delivered' && (
@@ -256,6 +275,14 @@ const OrderDetailsPage = () => {
                         </div>
                     </div>
                 </div>
+
+                <ReviewModal
+                    isOpen={isReviewModalOpen}
+                    onClose={() => setIsReviewModalOpen(false)}
+                    type="order"
+                    orderId={order._id}
+                    onReviewSubmitted={handleReviewSubmitted}
+                />
             </div>
         </div>
     );
