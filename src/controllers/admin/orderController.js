@@ -6,6 +6,7 @@ import { riderAssignmentService } from "../../services/riderAssignmentService.js
 import { surgeService } from "../../services/surgeService.js";
 import { getDistance } from "../../utils/geoUtils.js";
 import { notificationService } from "../../services/notificationService.js";
+import Settings from "../../models/Settings.js";
 import logger from "../../config/logger.js";
 
 // Get all orders with filters
@@ -188,9 +189,9 @@ export const updateOrderStatus = async (req, res) => {
                     // Calculate rider earning if not set
                     // Formula: Base Amount + (Order %) + (Distance × Rate)
                     if (!order.riderEarning) {
-                        const BASE_AMOUNT = 20;           // ₹20 base per delivery
-                        const ORDER_PERCENTAGE = 0.05;    // 5% of order total
-                        const DISTANCE_RATE = 5;          // ₹5 per km
+                        const settings = await Settings.findOne() || {};
+                        const BASE_AMOUNT = settings.riderBaseEarning || 20;
+                        const DISTANCE_RATE = settings.distanceBonusPerKm || 5;
 
                         // Calculate distance from outlet to delivery location
                         let distance = 2; // Default 2 km if location not available
@@ -226,11 +227,10 @@ export const updateOrderStatus = async (req, res) => {
 
                         // Calculate total earning
                         const baseEarning = BASE_AMOUNT;
-                        const orderTotal = Number(order.total) || 0;
-                        const orderEarning = orderTotal * ORDER_PERCENTAGE;
+                        // Removed order percentage based on feedback
                         const distanceEarning = distance * DISTANCE_RATE;
 
-                        const totalEarning = baseEarning + orderEarning + distanceEarning;
+                        const totalEarning = baseEarning + distanceEarning;
                         order.riderEarning = Math.max(Math.round(totalEarning), 20);
 
                         // Final validation to prevent NaN
@@ -263,8 +263,9 @@ export const updateOrderStatus = async (req, res) => {
             if (!delivery && deliveryRelatedStatuses.includes(status)) {
                 // Create missing delivery record
                 const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 };
-                const baseFee = 20;
-                const totalEarning = order.riderEarning || Math.max(Math.round(baseFee + (order.total * 0.05)), 20);
+                const settings = await Settings.findOne() || {};
+                const baseFee = settings.riderBaseEarning || 20;
+                const totalEarning = order.riderEarning || Math.max(Math.round(baseFee), 20);
 
                 delivery = new Delivery({
                     orderId: order._id,
@@ -377,10 +378,13 @@ export const updateOrderStatus = async (req, res) => {
 
                         // Calculate Surge
                         const { multiplier, reason } = await surgeService.getSurgeMultiplier();
-                        const baseFee = 20;
-                        const distBonus = (distMeters / 1000) * 5;
+                        const settings = await Settings.findOne() || {};
+                        const baseFee = settings.riderBaseEarning || 20;
+                        const distanceRate = settings.distanceBonusPerKm || 5;
+
+                        const distBonus = (distMeters / 1000) * distanceRate;
                         const surgeAmount = Math.round((baseFee + distBonus) * (multiplier - 1));
-                        const totalEarning = Math.round((baseFee + distBonus + (orderTotal * 0.05)) * multiplier);
+                        const totalEarning = Math.round((baseFee + distBonus) * multiplier);
 
                         // Create Delivery Record
                         const delivery = new Delivery({
@@ -580,9 +584,12 @@ export const assignDeliveryRider = async (req, res) => {
             // Rule: 10 mins base + 3 mins per km
             const estimatedTravelTime = Math.round(10 + (distMeters / 1000) * 3);
 
-            const baseFee = 20;
-            const distBonus = (distMeters / 1000) * 5;
-            const totalEarning = Math.round(baseFee + distBonus + (orderTotal * 0.05));
+            const settings = await Settings.findOne() || {};
+            const baseFee = settings.riderBaseEarning || 20;
+            const distanceRate = settings.distanceBonusPerKm || 5;
+
+            const distBonus = (distMeters / 1000) * distanceRate;
+            const totalEarning = Math.round(baseFee + distBonus);
             console.log(`[Assign] Calculated Earning: ${totalEarning} (Base: ${baseFee}, DistBonus: ${distBonus.toFixed(2)}). Est Time: ${estimatedTravelTime}m`);
 
             if (!delivery) {
