@@ -1,0 +1,123 @@
+/* ProfilePage Styles */
+
+.profile-page {
+    min-height: 100vh;
+    padding: var(--spacing-3xl) 0;
+    background: var(--color-white);
+}
+
+.profile-header {
+    text-align: center;
+    margin-bottom: var(--spacing-3xl);
+}
+
+.profile-header h1 {
+    font-size: var(--font-size-4xl);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.profile-header p {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+}
+
+.profile-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.profile-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-2xl);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.card-header h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--color-primary);
+    margin: 0;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.info-item label {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-item p {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.profile-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    margin-top: var(--spacing-xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid var(--color-beige);
+}
+
+.error-message {
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: rgba(220, 38, 38, 0.1);
+    border: 1px solid rgba(220, 38, 38, 0.3);
+    border-radius: var(--radius-md);
+    color: #dc2626;
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.loading-state {
+    text-align: center;
+    padding: var(--spacing-4xl);
+}
+
+.loading-state p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-lg);
+}
+
+@media (max-width: 767px) {
+    .profile-page {
+        padding: var(--spacing-2xl) 0;
+    }
+
+    .profile-card {
+        padding: var(--spacing-xl);
+    }
+
+    .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-md);
+    }
+
+    .profile-actions {
+        flex-direction: column;
+    }
+}

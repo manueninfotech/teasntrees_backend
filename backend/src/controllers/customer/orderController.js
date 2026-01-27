@@ -268,8 +268,10 @@ export const getOrderById = async (req, res) => {
 export const cancelOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
-        const { reason } = req.body;
+        const { reason } = req.body || {};
         const customerId = req.user.userId;
+
+        console.log(`CANCEL ORDER ATTEMPT: Order ID: ${orderId}, Customer ID: ${customerId}`);
 
         const order = await Order.findOne({
             _id: orderId,
@@ -302,12 +304,16 @@ export const cancelOrder = async (req, res) => {
         });
 
         // Emit socket event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyUser(customerId.toString(), 'order:cancelled', {
-                orderId: order._id,
-                orderNumber: order.orderNumber
-            });
+        try {
+            const socketService = req.app.get('socketService');
+            if (socketService && typeof socketService.notifyUser === 'function') {
+                socketService.notifyUser(customerId.toString(), 'order:cancelled', {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber
+                });
+            }
+        } catch (socketError) {
+            console.error('Socket notification error in cancelOrder:', socketError);
         }
 
         res.json({
@@ -324,7 +330,8 @@ export const cancelOrder = async (req, res) => {
         console.error('Error in cancelOrder:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to cancel order'
+            message: 'Failed to cancel order',
+            error: error.message
         });
     }
 };
@@ -353,21 +360,46 @@ export const reorder = async (req, res) => {
         const unavailableItems = [];
 
         for (const item of originalOrder.items) {
-            const product = await Product.findById(item.product._id); // Fetch fresh product data
-
-            if (!product || !product.isAvailable) {
-                unavailableItems.push(item.name);
+            // Safe access in case product was deleted
+            const productId = item.product?._id || item.product;
+            if (!productId) {
+                unavailableItems.push(item.name || 'Unknown Item');
                 continue;
             }
 
-            const itemTotal = product.price * item.quantity;
+            const product = await Product.findById(productId);
+
+            if (!product || !product.isAvailable) {
+                unavailableItems.push(item.name || product?.name || 'Unavailable Item');
+                continue;
+            }
+
+            // Determine the correct price (current price for selected size or base price)
+            let currentItemPrice = product.price;
+            if (item.customization && product.sizeOptions && product.sizeOptions.length > 0) {
+                const sizeOption = product.sizeOptions.find(opt => opt.size === item.customization);
+                if (sizeOption) {
+                    currentItemPrice = sizeOption.price;
+                }
+            }
+
+            // Fallback for price if still missing (uses logic from Cart)
+            if (currentItemPrice === undefined || currentItemPrice === null) {
+                if (product.sizeOptions && product.sizeOptions.length > 0) {
+                    currentItemPrice = Math.min(...product.sizeOptions.map(opt => opt.price));
+                } else {
+                    currentItemPrice = product.price || 0;
+                }
+            }
+
+            const itemTotal = currentItemPrice * item.quantity;
             subtotal += itemTotal;
 
             newItems.push({
                 product: product._id,
                 name: product.name,
                 quantity: item.quantity,
-                price: product.price, // Use CURRENT price
+                price: currentItemPrice,
                 customization: item.customization || ''
             });
         }
@@ -416,9 +448,11 @@ export const reorder = async (req, res) => {
 
     } catch (error) {
         logger.error('Error reordering', { error: error.message });
+        console.error('Error in reorder:', error);
         return res.status(500).json({
             success: false,
-            message: 'Failed to reorder'
+            message: 'Failed to reorder',
+            error: error.message
         });
     }
 };

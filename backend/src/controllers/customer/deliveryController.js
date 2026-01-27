@@ -10,14 +10,63 @@ export const getMyDeliveries = async (req, res) => {
         const customerId = req.user.userId;
 
         const deliveries = await Delivery.find({ customerId })
-            .populate('orderId', 'orderNumber items total')
+            .populate({
+                path: 'orderId',
+                select: 'orderNumber items total deliveryAddress estimatedDeliveryTime'
+            })
             .populate('riderId', 'name mobile')
             .sort({ createdAt: -1 })
             .limit(10);
 
+        // Transform to match the tracking page's expected structure
+        const transformedDeliveries = deliveries.map(delivery => {
+            const order = delivery.orderId || {};
+
+            // Calculate real-time ETA
+            let estimatedArrival = null;
+            if (delivery.estimatedTime && ['picked_up', 'in_transit'].includes(delivery.status) && delivery.pickedUpAt) {
+                const elapsed = (new Date() - delivery.pickedUpAt) / 1000 / 60;
+                const remaining = Math.max(0, delivery.estimatedTime - elapsed);
+                estimatedArrival = Math.round(remaining);
+            }
+
+            // Build a status history for the timeline
+            const statusHistory = [
+                { status: 'assigned', timestamp: delivery.assignedAt || delivery.createdAt },
+                { status: 'picked_up', timestamp: delivery.pickedUpAt },
+                { status: 'delivered', timestamp: delivery.deliveredAt }
+            ].filter(h => h.timestamp);
+
+            console.log(`[Tracking] User ${customerId} view delivery ${delivery._id}. History count: ${statusHistory.length}`);
+
+            return {
+                deliveryId: delivery._id,
+                deliveryNumber: delivery.deliveryNumber,
+                status: delivery.status,
+                updatedAt: delivery.updatedAt,
+                rider: delivery.riderId ? {
+                    name: delivery.riderId.name,
+                    mobile: delivery.riderId.mobile
+                } : null,
+                currentLocation: delivery.pickupLocation,
+                deliveryLocation: delivery.deliveryLocation,
+                distance: delivery.distance,
+                estimatedTime: delivery.estimatedTime,
+                estimatedArrival,
+                order: {
+                    orderNumber: order.orderNumber,
+                    _id: order._id,
+                    total: order.total
+                },
+                statusHistory,
+                deliveryAddress: order.deliveryAddress,
+                estimatedDeliveryTime: order.estimatedDeliveryTime
+            };
+        });
+
         res.json({
             success: true,
-            data: deliveries
+            data: transformedDeliveries
         });
 
     } catch (error) {
@@ -71,6 +120,7 @@ export const trackDelivery = async (req, res) => {
                 distance: delivery.distance,
                 estimatedTime: delivery.estimatedTime,
                 estimatedArrival,  // Minutes remaining
+                estimatedDeliveryTime: delivery.orderId.estimatedDeliveryTime,
                 assignedAt: delivery.assignedAt,
                 pickedUpAt: delivery.pickedUpAt,
                 deliveredAt: delivery.deliveredAt,
@@ -134,6 +184,7 @@ export const getDeliveryByOrder = async (req, res) => {
                 deliveryId: delivery._id,
                 deliveryNumber: delivery.deliveryNumber,
                 status: delivery.status,
+                updatedAt: delivery.updatedAt,
                 rider: delivery.riderId ? {
                     name: delivery.riderId.name,
                     mobile: delivery.riderId.mobile
@@ -143,11 +194,20 @@ export const getDeliveryByOrder = async (req, res) => {
                 distance: delivery.distance,
                 estimatedTime: delivery.estimatedTime,
                 estimatedArrival,
-                statusUpdates: {
-                    assigned: delivery.assignedAt,
-                    pickedUp: delivery.pickedUpAt,
-                    delivered: delivery.deliveredAt
-                }
+                // Include estimatedDeliveryTime from order
+                estimatedDeliveryTime: order.estimatedDeliveryTime,
+                order: {
+                    orderNumber: order.orderNumber,
+                    _id: order._id,
+                    total: order.total
+                },
+                // Build a status history for the timeline
+                statusHistory: [
+                    { status: 'assigned', timestamp: delivery.assignedAt || delivery.createdAt },
+                    { status: 'picked_up', timestamp: delivery.pickedUpAt },
+                    { status: 'delivered', timestamp: delivery.deliveredAt }
+                ].filter(h => h.timestamp),
+                deliveryAddress: order.deliveryAddress
             }
         });
 

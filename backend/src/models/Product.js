@@ -18,8 +18,8 @@ const productSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: false,
-        min: 0,
-        default: 0
+        min: 0
+        // NO default value - price is optional for products with sizeOptions
     },
     image: {
         type: String,
@@ -74,8 +74,15 @@ const productSchema = new mongoose.Schema({
         default: []
     },
     sizeOptions: [{
-        size: String,
-        price: Number
+        size: {
+            type: String,
+            required: true
+        },
+        price: {
+            type: Number,
+            required: true,
+            min: 0
+        }
     }],
     variants: [{
         name: String,
@@ -86,7 +93,29 @@ const productSchema = new mongoose.Schema({
         ref: 'User'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+});
+
+// Virtual field: displayPrice
+// Returns lowest size price if sizeOptions exist, otherwise returns price
+productSchema.virtual('displayPrice').get(function () {
+    if (this.sizeOptions && this.sizeOptions.length > 0) {
+        // Return the lowest price from sizeOptions
+        return Math.min(...this.sizeOptions.map(option => option.price));
+    }
+    return this.price || 0;
+});
+
+// Validation: Product must have either price OR sizeOptions
+productSchema.pre('validate', function () {
+    const hasPrice = this.price !== undefined && this.price !== null;
+    const hasSizeOptions = this.sizeOptions && this.sizeOptions.length > 0;
+
+    if (!hasPrice && !hasSizeOptions) {
+        throw new Error('Product must have either a price or sizeOptions');
+    }
 });
 
 productSchema.index({ category: 1, isAvailable: 1 });

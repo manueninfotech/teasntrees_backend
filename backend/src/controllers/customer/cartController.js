@@ -1,10 +1,13 @@
 // Customer Cart Controller
 // Manage shopping cart for customers
 
+import mongoose from 'mongoose';
 import Cart from '../../models/Cart.js';
 import Product from '../../models/Product.js';
 import Order from '../../models/Order.js';
+import Settings from '../../models/Settings.js';
 import logger from '../../config/logger.js';
+import { geocodingService } from '../../services/geocodingService.js';
 
 // Get customer's cart
 export const getCart = async (req, res) => {
@@ -91,12 +94,30 @@ export const addToCart = async (req, res) => {
             // Update quantity if item exists
             cart.items[existingItemIndex].quantity += quantity;
         } else {
+            // Determine the correct price (base price or size-specific price)
+            let itemPrice = product.price;
+            if (customization && product.sizeOptions && product.sizeOptions.length > 0) {
+                const sizeOption = product.sizeOptions.find(opt => opt.size === customization);
+                if (sizeOption) {
+                    itemPrice = sizeOption.price;
+                }
+            }
+
+            // Fallback to displayPrice if price is still missing (virtual field logic replicated)
+            if (itemPrice === undefined || itemPrice === null) {
+                if (product.sizeOptions && product.sizeOptions.length > 0) {
+                    itemPrice = Math.min(...product.sizeOptions.map(opt => opt.price));
+                } else {
+                    itemPrice = product.price || 0;
+                }
+            }
+
             // Add new item
             cart.items.push({
                 product: productId,
                 name: product.name,
                 quantity,
-                price: product.price,
+                price: itemPrice,
                 customization
             });
         }
@@ -330,9 +351,48 @@ export const checkoutCart = async (req, res) => {
 
         // Calculate totals
         const subtotal = cart.subtotal;
-        const deliveryCharge = 50;
+        // Fetch dynamic delivery charge (and other settings like tax if needed)
+        const settings = await Settings.findOne();
+        const deliveryCharge = settings ? settings.deliveryCharge : 20; // Fallback to 20
         const tax = subtotal * 0.05;
         const total = subtotal + deliveryCharge + tax;
+
+        // --- NEW: Atomic Geocoding with Diagnostics ---
+        let finalizedAddress = typeof deliveryAddress === 'object' ? {
+            address: deliveryAddress.address || deliveryAddress.addressLine,
+            location: deliveryAddress.location || { type: 'Point', coordinates: [0, 0] }
+        } : {
+            address: deliveryAddress,
+            location: { type: 'Point', coordinates: [0, 0] }
+        };
+
+        console.log(`[Checkout] Processing GPS for address: "${finalizedAddress.address}"`);
+        console.log(`[Checkout] Initial coordinates: [${finalizedAddress.location?.coordinates}]`);
+
+        // If no coordinates, try to geocode
+        if (!finalizedAddress.location.coordinates ||
+            finalizedAddress.location.coordinates.length < 2 ||
+            (finalizedAddress.location.coordinates[0] === 0 && finalizedAddress.location.coordinates[1] === 0)) {
+
+            console.log(`[Checkout] GPS missing/null. Fetching from Geocoding Service...`);
+            const coords = await geocodingService.getCoordinates(finalizedAddress.address);
+
+            if (coords) {
+                finalizedAddress.location = {
+                    type: 'Point',
+                    coordinates: [coords.lng, coords.lat] // [Lng, Lat] for MongoDB
+                };
+                console.log(`[Checkout] Geocoding SUCCESS: [${coords.lng}, ${coords.lat}]`);
+            } else {
+                console.warn(`[Checkout] Geocoding FAILED for: ${finalizedAddress.address}. No GPS available.`);
+            }
+        } else {
+            console.log(`[Checkout] Using existing GPS: [${finalizedAddress.location.coordinates}]`);
+        }
+
+        // Set estimated delivery time (default 45 mins from now)
+        const estimatedDeliveryTime = new Date();
+        estimatedDeliveryTime.setMinutes(estimatedDeliveryTime.getMinutes() + 45);
 
         // Create order
         const order = await Order.create({
@@ -342,11 +402,10 @@ export const checkoutCart = async (req, res) => {
             deliveryCharge,
             tax,
             total,
-            deliveryAddress: {
-                address: deliveryAddress
-            },
+            deliveryAddress: finalizedAddress,
             paymentMethod,
             specialInstructions: deliveryInstructions,
+            estimatedDeliveryTime,
             status: 'pending'
         });
 
@@ -361,25 +420,33 @@ export const checkoutCart = async (req, res) => {
             total
         });
 
+        // Diagnostic log for the user to confirm database connection
+        console.log(`ORDER PERSISTED SUCCESS: ${order.orderNumber} in DB: ${mongoose.connection.name}`);
+
         // Emit socket event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            // Notify Customer
-            socketService.notifyUser(userId.toString(), 'order:created', {
-                orderId: order._id,
-                orderNumber: order.orderNumber,
-                total: order.total
-            });
-            // Notify Admin & Manager
-            const notificationData = {
-                orderId: order._id,
-                orderNumber: order.orderNumber,
-                total: order.total,
-                itemsCount: order.items.length,
-                createdAt: order.createdAt
-            };
-            socketService.notifyRole('admin', 'order:new', notificationData);
-            socketService.notifyRole('manager', 'order:new', notificationData);
+        try {
+            const socketService = req.app.get('socketService');
+            if (socketService) {
+                // Notify Customer
+                socketService.notifyUser(userId.toString(), 'order:created', {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber,
+                    total: order.total
+                });
+                // Notify Admin & Manager
+                const notificationData = {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber,
+                    total: order.total,
+                    itemsCount: order.items.length,
+                    createdAt: order.createdAt
+                };
+                socketService.notifyRole('admin', 'order:new', notificationData);
+                socketService.notifyRole('manager', 'order:new', notificationData);
+            }
+        } catch (socketError) {
+            console.error('Socket notification error (checkout continuing):', socketError);
+            logger.warn('Socket notification failed during checkout', { error: socketError.message });
         }
 
         res.status(201).json({
@@ -398,7 +465,9 @@ export const checkoutCart = async (req, res) => {
         console.error('Error in checkoutCart:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to complete checkout'
+            message: 'Failed to complete checkout',
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 };

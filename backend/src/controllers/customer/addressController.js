@@ -4,6 +4,7 @@
 
 import Customer from '../../models/Customer.js';
 import { sanitizeString } from '../../utils/validators.js';
+import { geocodingService } from '../../services/geocodingService.js';
 
 // Add a new address
 const addAddress = async (req, res) => {
@@ -34,6 +35,17 @@ const addAddress = async (req, res) => {
             location: location || { type: 'Point', coordinates: [0, 0] },
             isDefault: isDefault || false
         };
+
+        // --- NEW: Try to geocode if coordinates are missing ---
+        if (!newAddress.location.coordinates || (newAddress.location.coordinates[0] === 0 && newAddress.location.coordinates[1] === 0)) {
+            const coords = await geocodingService.getCoordinates(newAddress.addressLine);
+            if (coords) {
+                newAddress.location = {
+                    type: 'Point',
+                    coordinates: [coords.lng, coords.lat]
+                };
+            }
+        }
 
         // If this is the first address, make it default automatically
         if (customer.addresses.length === 0) {
@@ -110,6 +122,20 @@ const updateAddress = async (req, res) => {
         if (label) address.label = sanitizeString(label);
         if (addressLine) address.addressLine = sanitizeString(addressLine);
         if (location) address.location = location;
+
+        // --- NEW: Try to geocode if address was updated and location is missing or default ---
+        if (addressLine || (!address.location.coordinates || (address.location.coordinates[0] === 0 && address.location.coordinates[1] === 0))) {
+            // Only geocode if coordinates are missing/default
+            if (!address.location.coordinates || (address.location.coordinates[0] === 0 && address.location.coordinates[1] === 0)) {
+                const coords = await geocodingService.getCoordinates(address.addressLine);
+                if (coords) {
+                    address.location = {
+                        type: 'Point',
+                        coordinates: [coords.lng, coords.lat]
+                    };
+                }
+            }
+        }
 
         if (isDefault !== undefined) {
             if (isDefault) {

@@ -108,7 +108,6 @@ const deliverySchema = new mongoose.Schema({
 });
 
 deliverySchema.index({ riderId: 1, status: 1 });
-deliverySchema.index({ deliveryNumber: 1 });
 deliverySchema.index({ createdAt: -1 });
 
 deliverySchema.pre('save', async function () {

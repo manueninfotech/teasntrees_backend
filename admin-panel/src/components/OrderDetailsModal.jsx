@@ -203,13 +203,17 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                         </div>
                     </div>
 
-                    {/* Delivery Address */}
                     <div className="bg-gray-50 rounded-xl p-4">
                         <div className="flex items-center gap-2 mb-3">
                             <MapPin className="w-5 h-5 text-gray-600" />
                             <h3 className="font-semibold text-gray-900">Delivery Address</h3>
                         </div>
                         <p className="text-gray-700">{order.deliveryAddress?.address || 'N/A'}</p>
+
+                        <div className="mt-2 text-xs font-mono text-gray-500 bg-gray-100 p-2 rounded">
+                            GPS: [{order.deliveryAddress?.location?.coordinates?.join(', ') || 'Missing'}]
+                        </div>
+
                         {order.specialInstructions && (
                             <div className="mt-3 p-3 bg-yellow-50 rounded-lg">
                                 <p className="text-sm font-medium text-yellow-800">Special Instructions:</p>
@@ -482,14 +486,33 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                             <h3 className="text-lg font-bold mb-4">Assign Delivery Rider</h3>
 
                             {/* Auto Assignment Button */}
-                            <button
-                                onClick={handleAutoAssignment}
-                                disabled={updating}
-                                className="w-full mb-4 px-4 py-3 bg-gradient-to-r from-teal-500 to-cyan-500 text-white rounded-lg hover:from-teal-600 hover:to-cyan-600 disabled:opacity-50 font-medium flex items-center justify-center gap-2"
-                            >
-                                <Bike className="w-5 h-5" />
-                                {updating ? 'Assigning...' : 'Auto-Assign Best Rider'}
-                            </button>
+                            {(() => {
+                                const coords = order?.deliveryAddress?.location?.coordinates;
+                                const hasCoordinates = Array.isArray(coords) &&
+                                    coords.length === 2 &&
+                                    coords[0] !== 0 &&
+                                    coords[1] !== 0;
+                                return (
+                                    <>
+                                        <button
+                                            onClick={handleAutoAssignment}
+                                            disabled={updating || !hasCoordinates}
+                                            className={`w-full mb-4 px-4 py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${!hasCoordinates
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white hover:from-teal-600 hover:to-cyan-600'
+                                                } disabled:opacity-50`}
+                                        >
+                                            <Bike className="w-5 h-5" />
+                                            {updating ? 'Assigning...' : 'Auto-Assign Best Rider'}
+                                        </button>
+                                        {!hasCoordinates && (
+                                            <p className="text-xs text-red-500 mb-4 text-center">
+                                                ⚠️ GPS coordinates missing for this order. Auto-assignment unavailable.
+                                            </p>
+                                        )}
+                                    </>
+                                );
+                            })()}
 
                             <div className="relative my-4">
                                 <div className="absolute inset-0 flex items-center">

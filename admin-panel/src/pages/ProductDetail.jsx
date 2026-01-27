@@ -143,7 +143,11 @@ export default function ProductDetail() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="text-sm font-medium text-gray-600">Price</label>
-                                <p className="text-2xl font-bold text-green-600 mt-2">₹{product.price}</p>
+                                <p className="text-2xl font-bold text-green-600 mt-2">
+                                    {product.sizeOptions?.length > 0
+                                        ? `₹${product.displayPrice}`
+                                        : `₹${product.displayPrice}`}
+                                </p>
                             </div>
                             <div>
                                 <label className="text-sm font-medium text-gray-600">Category</label>
@@ -204,7 +208,11 @@ export default function ProductDetail() {
                 <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl shadow-sm border border-green-200 p-6 h-fit space-y-4">
                     <div className="bg-white rounded-lg p-4">
                         <p className="text-sm text-gray-600">Price</p>
-                        <p className="text-3xl font-bold text-green-600 mt-2">₹{product.price}</p>
+                        <p className="text-3xl font-bold text-green-600 mt-2">
+                            {product.sizeOptions?.length > 0
+                                ? `₹${product.displayPrice}`
+                                : `₹${product.displayPrice}`}
+                        </p>
                     </div>
 
                     <div className="bg-white rounded-lg p-4">

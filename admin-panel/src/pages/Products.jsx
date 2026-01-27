@@ -371,7 +371,12 @@ export default function Products() {
                                 </div>
 
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className="text-2xl font-bold text-green-600">₹{product.price}</span>
+                                    <span className="text-2xl font-bold text-green-600">
+                                        {product.sizeOptions?.length > 0
+                                            ? `₹${product.displayPrice}`
+                                            : `₹${product.displayPrice}`}
+                                    </span>
+
                                     {product.isSeasonal && (
                                         <div className="flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full">
                                             <Calendar className="w-3 h-3" />

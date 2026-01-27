@@ -1,0 +1,233 @@
+/* DeliveryTrackingPage Styles */
+
+.delivery-tracking-page {
+    min-height: 100vh;
+    padding: var(--spacing-3xl) 0;
+    background: var(--color-white);
+}
+
+.tracking-header {
+    text-align: center;
+    margin-bottom: var(--spacing-3xl);
+}
+
+.tracking-header h1 {
+    font-size: var(--font-size-4xl);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.tracking-header p,
+.tracking-header .tracking-ids {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+}
+
+.tracking-ids {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-xs);
+}
+
+.order-no,
+.delivery-no {
+    display: inline-block;
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--color-beige);
+    border-radius: var(--radius-full);
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    color: var(--color-primary);
+}
+
+.tracking-content {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+.status-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-2xl);
+    text-align: center;
+}
+
+.status-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    margin: 0 auto var(--spacing-lg);
+    color: white;
+}
+
+.status-card h2 {
+    font-size: var(--font-size-3xl);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.status-time {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.delivery-details {
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-xl);
+}
+
+.delivery-details h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--spacing-md) 0;
+    border-bottom: 1px solid var(--color-beige);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-secondary);
+}
+
+.detail-value {
+    color: var(--color-text-primary);
+    text-align: right;
+}
+
+.delivery-timeline {
+    background: white;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    padding: var(--spacing-xl);
+}
+
+.delivery-timeline h3 {
+    font-size: var(--font-size-2xl);
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.timeline {
+    position: relative;
+    padding-left: var(--spacing-xl);
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-beige);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: var(--spacing-lg);
+}
+
+.timeline-item:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -28px;
+    top: 4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    border: 3px solid white;
+    box-shadow: 0 0 0 2px var(--color-primary);
+}
+
+.timeline-content {
+    padding-left: var(--spacing-md);
+}
+
+.timeline-content strong {
+    display: block;
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.timeline-content p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.timeline-notes {
+    margin-top: var(--spacing-xs) !important;
+    font-style: italic;
+}
+
+.error-state {
+    text-align: center;
+    padding: var(--spacing-4xl);
+}
+
+.error-state p {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.loading-state {
+    text-align: center;
+    padding: var(--spacing-4xl);
+}
+
+.loading-state p {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-lg);
+    margin-top: var(--spacing-md);
+}
+
+@media (max-width: 767px) {
+    .delivery-tracking-page {
+        padding: var(--spacing-2xl) 0;
+    }
+
+    .status-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+
+    .status-card h2 {
+        font-size: var(--font-size-2xl);
+    }
+
+    .detail-row {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    .detail-value {
+        text-align: left;
+    }
+}
