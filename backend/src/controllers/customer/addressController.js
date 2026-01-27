@@ -230,10 +230,46 @@ const setDefaultAddress = async (req, res) => {
     }
 }
 
+// Reverse Geocode (Get address from coords)
+const reverseGeocode = async (req, res) => {
+    try {
+        const { lat, lng } = req.query;
+
+        if (!lat || !lng) {
+            return res.status(400).json({
+                success: false,
+                message: 'Latitude and Longitude are required'
+            });
+        }
+
+        const addressData = await geocodingService.getAddress(lat, lng);
+
+        if (!addressData) {
+            return res.status(404).json({
+                success: false,
+                message: 'Address not found for these coordinates'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            data: addressData
+        });
+
+    } catch (error) {
+        console.error('Error in reverseGeocode:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to reverse geocode'
+        });
+    }
+};
+
 export {
     addAddress,
     getAddresses,
     updateAddress,
     deleteAddress,
-    setDefaultAddress
+    setDefaultAddress,
+    reverseGeocode
 };

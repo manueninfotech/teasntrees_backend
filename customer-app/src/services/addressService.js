@@ -72,6 +72,22 @@ const addressService = {
         } catch (error) {
             throw error;
         }
+    },
+
+    /**
+     * Reverse Geocode (Get address from coords)
+     * @param {number} lat 
+     * @param {number} lng 
+     * @returns {Promise<object>} Address details
+     */
+    reverseGeocode: async (lat, lng) => {
+        try {
+            const response = await apiClient.get(`/address/reverse-geocode?lat=${lat}&lng=${lng}`);
+            return response;
+        } catch (error) {
+            console.error('Reverse geocode error:', error);
+            throw error;
+        }
     }
 };
 

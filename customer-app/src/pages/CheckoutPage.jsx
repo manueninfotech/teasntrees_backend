@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import AddressModal from '../components/AddressModal';
 import settingsService from '../services/settingsService';
+import addressService from '../services/addressService';
 import './CheckoutPage.css';
 
 const CheckoutPage = () => {
@@ -23,6 +24,7 @@ const CheckoutPage = () => {
         phone: '',
         email: '',
         orderType: 'delivery',
+        paymentMethod: 'COD', // Default to COD
         address: ''
     });
 
@@ -110,12 +112,29 @@ const CheckoutPage = () => {
 
         setIsFetchingLocation(true);
         navigator.geolocation.getCurrentPosition(
-            (position) => {
+            async (position) => {
                 const { latitude, longitude } = position.coords;
                 setCurrentCoords([longitude, latitude]);
-                setIsFetchingLocation(false);
-                // Try to alert the user it worked
-                console.log(`Location captured: ${latitude}, ${longitude}`);
+
+                try {
+                    // Reverse geocode to get address text
+                    const response = await addressService.reverseGeocode(latitude, longitude);
+                    if (response.success && response.data) {
+                        setFormData(prev => ({
+                            ...prev,
+                            address: response.data.formattedAddress
+                        }));
+                        // Clear error if any
+                        if (errors.address) {
+                            setErrors(prev => ({ ...prev, address: '' }));
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to reverse geocode:', error);
+                    // Don't alert user, just let them enter manual address, but we have coords
+                } finally {
+                    setIsFetchingLocation(false);
+                }
             },
             (error) => {
                 console.error('Error getting location:', error);
@@ -140,7 +159,7 @@ const CheckoutPage = () => {
             // Prepare checkout data
             const checkoutPayload = {
                 deliveryInstructions: `Order for ${formData.name} (${formData.phone})`,
-                paymentMethod: 'COD', // Use COD as default
+                paymentMethod: formData.paymentMethod,
                 orderType: formData.orderType
             };
 
@@ -270,76 +289,77 @@ const CheckoutPage = () => {
                             />
                         </div>
 
-                        <h2 className="form-section-title">Order Type</h2>
+                        {/* Payment Method Selection */}
+                        <h2 className="form-section-title">Payment Method</h2>
 
-                        <div className="order-type-options">
-                            <label className={`order-type-option ${formData.orderType === 'delivery' ? 'active' : ''}`}>
+                        <div className="payment-options">
+                            <label className={`payment-option ${formData.paymentMethod === 'COD' ? 'active' : ''}`}>
                                 <input
                                     type="radio"
-                                    name="orderType"
-                                    value="delivery"
-                                    checked={formData.orderType === 'delivery'}
+                                    name="paymentMethod"
+                                    value="COD"
+                                    checked={formData.paymentMethod === 'COD'}
                                     onChange={handleChange}
                                 />
                                 <div className="option-content">
-                                    <span className="option-icon">🚚</span>
-                                    <span className="option-label">Delivery</span>
+                                    <span className="option-icon">💵</span>
+                                    <span className="option-label">Cash on Delivery</span>
                                 </div>
                             </label>
 
-                            <label className={`order-type-option ${formData.orderType === 'pickup' ? 'active' : ''}`}>
+                            <label className={`payment-option ${formData.paymentMethod === 'Online' ? 'active' : ''}`}>
                                 <input
                                     type="radio"
-                                    name="orderType"
-                                    value="pickup"
-                                    checked={formData.orderType === 'pickup'}
+                                    name="paymentMethod"
+                                    value="Online"
+                                    checked={formData.paymentMethod === 'Online'}
                                     onChange={handleChange}
+                                    disabled={true} // Temporarily disabled until online payment is integrated
                                 />
                                 <div className="option-content">
-                                    <span className="option-icon">🏪</span>
-                                    <span className="option-label">Pickup</span>
+                                    <span className="option-icon">💳</span>
+                                    <span className="option-label">Online Payment (Coming Soon)</span>
                                 </div>
                             </label>
                         </div>
 
-                        {formData.orderType === 'delivery' && (
-                            <div className="form-group">
-                                <label className="form-label" htmlFor="address">
-                                    Delivery Address *
-                                </label>
+                        {/* Delivery Address - Always shown as orderType is 'delivery' */}
+                        <div className="form-group">
+                            <label className="form-label" htmlFor="address">
+                                Delivery Address *
+                            </label>
 
-                                {isAuthenticated && (
-                                    <div className="address-actions-row" style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline btn-sm"
-                                            onClick={() => setIsAddressModalOpen(true)}
-                                        >
-                                            Saved Address
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`btn btn-sm ${currentCoords ? 'btn-success' : 'btn-outline'}`}
-                                            onClick={handleUseCurrentLocation}
-                                            disabled={isFetchingLocation}
-                                        >
-                                            {isFetchingLocation ? '📍 Fetching...' : currentCoords ? '✅ Location Locked' : '📍 Use My Location'}
-                                        </button>
-                                    </div>
-                                )}
+                            {isAuthenticated && (
+                                <div className="address-actions-row" style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline btn-sm"
+                                        onClick={() => setIsAddressModalOpen(true)}
+                                    >
+                                        Saved Address
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`btn btn-sm ${currentCoords ? 'btn-success' : 'btn-outline'}`}
+                                        onClick={handleUseCurrentLocation}
+                                        disabled={isFetchingLocation}
+                                    >
+                                        {isFetchingLocation ? '📍 Fetching...' : currentCoords ? '✅ Location Locked' : '📍 Use My Location'}
+                                    </button>
+                                </div>
+                            )}
 
-                                <textarea
-                                    id="address"
-                                    name="address"
-                                    className={`form-textarea ${errors.address ? 'error' : ''}`}
-                                    value={formData.address}
-                                    onChange={handleChange}
-                                    placeholder="Enter your complete delivery address"
-                                    rows="3"
-                                />
-                                {errors.address && <span className="error-message">{errors.address}</span>}
-                            </div>
-                        )}
+                            <textarea
+                                id="address"
+                                name="address"
+                                className={`form-textarea ${errors.address ? 'error' : ''}`}
+                                value={formData.address}
+                                onChange={handleChange}
+                                placeholder="Enter your complete delivery address"
+                                rows="3"
+                            />
+                            {errors.address && <span className="error-message">{errors.address}</span>}
+                        </div>
 
                         {errors.submit && (
                             <div className="error-message submit-error" style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>
@@ -383,12 +403,10 @@ const CheckoutPage = () => {
                             <span>₹{tax.toFixed(2)}</span>
                         </div>
 
-                        {formData.orderType === 'delivery' && (
-                            <div className="summary-row">
-                                <span>Delivery Fee</span>
-                                <span>₹{deliveryFee.toFixed(2)}</span>
-                            </div>
-                        )}
+                        <div className="summary-row">
+                            <span>Delivery Fee</span>
+                            <span>₹{deliveryFee.toFixed(2)}</span>
+                        </div>
 
                         <div className="summary-divider"></div>
 

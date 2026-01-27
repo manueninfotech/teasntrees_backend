@@ -45,17 +45,28 @@ export const CartProvider = ({ children }) => {
                     // Get localStorage cart
                     const localCart = cartItems;
 
-                    // Merge carts: Add localStorage items to backend cart
+                    // Merge carts: Add NEW localStorage items to backend cart
                     if (localCart.length > 0) {
+                        const backendItems = backendCart.data?.items || [];
+
                         for (const item of localCart) {
-                            try {
-                                await cartService.addToCart({
-                                    productId: item.id,
-                                    quantity: item.quantity,
-                                    customization: item.customization || ''
-                                });
-                            } catch (error) {
-                                console.error('Error syncing item to backend:', error);
+                            // Check if item already exists in backend cart (avoid duplication)
+                            const existsInBackend = backendItems.some(backendItem =>
+                                backendItem.product._id === item.id &&
+                                (backendItem.customization || '') === (item.customization || '')
+                            );
+
+                            // Only add if it doesn't exist
+                            if (!existsInBackend) {
+                                try {
+                                    await cartService.addToCart({
+                                        productId: item.id,
+                                        quantity: item.quantity,
+                                        customization: item.customization || ''
+                                    });
+                                } catch (error) {
+                                    console.error('Error syncing item to backend:', error);
+                                }
                             }
                         }
 

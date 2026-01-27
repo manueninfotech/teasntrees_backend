@@ -48,20 +48,20 @@
     color: var(--color-error);
 }
 
-/* Order Type Options */
-.order-type-options {
+/* Payment Method Options */
+.payment-options {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
 }
 
-.order-type-option {
+.payment-option {
     position: relative;
     cursor: pointer;
 }
 
-.order-type-option input[type="radio"] {
+.payment-option input[type="radio"] {
     position: absolute;
     opacity: 0;
     pointer-events: none;
@@ -79,16 +79,35 @@
     transition: all var(--transition-base);
 }
 
-.order-type-option:hover .option-content {
+.payment-option:hover .option-content {
     border-color: var(--color-primary);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
 
-.order-type-option.active .option-content {
+.payment-option.active .option-content {
     background: var(--color-primary);
     border-color: var(--color-primary);
     color: white;
+}
+
+/* Disabled Payment Option Style */
+.payment-option input[type="radio"]:disabled+.option-content {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-border);
+    color: var(--color-text-tertiary);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.payment-option:has(input:disabled) {
+    cursor: not-allowed;
+}
+
+.payment-option:has(input:disabled):hover .option-content {
+    transform: none;
+    box-shadow: none;
+    border-color: var(--color-border);
 }
 
 .option-icon {
