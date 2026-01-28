@@ -6,6 +6,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import orderService from '../services/orderService';
 import ReviewModal from '../components/ReviewModal';
+import { useSocket } from '../context/SocketContext';
 import './OrderDetailsPage.css';
 
 const OrderDetailsPage = () => {
@@ -17,6 +18,54 @@ const OrderDetailsPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (socket && orderId) {
+            // Join the order-specific room for real-time updates
+            console.log(`[OrderDetails] Joining room for order: ${orderId}`);
+            socket.emit('order:join', orderId);
+
+            socket.on('order:status-updated', (data) => {
+                console.log('[OrderDetails] RECEIVED order:status-updated', data);
+                if (data.orderId === orderId) {
+                    console.log('[OrderDetails] Matched Order ID, fetching details...');
+                    fetchOrderDetails(true); // Background refresh
+                } else {
+                    console.log(`[OrderDetails] Ignored update for different order: ${data.orderId}`);
+                }
+            });
+
+            socket.on('delivery:status-updated', (data) => {
+                console.log('[OrderDetails] RECEIVED delivery:status-updated', data);
+                if (data.orderId === orderId) {
+                    fetchOrderDetails(true); // Background refresh
+                }
+            });
+
+            socket.on('order:rider-assigned', (data) => {
+                if (data.orderId === orderId) {
+                    console.log('Rider assigned to order:', data);
+                    fetchOrderDetails(true); // Background refresh
+                }
+            });
+
+            // Re-fetch on reconnect to ensure sync
+            const handleConnect = () => {
+                fetchOrderDetails(true); // Background refresh
+                socket.emit('order:join', orderId);
+            };
+            socket.on('connect', handleConnect);
+
+            return () => {
+                socket.emit('order:leave', orderId);
+                socket.off('order:status-updated');
+                socket.off('delivery:status-updated');
+                socket.off('order:rider-assigned');
+                socket.off('connect', handleConnect);
+            };
+        }
+    }, [socket, orderId]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -25,10 +74,14 @@ const OrderDetailsPage = () => {
         }
 
         fetchOrderDetails();
+
+        // 15s polling fallback (background refresh)
+        const interval = setInterval(() => fetchOrderDetails(true), 15000);
+        return () => clearInterval(interval);
     }, [isAuthenticated, orderId, navigate]);
 
-    const fetchOrderDetails = async () => {
-        setIsLoading(true);
+    const fetchOrderDetails = async (isBackground = false) => {
+        if (!isBackground) setIsLoading(true);
         setError('');
 
         try {

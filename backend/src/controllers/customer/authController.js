@@ -409,6 +409,21 @@ const completeProfile = async (req, res) => {
         // Delete OTP after profile completion
         await OTP.deleteOne({ _id: otpDoc._id });
 
+        // Emit socket event for admin dashboard
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', 'user:registered', {
+                userId: user._id,
+                name: user.name,
+                role: user.role
+            });
+            socketService.notifyRole('manager', 'user:registered', {
+                userId: user._id,
+                name: user.name,
+                role: user.role
+            });
+        }
+
         return res.status(201).json({
             success: true,
             message: 'Profile completed successfully',

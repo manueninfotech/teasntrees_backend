@@ -1,4 +1,5 @@
 import User from '../../models/User.js';
+import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 
 // Get all users with filters
 export const getAllUsers = async (req, res) => {
@@ -369,13 +370,15 @@ export const deleteUser = async (req, res) => {
             });
         }
         const userData = { id: user._id, name: user.name, role: user.role };
-        await user.deleteOne();
 
-        // Emit Socket.io event
+        // Optimistic Emission: Notify clients BEFORE DB deletion to ensure instant UI update
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyRole('admin', 'user:deleted', userData);
+            // Broadcast to all connected clients (Admin, Manager, etc.)
+            socketService.broadcast(SOCKET_EVENTS.USER_DELETED, userData);
         }
+
+        await user.deleteOne();
 
         res.status(200).json({
             success: true,

@@ -23,10 +23,18 @@ const Deliveries = () => {
 
     useEffect(() => {
         fetchStats();
+
+        // 30s polling fallback for stats (background refresh)
+        const interval = setInterval(() => fetchStats(true), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
         fetchDeliveries();
+
+        // 30s polling fallback for deliveries (background refresh)
+        const interval = setInterval(() => fetchDeliveries(true), 30000);
+        return () => clearInterval(interval);
     }, [page, statusFilter]);
 
     useEffect(() => {
@@ -34,14 +42,14 @@ const Deliveries = () => {
 
         socket.on('delivery:status-updated', (data) => {
             console.log('Delivery Update Received:', data);
-            fetchStats();
-            fetchDeliveries();
+            fetchStats(true); // Background refresh
+            fetchDeliveries(true); // Background refresh
         });
 
         socket.on('order:status-updated', (data) => {
             console.log('Order Update Received:', data);
-            fetchStats();
-            fetchDeliveries();
+            fetchStats(true); // Background refresh
+            fetchDeliveries(true); // Background refresh
         });
 
         return () => {
@@ -50,8 +58,8 @@ const Deliveries = () => {
         };
     }, [socket, statusFilter]); // statusFilter included to ensure fresh data for current view
 
-    const fetchStats = async () => {
-        setStatsLoading(true);
+    const fetchStats = async (isBackground = false) => {
+        if (!isBackground) setStatsLoading(true);
         try {
             const response = await api.get('/admin/deliveries/stats');
             if (response.data.success) {
@@ -60,12 +68,12 @@ const Deliveries = () => {
         } catch (error) {
             console.error('Error fetching delivery stats:', error);
         } finally {
-            setStatsLoading(false);
+            if (!isBackground) setStatsLoading(false);
         }
     };
 
-    const fetchDeliveries = async () => {
-        setLoading(true);
+    const fetchDeliveries = async (isBackground = false) => {
+        if (!isBackground) setLoading(true);
         try {
             const params = new URLSearchParams({
                 page,
@@ -83,7 +91,7 @@ const Deliveries = () => {
         } catch (error) {
             console.error('Error fetching deliveries:', error);
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 

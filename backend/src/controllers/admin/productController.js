@@ -1,6 +1,7 @@
 import Product from "../../models/Product.js";
 import Category from "../../models/Category.js";
 import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../../utils/imageUpload.js";
+import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
 
 // Get all products
 export const getAllProducts = async (req, res) => {
@@ -155,24 +156,16 @@ export const createProduct = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyRole('customer', 'product:created', {
+            const socketData = {
                 productId: product._id,
                 name: product.name,
                 category: categoryExists.name,
-                price: product.price
-            });
-            socketService.notifyRole('manager', 'product:created', {
-                productId: product._id,
-                name: product.name,
-                category: categoryExists.name,
-                price: product.price
-            });
-            socketService.notifyRole('admin', 'product:created', {
-                productId: product._id,
-                name: product.name,
-                category: categoryExists.name,
-                price: product.price
-            });
+                price: product.price,
+                isAvailable: product.isAvailable
+            };
+            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_CREATED, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_CREATED, socketData);
+            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_CREATED, socketData);
         }
 
         res.status(201).json({
@@ -212,20 +205,19 @@ export const updateProduct = async (req, res) => {
 
         // Handle image upload/update
         if (req.file) {
-            // Delete old image from Cloudinary if it exists and is a Cloudinary URL
+            // Upload new image first (Blocking - required)
+            const uploadResult = await uploadToCloudinary(req.file.buffer, 'products');
+
+            // Delete old image from Cloudinary in background
             if (product.image && product.image.includes('cloudinary.com')) {
                 const oldPublicId = extractPublicId(product.image);
                 if (oldPublicId) {
-                    try {
-                        await deleteFromCloudinary(oldPublicId);
-                    } catch (error) {
-                        console.error('Error deleting old image:', error);
-                        // Continue even if deletion fails
-                    }
+                    deleteFromCloudinary(oldPublicId).catch(err =>
+                        console.error('Error deleting old image (background):', err)
+                    );
                 }
             }
-            // Upload new image
-            const uploadResult = await uploadToCloudinary(req.file.buffer, 'products');
+
             product.image = uploadResult.url;
         } else if (req.body.image) {
             // If image URL is provided in body (already uploaded to Cloudinary via frontend)
@@ -244,21 +236,15 @@ export const updateProduct = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyRole('customer', 'product:updated', {
+            const socketData = {
                 productId: product._id,
                 name: product.name,
-                isAvailable: product.isAvailable
-            });
-            socketService.notifyRole('manager', 'product:updated', {
-                productId: product._id,
-                name: product.name,
-                isAvailable: product.isAvailable
-            });
-            socketService.notifyRole('admin', 'product:updated', {
-                productId: product._id,
-                name: product.name,
-                isAvailable: product.isAvailable
-            });
+                isAvailable: product.isAvailable,
+                price: product.price
+            };
+            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
+            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
         }
 
         res.status(200).json({
@@ -286,28 +272,25 @@ export const deleteProduct = async (req, res) => {
             });
         }
 
-        // Delete image from Cloudinary if it exists and is a Cloudinary URL
+        const productData = { id: product._id, name: product.name };
+        await product.deleteOne();
+
+        // Delete image from Cloudinary in background (Non-blocking)
         if (product.image && product.image.includes('cloudinary.com')) {
             const publicId = extractPublicId(product.image);
             if (publicId) {
-                try {
-                    await deleteFromCloudinary(publicId);
-                } catch (error) {
-                    console.error('Error deleting image from Cloudinary:', error);
-                    // Continue with product deletion even if image deletion fails
-                }
+                deleteFromCloudinary(publicId).catch(err =>
+                    console.error('Error deleting image from Cloudinary (background):', err)
+                );
             }
         }
-
-        const productData = { id: product._id, name: product.name };
-        await product.deleteOne();
 
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyRole('customer', 'product:deleted', productData);
-            socketService.notifyRole('manager', 'product:deleted', productData);
-            socketService.notifyRole('admin', 'product:deleted', productData);
+            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_DELETED, productData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_DELETED, productData);
+            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_DELETED, productData);
         }
 
         res.status(200).json({
@@ -341,6 +324,19 @@ export const toggleProductAvailability = async (req, res) => {
             message: `Product ${product.isAvailable ? 'enabled' : 'disabled'} successfully`,
             data: product
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            const socketData = {
+                productId: product._id,
+                name: product.name,
+                isAvailable: product.isAvailable
+            };
+            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
+            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
+        }
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -375,6 +371,14 @@ export const bulkUpdateProducts = async (req, res) => {
                 modified: result.modifiedCount
             }
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
+            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
+            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
+        }
     } catch (error) {
         res.status(500).json({
             success: false,

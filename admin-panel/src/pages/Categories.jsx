@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import CategoryModal from '../components/CategoryModal';
 import { useNavigate } from 'react-router-dom';
+import { useSocket } from '../context/SocketContext';
 import {
     Plus,
     Edit,
@@ -21,6 +22,7 @@ export default function Categories() {
     const [editingCategory, setEditingCategory] = useState(null);
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const { socket } = useSocket();
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
@@ -35,6 +37,25 @@ export default function Categories() {
     useEffect(() => {
         fetchCategories();
     }, [pagination.currentPage, searchTerm, filters]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleCategoryChange = (data) => {
+                console.log('Real-time category change:', data);
+                fetchCategories();
+            };
+
+            socket.on('category:created', handleCategoryChange);
+            socket.on('category:updated', handleCategoryChange);
+            socket.on('category:deleted', handleCategoryChange);
+
+            return () => {
+                socket.off('category:created', handleCategoryChange);
+                socket.off('category:updated', handleCategoryChange);
+                socket.off('category:deleted', handleCategoryChange);
+            };
+        }
+    }, [socket]);
 
     const fetchCategories = async () => {
         try {

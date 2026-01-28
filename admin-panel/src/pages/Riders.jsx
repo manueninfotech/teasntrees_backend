@@ -3,6 +3,7 @@ import { Bike, Users, Clock, TrendingUp, Search, Filter } from 'lucide-react';
 import RiderCard from '../components/RiderCard';
 import RiderDetailsModal from '../components/RiderDetailsModal';
 import api from '../utils/api';
+import { useSocket } from '../context/SocketContext';
 
 export default function Riders() {
     const [activeTab, setActiveTab] = useState('all'); // 'all' or 'pending'
@@ -19,12 +20,32 @@ export default function Riders() {
     const [filters, setFilters] = useState({
         status: '', // all, active, inactive, online, onDelivery
     });
+    const { socket } = useSocket();
 
     useEffect(() => {
         fetchStats();
         fetchRiders();
         fetchPendingRiders();
     }, []);
+
+    useEffect(() => {
+        if (socket) {
+            const handleRiderChange = (data) => {
+                console.log('Real-time rider change:', data);
+                fetchStats();
+                fetchRiders(true); // Background refresh
+                fetchPendingRiders(true); // Background refresh
+            };
+
+            socket.on('rider:status-updated', handleRiderChange);
+            socket.on('rider:new', handleRiderChange); // For new applications
+
+            return () => {
+                socket.off('rider:status-updated', handleRiderChange);
+                socket.off('rider:new', handleRiderChange);
+            };
+        }
+    }, [socket]);
 
     useEffect(() => {
         if (activeTab === 'all') {
@@ -54,9 +75,9 @@ export default function Riders() {
         }
     };
 
-    const fetchRiders = async () => {
+    const fetchRiders = async (isBackground = false) => {
         try {
-            setLoading(true);
+            if (!isBackground) setLoading(true);
             const params = new URLSearchParams({
                 isApproved: 'true',
                 limit: 100
@@ -91,11 +112,11 @@ export default function Riders() {
             console.error('Failed to fetch riders:', error);
             setRiders([]);
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 
-    const fetchPendingRiders = async () => {
+    const fetchPendingRiders = async (isBackground = false) => {
         try {
             const response = await api.get('/admin/riders/pending');
             setPendingRiders(response.data.data || []);

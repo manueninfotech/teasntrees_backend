@@ -94,7 +94,8 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
         if (!socket || !delivery) return;
 
         socket.on('rider:location-update', (data) => {
-            if (data.deliveryId === delivery._id && data.location) {
+            const currentOrderId = delivery.orderId?._id || delivery.orderId;
+            if (data.orderId === currentOrderId && data.location) {
                 const newPos = [data.location.latitude, data.location.longitude];
                 if (isValidCoord(newPos)) {
                     console.log('📍 Live Location Update:', newPos);

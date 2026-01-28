@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import ProductModal from '../components/ProductModal';
 import { useNavigate } from 'react-router-dom';
+import { useSocket } from '../context/SocketContext';
 import {
     Plus,
     Edit,
@@ -26,6 +27,7 @@ export default function Products() {
     const [error, setError] = useState(null);
     const [selectedProducts, setSelectedProducts] = useState(new Set());
     const [bulkAction, setBulkAction] = useState(null);
+    const { socket } = useSocket();
     const navigate = useNavigate();
     const [pagination, setPagination] = useState({
         currentPage: 1,
@@ -47,6 +49,25 @@ export default function Products() {
     useEffect(() => {
         fetchProducts();
     }, [pagination.currentPage, searchTerm, filters]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleProductChange = (data) => {
+                console.log('Real-time product change:', data);
+                fetchProducts();
+            };
+
+            socket.on('product:created', handleProductChange);
+            socket.on('product:updated', handleProductChange);
+            socket.on('product:deleted', handleProductChange);
+
+            return () => {
+                socket.off('product:created', handleProductChange);
+                socket.off('product:updated', handleProductChange);
+                socket.off('product:deleted', handleProductChange);
+            };
+        }
+    }, [socket]);
 
     const fetchCategories = async () => {
         try {

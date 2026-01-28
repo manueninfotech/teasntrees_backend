@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import deliveryService from '../services/deliveryService';
+import { useSocket } from '../context/SocketContext';
 import './DeliveryTrackingPage.css';
 
 const DeliveryTrackingPage = () => {
@@ -16,6 +17,8 @@ const DeliveryTrackingPage = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [searchId, setSearchId] = useState('');
+    const { socket } = useSocket();
+    const [riderLocation, setRiderLocation] = useState(null);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -23,17 +26,63 @@ const DeliveryTrackingPage = () => {
             return;
         }
 
-        if (deliveryId) {
-            fetchDeliveryById();
-        } else if (orderId) {
-            fetchDeliveryByOrder();
-        } else {
-            fetchMyDeliveries();
-        }
+        const fetchData = (isBackground = false) => {
+            if (deliveryId) {
+                fetchDeliveryById(isBackground);
+            } else if (orderId) {
+                fetchDeliveryByOrder(isBackground);
+            } else {
+                fetchMyDeliveries(isBackground);
+            }
+        };
+
+        fetchData();
+
+        // 15s polling fallback (background refresh)
+        const interval = setInterval(() => fetchData(true), 15000);
+        return () => clearInterval(interval);
     }, [isAuthenticated, orderId, deliveryId, navigate]);
 
-    const fetchDeliveryById = async () => {
-        setIsLoading(true);
+    // Setup real-time listeners
+    useEffect(() => {
+        if (socket && delivery?.order?._id) {
+            const currentOrderId = delivery.order._id;
+
+            // Join the order room for private updates (like rider location)
+            socket.emit('order:join', currentOrderId);
+
+            const handleDeliveryUpdate = (data) => {
+                const updatedDeliveryId = data.deliveryId || (data.orderId === currentOrderId ? delivery._id : null);
+                if (updatedDeliveryId === delivery._id || data.orderId === currentOrderId) {
+                    console.log('Real-time delivery update:', data);
+                    // Refresh delivery data
+                    if (deliveryId) fetchDeliveryById(true); // Background refresh
+                    else if (orderId) fetchDeliveryByOrder(true); // Background refresh
+                    else fetchMyDeliveries(true); // Background refresh
+                }
+            };
+
+            const handleRiderLocation = (data) => {
+                if (data.orderId === currentOrderId) {
+                    console.log('Real-time rider location:', data.location);
+                    setRiderLocation(data.location);
+                }
+            };
+
+            socket.on('delivery:status-updated', handleDeliveryUpdate);
+            socket.on('order:status-updated', handleDeliveryUpdate);
+            socket.on('rider:location-update', handleRiderLocation);
+
+            return () => {
+                socket.off('delivery:status-updated', handleDeliveryUpdate);
+                socket.off('order:status-updated', handleDeliveryUpdate);
+                socket.off('rider:location-update', handleRiderLocation);
+            };
+        }
+    }, [socket, delivery?._id, delivery?.order?._id]);
+
+    const fetchDeliveryById = async (isBackground = false) => {
+        if (!isBackground) setIsLoading(true);
         setError('');
 
         try {
@@ -50,8 +99,8 @@ const DeliveryTrackingPage = () => {
         }
     };
 
-    const fetchDeliveryByOrder = async () => {
-        setIsLoading(true);
+    const fetchDeliveryByOrder = async (isBackground = false) => {
+        if (!isBackground) setIsLoading(true);
         setError('');
 
         try {
@@ -68,8 +117,8 @@ const DeliveryTrackingPage = () => {
         }
     };
 
-    const fetchMyDeliveries = async () => {
-        setIsLoading(true);
+    const fetchMyDeliveries = async (isBackground = false) => {
+        if (!isBackground) setIsLoading(true);
         setError('');
 
         try {

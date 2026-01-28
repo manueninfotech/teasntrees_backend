@@ -4,6 +4,7 @@ import User from '../../models/User.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
 import { notificationService } from '../../services/notificationService.js';
+import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 
 // Submit review for order
 export const createReview = async (req, res) => {
@@ -104,9 +105,22 @@ export const createReview = async (req, res) => {
             orderId,
             customerId
         });
-        // Notify Admin
+        // Emit Socket.io event for real-time admin/manager updates
         const socketService = req.app.get('socketService');
         if (socketService) {
+            const socketData = {
+                reviewId: newReview._id,
+                orderId: order._id,
+                orderNumber: order.orderNumber,
+                foodRating,
+                riderRating,
+                review,
+                customerId
+            };
+            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_NEW, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_NEW, socketData);
+
+            // Notify Admin of review for moderation
             socketService.notifyRole('admin', 'notification:new', {
                 title: 'New Review Submitted',
                 message: `New review for Order #${order.orderNumber}`,
@@ -182,6 +196,19 @@ export const rateProduct = async (req, res) => {
             rating,
             customerId
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_NEW, {
+                reviewId: productReview._id,
+                orderId,
+                productId,
+                rating,
+                review,
+                type: 'product'
+            });
+        }
         res.json({
             success: true,
             message: 'Product rated successfully',

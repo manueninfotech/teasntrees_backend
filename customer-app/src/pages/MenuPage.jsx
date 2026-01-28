@@ -7,6 +7,7 @@ import productService from '../services/productService';
 import categoryService from '../services/categoryService';
 import MenuCard from '../components/MenuCard';
 import ProductModal from '../components/ProductModal';
+import { useSocket } from '../context/SocketContext';
 import './MenuPage.css';
 
 const MenuPage = () => {
@@ -19,6 +20,7 @@ const MenuPage = () => {
     const [error, setError] = useState(null);
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const { socket } = useSocket();
 
     // Fetch categories on component mount
     useEffect(() => {
@@ -36,6 +38,35 @@ const MenuPage = () => {
     useEffect(() => {
         fetchProducts();
     }, [selectedCategory]);
+
+    // Setup real-time listeners
+    useEffect(() => {
+        if (socket) {
+            const handleProductChange = (data) => {
+                console.log('Real-time product/menu update:', data);
+                // We refresh categories in case names/icons changed
+                fetchCategories();
+                // We refresh products to update availability, price, etc.
+                fetchProducts();
+            };
+
+            socket.on('product:created', handleProductChange);
+            socket.on('product:updated', handleProductChange);
+            socket.on('product:deleted', handleProductChange);
+            socket.on('category:created', handleProductChange);
+            socket.on('category:updated', handleProductChange);
+            socket.on('category:deleted', handleProductChange);
+
+            return () => {
+                socket.off('product:created', handleProductChange);
+                socket.off('product:updated', handleProductChange);
+                socket.off('product:deleted', handleProductChange);
+                socket.off('category:created', handleProductChange);
+                socket.off('category:updated', handleProductChange);
+                socket.off('category:deleted', handleProductChange);
+            };
+        }
+    }, [socket]);
 
     // Close dropdown on outside click
     useEffect(() => {

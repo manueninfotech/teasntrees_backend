@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MessageSquare, Star, Check, X, Trash2 } from 'lucide-react';
 import api from '../utils/api';
 import ReviewDetailsModal from '../components/ReviewDetailsModal';
+import { useSocket } from '../context/SocketContext';
 
 const Reviews = () => {
     const [reviewType, setReviewType] = useState('food'); // 'food' or 'rider'
@@ -20,6 +21,7 @@ const Reviews = () => {
     // New state for modal
     const [selectedReviewId, setSelectedReviewId] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const { socket } = useSocket();
 
     useEffect(() => {
         fetchStats();
@@ -28,6 +30,24 @@ const Reviews = () => {
     useEffect(() => {
         fetchReviews();
     }, [activeTab, page, reviewType]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleReviewChange = (data) => {
+                console.log('Real-time review change:', data);
+                fetchStats();
+                fetchReviews();
+            };
+
+            socket.on('review:new', handleReviewChange);
+            socket.on('review:updated', handleReviewChange);
+
+            return () => {
+                socket.off('review:new', handleReviewChange);
+                socket.off('review:updated', handleReviewChange);
+            };
+        }
+    }, [socket]);
 
     const fetchStats = async () => {
         try {
@@ -153,8 +173,8 @@ const Reviews = () => {
                 <button
                     onClick={() => { setReviewType('food'); setPage(1); }}
                     className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${reviewType === 'food'
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                         }`}
                 >
                     Food Reviews
@@ -162,8 +182,8 @@ const Reviews = () => {
                 <button
                     onClick={() => { setReviewType('rider'); setPage(1); }}
                     className={`flex-1 py-3 px-4 rounded-xl font-semibold transition-all ${reviewType === 'rider'
-                            ? 'bg-indigo-600 text-white shadow-md'
-                            : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                        ? 'bg-indigo-600 text-white shadow-md'
+                        : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
                         }`}
                 >
                     Rider Reviews

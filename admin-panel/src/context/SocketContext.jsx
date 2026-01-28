@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
+import { useAuth } from './AuthContext';
 
 const SocketContext = createContext();
 
@@ -8,21 +9,31 @@ export const useSocket = () => useContext(SocketContext);
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
+    const { user } = useAuth();
 
     useEffect(() => {
-        const token = localStorage.getItem('adminToken');
-        if (!token) return;
+        // If no user/token, close existing socket and return
+        if (!user || !user.token) {
+            if (socket) {
+                socket.close();
+                setSocket(null);
+                setIsConnected(false);
+            }
+            return;
+        }
+
+        const token = user.token;
+        console.log('Initializing socket with token...');
 
         const newSocket = io('http://localhost:5000', {
             auth: { token },
-            transports: ['websocket'],
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000
         });
 
         newSocket.on('connect', () => {
-            console.log('Connected to Real-time Server');
+            console.log('Connected to Real-time Server as', user.role || 'admin');
             setIsConnected(true);
         });
 
@@ -44,7 +55,7 @@ export const SocketProvider = ({ children }) => {
         return () => {
             newSocket.close();
         };
-    }, []);
+    }, [user]); // Re-run when user state changes
 
     return (
         <SocketContext.Provider value={{ socket, isConnected }}>

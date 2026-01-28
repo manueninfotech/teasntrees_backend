@@ -11,24 +11,104 @@ import {
     Clock
 } from 'lucide-react';
 import OrderStatusBadge from '../components/OrderStatusBadge';
+import { useSocket } from '../context/SocketContext';
 
 export default function Dashboard() {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (socket) {
+            const handleUpdate = (data) => {
+                console.log('Real-time Update Received:', data);
+                fetchStats(true); // Background refresh
+            };
+
+            socket.on('order:new', handleUpdate);
+            socket.on('order:status-updated', handleUpdate);
+            socket.on('delivery:status-updated', handleUpdate);
+            // Optimistic updates for products
+            socket.on('product:created', () => {
+                setStats(prev => ({
+                    ...prev,
+                    totalProducts: (prev?.totalProducts || 0) + 1
+                }));
+                fetchStats(true);
+            });
+
+            socket.on('product:deleted', () => {
+                setStats(prev => ({
+                    ...prev,
+                    totalProducts: Math.max((prev?.totalProducts || 0) - 1, 0)
+                }));
+                fetchStats(true);
+            });
+
+            socket.on('product:updated', (data) => {
+                console.log('Product Updated:', data);
+                fetchStats(true);
+            });
+
+            // Optimistic updates for customers
+            socket.on('user:registered', (data) => {
+                console.log('User Registered Event:', data);
+                // Determine if it counts as a customer (default role or explicit 'customer')
+                if (!data.role || data.role === 'customer') {
+                    console.log('Incrementing Customer Count Optimistically');
+                    setStats(prev => ({
+                        ...prev,
+                        totalCustomers: (prev?.totalCustomers || 0) + 1
+                    }));
+                }
+                // Delay background fetch to allow DB to settle/prevent race condition
+                setTimeout(() => fetchStats(true), 1000);
+            });
+
+            socket.on('user:deleted', (data) => {
+                console.log('User Deleted Event:', data);
+                if (!data.role || data.role === 'customer') {
+                    console.log('Decrementing Customer Count Optimistically');
+                    setStats(prev => ({
+                        ...prev,
+                        totalCustomers: Math.max((prev?.totalCustomers || 0) - 1, 0)
+                    }));
+                }
+                // Delay background fetch to allow DB to settle/prevent race condition
+                setTimeout(() => fetchStats(true), 1000);
+            });
+
+            return () => {
+                socket.off('order:new', handleUpdate);
+                socket.off('order:status-updated', handleUpdate);
+                socket.off('delivery:status-updated', handleUpdate);
+                socket.off('product:created');
+                socket.off('product:updated');
+                socket.off('product:deleted');
+                socket.off('user:registered');
+                socket.off('user:deleted');
+            };
+        }
+    }, [socket]);
 
     useEffect(() => {
         fetchStats();
+
+        // 30s polling fallback (background refresh)
+        const interval = setInterval(() => fetchStats(true), 30000);
+        return () => clearInterval(interval);
     }, []);
 
-    const fetchStats = async () => {
+    const fetchStats = async (isBackground = false) => {
+        if (!isBackground) setLoading(true);
         try {
             const response = await api.get('/admin/dashboard/stats');
             setStats(response.data.data);
         } catch (error) {
             console.error('Failed to fetch stats:', error);
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 
@@ -46,42 +126,48 @@ export default function Dashboard() {
             value: `₹${stats?.totalRevenue?.toLocaleString() || 0}`,
             icon: DollarSign,
             color: 'green',
-            subtitle: `₹${stats?.todayRevenue || 0} today`
+            subtitle: `₹${stats?.todayRevenue || 0} today`,
+            path: '/orders'
         },
         {
             title: 'Total Orders',
             value: stats?.totalOrders || 0,
             icon: ShoppingCart,
             color: 'blue',
-            subtitle: `${stats?.todayOrders || 0} today`
+            subtitle: `${stats?.todayOrders || 0} today`,
+            path: '/orders'
         },
         {
             title: 'Active Customers',
             value: stats?.totalCustomers || 0,
             icon: Users,
             color: 'purple',
-            subtitle: 'Registered users'
+            subtitle: 'Registered users',
+            path: '/customers'
         },
         {
             title: 'Products',
             value: stats?.totalProducts || 0,
             icon: Package,
             color: 'orange',
-            subtitle: 'In catalog'
+            subtitle: 'In catalog',
+            path: '/products'
         },
         {
             title: 'Active Riders',
             value: `${stats?.activeRiders || 0}/${stats?.totalRiders || 0}`,
             icon: Bike,
             color: 'teal',
-            subtitle: 'Online now'
+            subtitle: 'Online now',
+            path: '/riders'
         },
         {
             title: 'Pending Orders',
             value: stats?.pendingOrders || 0,
             icon: Clock,
             color: 'red',
-            subtitle: 'Need attention'
+            subtitle: 'Need attention',
+            path: '/orders?status=pending'
         }
     ];
 
@@ -112,7 +198,8 @@ export default function Dashboard() {
                 {statCards.map((stat, index) => (
                     <div
                         key={index}
-                        className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow"
+                        onClick={() => navigate(stat.path)}
+                        className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all cursor-pointer active:scale-95"
                     >
                         <div className="flex items-start justify-between">
                             <div className="flex-1">

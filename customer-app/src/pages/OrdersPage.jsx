@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import orderService from '../services/orderService';
 import ReviewModal from '../components/ReviewModal';
+import { useSocket } from '../context/SocketContext';
 import './OrdersPage.css';
 
 const OrdersPage = () => {
@@ -18,6 +19,47 @@ const OrdersPage = () => {
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        console.log('[OrdersPage] Checking socket...', { socketExists: !!socket });
+        if (socket) {
+            console.log('[OrdersPage] Setting up socket listeners');
+            socket.on('order:status-updated', (data) => {
+                console.log('Order status updated:', data);
+                fetchOrders(true); // Background refresh
+            });
+
+            socket.on('delivery:status-updated', (data) => {
+                console.log('Delivery status updated:', data);
+                fetchOrders(true); // Background refresh
+            });
+
+            socket.on('order:rider-assigned', (data) => {
+                console.log('Rider assigned to order:', data);
+                fetchOrders(true); // Background refresh
+            });
+
+            socket.on('order:created', () => {
+                fetchOrders(true); // Background refresh
+            });
+
+            // Re-fetch on reconnect to ensure sync
+            const handleConnect = () => {
+                console.log('Socket reconnected, fetching orders...');
+                fetchOrders(true); // Background refresh
+            };
+            socket.on('connect', handleConnect);
+
+            return () => {
+                socket.off('order:status-updated');
+                socket.off('delivery:status-updated');
+                socket.off('order:rider-assigned');
+                socket.off('order:created');
+                socket.off('connect', handleConnect);
+            };
+        }
+    }, [socket]);
 
     useEffect(() => {
         if (!isAuthenticated) {
@@ -26,10 +68,14 @@ const OrdersPage = () => {
         }
 
         fetchOrders();
+
+        // 60s polling fallback (background refresh)
+        const interval = setInterval(() => fetchOrders(true), 60000);
+        return () => clearInterval(interval);
     }, [isAuthenticated, navigate]);
 
-    const fetchOrders = async () => {
-        setIsLoading(true);
+    const fetchOrders = async (isBackground = false) => {
+        if (!isBackground) setIsLoading(true);
         setError('');
 
         try {

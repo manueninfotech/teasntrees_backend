@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ShoppingBag, Search, Filter, Eye, Calendar, DollarSign, Clock, TrendingUp, User, MapPin, Package } from 'lucide-react';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 import api from '../utils/api';
+import { useSocket } from '../context/SocketContext';
 
 export default function Orders() {
+    const [searchParams] = useSearchParams();
     const [orders, setOrders] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -12,7 +15,7 @@ export default function Orders() {
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [filters, setFilters] = useState({
-        status: '',
+        status: searchParams.get('status') || '',
         paymentMethod: '',
         paymentStatus: '',
         startDate: '',
@@ -24,16 +27,46 @@ export default function Orders() {
         totalOrders: 0,
         limit: 12
     });
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('order:new', (data) => {
+                console.log('New order received:', data);
+                fetchOrders(true); // Background refresh
+                fetchStats(true); // Background refresh
+            });
+
+            socket.on('order:status-updated', (data) => {
+                console.log('Order status updated:', data);
+                fetchOrders(true); // Background refresh
+                fetchStats(true); // Background refresh
+            });
+
+            return () => {
+                socket.off('order:new');
+                socket.off('order:status-updated');
+            };
+        }
+    }, [socket]);
 
     useEffect(() => {
         fetchStats();
+
+        // 30s polling fallback for stats (background refresh)
+        const interval = setInterval(() => fetchStats(true), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
         fetchOrders();
+
+        // 30s polling fallback for orders (background refresh)
+        const interval = setInterval(() => fetchOrders(true), 30000);
+        return () => clearInterval(interval);
     }, [pagination.currentPage, filters, searchTerm]);
 
-    const fetchStats = async () => {
+    const fetchStats = async (isBackground = false) => {
         try {
             const response = await api.get('/admin/orders/stats');
             setStats(response.data.data);
@@ -42,9 +75,9 @@ export default function Orders() {
         }
     };
 
-    const fetchOrders = async () => {
+    const fetchOrders = async (isBackground = false) => {
         try {
-            setLoading(true);
+            if (!isBackground) setLoading(true);
             const params = new URLSearchParams({
                 page: pagination.currentPage,
                 limit: pagination.limit
@@ -71,7 +104,7 @@ export default function Orders() {
             console.error('Failed to fetch orders:', error);
             setOrders([]);
         } finally {
-            setLoading(false);
+            if (!isBackground) setLoading(false);
         }
     };
 
@@ -81,8 +114,8 @@ export default function Orders() {
     };
 
     const handleOrderUpdate = () => {
-        fetchOrders();
-        fetchStats();
+        fetchOrders(true);
+        fetchStats(true);
         setShowDetailsModal(false);
     };
 
@@ -317,8 +350,8 @@ export default function Orders() {
                                     <div className="flex items-center gap-2">
                                         <span className="font-medium">{order.paymentMethod}</span>
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${order.paymentStatus === 'paid' ? 'bg-green-100 text-green-700' :
-                                                order.paymentStatus === 'refunded' ? 'bg-red-100 text-red-700' :
-                                                    'bg-orange-100 text-orange-700'
+                                            order.paymentStatus === 'refunded' ? 'bg-red-100 text-red-700' :
+                                                'bg-orange-100 text-orange-700'
                                             }`}>
                                             {order.paymentStatus}
                                         </span>
