@@ -108,6 +108,45 @@
     font-size: var(--font-size-sm);
 }
 
+.delivery-otp-container {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: #eff6ff;
+    border: 2px dashed #3b82f6;
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.tracking-otp {
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.otp-label {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #1e40af;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.otp-value {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    letter-spacing: 0.4em;
+    color: #1e3a8a;
+    margin: 12px 0 !important;
+}
+
+.otp-hint {
+    font-size: var(--font-size-xs) !important;
+    color: #1e40af !important;
+    font-style: italic;
+    margin-bottom: 0 !important;
+}
+
 .delivery-details {
     background: white;
     border-radius: var(--radius-xl);

@@ -235,6 +235,13 @@ const OrderDetailsPage = () => {
                                     {order.deliveryAddress?.address || 'Address not available'}
                                 </p>
                                 <p className="user-phone">{user?.mobile}</p>
+                                {order.delivery?.deliveryOtp && (
+                                    <div className="delivery-otp-container">
+                                        <p className="otp-label">Delivery Verification OTP</p>
+                                        <h3 className="otp-value">{order.delivery.deliveryOtp}</h3>
+                                        <p className="otp-hint">Provide this to the rider when you receive your order</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

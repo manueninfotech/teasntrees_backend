@@ -229,6 +229,39 @@
     line-height: 1.5;
 }
 
+.delivery-otp-container {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background: #f0fdf4;
+    border: 2px dashed #22c55e;
+    border-radius: var(--radius-md);
+    text-align: center;
+}
+
+.otp-label {
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #166534;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.otp-value {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: #15803d;
+    margin: 8px 0 !important;
+}
+
+.otp-hint {
+    font-size: var(--font-size-xs) !important;
+    color: #166534 !important;
+    font-style: italic;
+    margin-bottom: 0 !important;
+}
+
 /* Actions Card Button Overrides */
 .btn-danger-outline {
     background: #fff1f2;

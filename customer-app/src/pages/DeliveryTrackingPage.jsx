@@ -195,6 +195,13 @@ const DeliveryTrackingPage = () => {
                         <p className="status-time">
                             Updated: {formatDate(delivery.updatedAt)}
                         </p>
+                        {delivery.deliveryOtp && (
+                            <div className="delivery-otp-container tracking-otp">
+                                <p className="otp-label">Delivery Verification OTP</p>
+                                <h3 className="otp-value">{delivery.deliveryOtp}</h3>
+                                <p className="otp-hint">Provide this to the rider when you receive your order</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Delivery Details */}
