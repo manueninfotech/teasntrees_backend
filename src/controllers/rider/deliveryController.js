@@ -191,10 +191,28 @@ export const updateDeliveryStatus = async (req, res) => {
         // Notify Customer and Admin
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyUser(delivery.customerId, 'order:status-updated', {
-                orderId: delivery.orderId,
+            const customerIdStr = delivery.customerId._id ? delivery.customerId._id.toString() : delivery.customerId.toString();
+            const orderIdStr = delivery.orderId._id ? delivery.orderId._id.toString() : delivery.orderId.toString();
+
+            const eventData = {
+                orderId: orderIdStr,
+                deliveryId: delivery._id,
                 status: status
-            });
+            };
+
+            // Notify specific user room
+            socketService.notifyUser(customerIdStr, 'order:status-updated', eventData);
+            socketService.notifyUser(customerIdStr, 'delivery:status-updated', eventData);
+
+            // Notify specific order room
+            socketService.notifyOrder(orderIdStr, 'order:status-updated', eventData);
+            socketService.notifyOrder(orderIdStr, 'delivery:status-updated', eventData);
+
+            // Notify managers/admin
+            socketService.notifyRole('manager', 'order:status-updated', eventData);
+            socketService.notifyRole('admin', 'order:status-updated', eventData);
+            socketService.notifyRole('manager', 'delivery:status-updated', eventData);
+            socketService.notifyRole('admin', 'delivery:status-updated', eventData);
         }
         res.json({ success: true, message: `Status updated to ${status}`, data: delivery });
     } catch (error) {

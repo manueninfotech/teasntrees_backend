@@ -38,11 +38,14 @@ export const SOCKET_EVENTS = {
     RIDER_AVAILABILITY_CHANGED: 'rider:availability-changed',
     RIDER_ONLINE: 'rider:online',
     RIDER_OFFLINE: 'rider:offline',
+    RIDER_STATUS_UPDATED: 'rider:status-updated',
 
     // User management events
     USER_ROLE_UPDATED: 'user:role-updated',
     USER_ACTIVATED: 'user:activated',
     USER_DEACTIVATED: 'user:deactivated',
+    USER_REGISTERED: 'user:registered',
+    USER_DELETED: 'user:deleted',
 
     // Notification events
     NOTIFICATION_NEW: 'notification:new',
@@ -53,7 +56,11 @@ export const SOCKET_EVENTS = {
     DELIVERY_ZONES_UPDATED: 'delivery-zones:updated',
 
     // System events
-    SYSTEM_MESSAGE: 'system:message'
+    SYSTEM_MESSAGE: 'system:message',
+
+    // Review events
+    REVIEW_NEW: 'review:new',
+    REVIEW_UPDATED: 'review:updated'
 };
 
 /**

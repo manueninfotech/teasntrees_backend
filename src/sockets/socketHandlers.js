@@ -32,6 +32,21 @@ export const setupSocketHandlers = (io) => {
             handleManagerEvents(socket, io);
         }
 
+        // --- NEW: Common Order Events ---
+        socket.on('order:join', (orderId) => {
+            if (orderId) {
+                socket.join(SOCKET_ROOMS.order(orderId));
+                console.log(`User ${userId} joined order room: ${orderId}`);
+            }
+        });
+
+        socket.on('order:leave', (orderId) => {
+            if (orderId) {
+                socket.leave(SOCKET_ROOMS.order(orderId));
+                console.log(`User ${userId} left order room: ${orderId}`);
+            }
+        });
+
         // Handle disconnect
         socket.on(SOCKET_EVENTS.DISCONNECT, () => {
             console.log(`Socket disconnected: ${name} (${userId})`);
@@ -68,6 +83,7 @@ const handleRiderEvents = (socket, io) => {
         if (orderId) {
             io.to(SOCKET_ROOMS.order(orderId)).emit(SOCKET_EVENTS.RIDER_LOCATION_UPDATE, {
                 riderId: userId,
+                orderId,
                 location,
                 timestamp: new Date()
             });

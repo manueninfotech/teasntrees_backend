@@ -45,9 +45,12 @@ const app = express();
 const httpServer = createServer(app);
 
 // Initialize Socket.io with CORS
+// Initialize Socket.io with CORS
+const allowedOrigins = (process.env.FRONTEND_URL || '*').split(',').map(url => url.trim());
+
 const io = new Server(httpServer, {
     cors: {
-        origin: process.env.FRONTEND_URL || '*',
+        origin: allowedOrigins,
         methods: ['GET', 'POST'],
         credentials: true
     }
@@ -58,6 +61,7 @@ io.use(socketAuth);
 
 // Setup Socket.io event handlers
 setupSocketHandlers(io);
+console.log('Backend configuration reloaded');
 
 // Create Socket Service and make it accessible to routes
 const socketService = new SocketService(io);
@@ -86,8 +90,9 @@ app.use(morgan(morganFormat, {
 }));
 
 // CORS configuration
+// CORS configuration
 const corsOptions = {
-    origin: process.env.FRONTEND_URL || '*',
+    origin: allowedOrigins,
     credentials: true,
     optionsSuccessStatus: 200
 };

@@ -1,4 +1,5 @@
 import Category from "../../models/Category.js";
+import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
 
 // Get all categories
 export const getAllCategories = async (req, res) => {
@@ -80,21 +81,14 @@ export const createCategory = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyRole('customer', 'category:created', {
+            const socketData = {
                 categoryId: category._id,
                 name: category.name,
                 icon: category.icon
-            });
-            socketService.notifyRole('manager', 'category:created', {
-                categoryId: category._id,
-                name: category.name,
-                icon: category.icon
-            });
-            socketService.notifyRole('admin', 'category:created', {
-                categoryId: category._id,
-                name: category.name,
-                icon: category.icon
-            });
+            };
+            socketService.notifyRole('customer', SOCKET_EVENTS.CATEGORY_CREATED, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.CATEGORY_CREATED, socketData);
+            socketService.notifyRole('admin', SOCKET_EVENTS.CATEGORY_CREATED, socketData);
         }
 
         res.status(200).json({
@@ -142,21 +136,14 @@ export const updateCategory = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyRole('customer', 'category:updated', {
+            const socketData = {
                 categoryId: category._id,
                 name: category.name,
                 icon: category.icon
-            });
-            socketService.notifyRole('manager', 'category:updated', {
-                categoryId: category._id,
-                name: category.name,
-                icon: category.icon
-            });
-            socketService.notifyRole('admin', 'category:updated', {
-                categoryId: category._id,
-                name: category.name,
-                icon: category.icon
-            });
+            };
+            socketService.notifyRole('customer', SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
+            socketService.notifyRole('admin', SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
         }
 
         res.status(200).json({
@@ -190,9 +177,9 @@ export const deleteCategory = async (req, res) => {
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
         if (socketService) {
-            socketService.notifyRole('customer', 'category:deleted', categoryData);
-            socketService.notifyRole('manager', 'category:deleted', categoryData);
-            socketService.notifyRole('admin', 'category:deleted', categoryData);
+            socketService.notifyRole('customer', SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
+            socketService.notifyRole('admin', SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
         }
 
         res.status(200).json({

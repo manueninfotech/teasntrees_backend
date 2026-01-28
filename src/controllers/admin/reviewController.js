@@ -4,6 +4,7 @@
 import Review from '../../models/Review.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
+import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 
 // Get all reviews with filters
 export const getAllReviews = async (req, res) => {
@@ -135,15 +136,22 @@ export const approveReview = async (req, res) => {
             adminId: req.user.userId
         });
 
-        // Notify Customer
+        // Notify Customer and broadcast update
         const socketService = req.app.get('socketService');
-        if (socketService && review.customerId) {
-            socketService.notifyUser(review.customerId.toString(), 'notification:new', {
-                title: 'Review Approved',
-                message: 'Your review has been approved and is now visible!',
-                type: 'review',
-                data: { reviewId }
-            });
+        if (socketService) {
+            if (review.customerId) {
+                socketService.notifyUser(review.customerId.toString(), 'notification:new', {
+                    title: 'Review Approved',
+                    message: 'Your review has been approved and is now visible!',
+                    type: 'review',
+                    data: { reviewId }
+                });
+            }
+
+            // Broadcast to Admin/Manager for real-time list update
+            const socketData = { reviewId, isApproved: true };
+            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
         }
 
         res.json({
@@ -185,15 +193,22 @@ export const rejectReview = async (req, res) => {
             adminId: req.user.userId
         });
 
-        // Notify Customer
+        // Notify Customer and broadcast update
         const socketService = req.app.get('socketService');
-        if (socketService && review.customerId) {
-            socketService.notifyUser(review.customerId.toString(), 'notification:new', {
-                title: 'Review Update',
-                message: 'Your review was not approved. Please check guidelines.',
-                type: 'review',
-                data: { reviewId }
-            });
+        if (socketService) {
+            if (review.customerId) {
+                socketService.notifyUser(review.customerId.toString(), 'notification:new', {
+                    title: 'Review Update',
+                    message: 'Your review was not approved. Please check guidelines.',
+                    type: 'review',
+                    data: { reviewId }
+                });
+            }
+
+            // Broadcast to Admin/Manager for real-time list update
+            const socketData = { reviewId, isApproved: false };
+            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
+            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
         }
 
         res.json({
@@ -235,6 +250,13 @@ export const deleteReview = async (req, res) => {
             success: true,
             message: 'Review deleted successfully'
         });
+
+        // Broadcast to Admin/Manager for real-time list update
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_UPDATED, { reviewId, status: 'deleted' });
+            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_UPDATED, { reviewId, status: 'deleted' });
+        }
 
     } catch (error) {
         logger.error('Error deleting review', { error: error.message });

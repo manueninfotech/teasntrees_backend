@@ -2,6 +2,7 @@ import Rider from '../../models/Rider.js';
 import Delivery from '../../models/Delivery.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
+import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 
 // Get all riders (with filters)
 export const getAllRiders = async (req, res) => {
@@ -187,6 +188,21 @@ export const approveRider = async (req, res) => {
             message: 'Rider approved successfully',
             data: rider
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', SOCKET_EVENTS.RIDER_STATUS_UPDATED, {
+                riderId: rider._id,
+                status: 'approved',
+                name: rider.name
+            });
+            socketService.notifyRole('manager', SOCKET_EVENTS.RIDER_STATUS_UPDATED, {
+                riderId: rider._id,
+                status: 'approved',
+                name: rider.name
+            });
+        }
     } catch (error) {
         logger.error('Approve Rider Error:', error);
         res.status(500).json({
@@ -220,6 +236,17 @@ export const rejectRider = async (req, res) => {
             message: 'Rider approval revoked',
             data: rider
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', SOCKET_EVENTS.RIDER_STATUS_UPDATED, {
+                riderId: rider._id,
+                status: 'rejected',
+                name: rider.name,
+                reason: rider.rejectionReason
+            });
+        }
     } catch (error) {
         logger.error('Reject Rider Error:', error);
         res.status(500).json({
@@ -252,6 +279,16 @@ export const toggleRiderStatus = async (req, res) => {
             message: `Rider ${isActive ? 'activated' : 'deactivated'} successfully`,
             data: rider
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', SOCKET_EVENTS.RIDER_STATUS_UPDATED, {
+                riderId: rider._id,
+                isActive: rider.isActive,
+                name: rider.name
+            });
+        }
     } catch (error) {
         logger.error('Toggle Rider Status Error:', error);
         res.status(500).json({
@@ -279,6 +316,15 @@ export const deleteRider = async (req, res) => {
             success: true,
             message: 'Rider deleted successfully'
         });
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.notifyRole('admin', SOCKET_EVENTS.RIDER_STATUS_UPDATED, {
+                riderId: id,
+                status: 'deleted'
+            });
+        }
     } catch (error) {
         logger.error('Delete Rider Error:', error);
         res.status(500).json({

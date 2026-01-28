@@ -123,6 +123,19 @@ export const createOrder = async (req, res) => {
                     orderNumber: order.orderNumber,
                     total: order.total
                 });
+
+                // Notify managers/admin
+                const newOrderData = {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber,
+                    customerName: req.user.name,
+                    total: order.total,
+                    status: order.status
+                };
+                socketService.notifyRole('manager', 'order:new', newOrderData);
+                socketService.notifyRole('admin', 'order:new', newOrderData);
+                socketService.notifyRole('manager', 'order:status-updated', newOrderData);
+                socketService.notifyRole('admin', 'order:status-updated', newOrderData);
             } catch (socketError) {
                 logger.error('Socket notification failed', { error: socketError.message });
             }

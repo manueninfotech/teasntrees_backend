@@ -130,6 +130,36 @@ export const updatePaymentStatus = async (req, res) => {
             message: 'Payment status updated successfully',
             data: order
         });
+
+        // Emit Socket.io event for real-time update
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            const customerIdStr = order.customerId._id ? order.customerId._id.toString() : order.customerId.toString();
+
+            // Notify customer
+            socketService.notifyUser(customerIdStr, 'order:status-updated', {
+                orderId: order._id,
+                status: order.status,
+                paymentStatus: order.paymentStatus
+            });
+
+            // Notify order-specific room
+            socketService.notifyOrder(order._id.toString(), 'order:status-updated', {
+                orderId: order._id,
+                status: order.status,
+                paymentStatus: order.paymentStatus
+            });
+
+            // Notify managers/admin
+            const managerData = {
+                orderId: order._id,
+                status: order.status,
+                paymentStatus: order.paymentStatus,
+                customerId: order.customerId
+            };
+            socketService.notifyRole('manager', 'order:status-updated', managerData);
+            socketService.notifyRole('admin', 'order:status-updated', managerData);
+        }
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -336,23 +366,34 @@ export const updateOrderStatus = async (req, res) => {
         const socketService = req.app.get('socketService');
         if (socketService) {
             // Notify customer
-            socketService.notifyUser(order.customerId.toString(), 'order:status-updated', {
+            const customerIdStr = order.customerId._id ? order.customerId._id.toString() : order.customerId.toString();
+            socketService.notifyUser(customerIdStr, 'order:status-updated', {
                 orderId: order._id,
                 status: order.status,
                 estimatedDelivery: order.estimatedDeliveryTime
             });
 
+            // Notify order-specific room
+            socketService.notifyOrder(order._id.toString(), 'order:status-updated', {
+                orderId: order._id,
+                status: order.status,
+                estimatedDelivery: order.estimatedDeliveryTime
+            });
+
+            // Fallback/Legacy event for tracking page
+            socketService.notifyUser(customerIdStr, 'delivery:status-updated', {
+                orderId: order._id,
+                status: order.status
+            });
+
             // Notify managers/admin
-            socketService.notifyRole('manager', 'order:status-updated', {
+            const managerData = {
                 orderId: order._id,
                 status: order.status,
                 customerId: order.customerId
-            });
-            socketService.notifyRole('admin', 'order:status-updated', {
-                orderId: order._id,
-                status: order.status,
-                customerId: order.customerId
-            });
+            };
+            socketService.notifyRole('manager', 'order:status-updated', managerData);
+            socketService.notifyRole('admin', 'order:status-updated', managerData);
         }
 
         // --- AUTO-ASSIGNMENT LOGIC ---
@@ -652,16 +693,24 @@ export const assignDeliveryRider = async (req, res) => {
             });
 
             // Notify customer
-            socketService.notifyUser(order.customerId.toString(), 'order:rider-assigned', {
+            const customerIdStr = order.customerId._id ? order.customerId._id.toString() : order.customerId.toString();
+            const riderData = {
                 orderId: order._id,
                 riderName: rider.name,
                 riderMobile: rider.mobile
-            });
+            };
+            socketService.notifyUser(customerIdStr, 'order:rider-assigned', riderData);
+            socketService.notifyOrder(order._id.toString(), 'order:rider-assigned', riderData);
 
-            // Notify managers/admin
-            socketService.notifyRole('manager', 'delivery:assigned', {
+            // Notify managers/admin so other tabs update
+            socketService.notifyRole('manager', 'order:status-updated', {
                 orderId: order._id,
-                riderId: assignedRiderId,
+                status: order.status,
+                riderName: rider.name
+            });
+            socketService.notifyRole('admin', 'order:status-updated', {
+                orderId: order._id,
+                status: order.status,
                 riderName: rider.name
             });
         }
@@ -723,7 +772,8 @@ export const cancelOrder = async (req, res) => {
         const socketService = req.app.get('socketService');
         if (socketService) {
             // Notify customer
-            socketService.notifyUser(order.customerId.toString(), 'order:cancelled', {
+            const customerIdStr = order.customerId._id ? order.customerId._id.toString() : order.customerId.toString();
+            socketService.notifyUser(customerIdStr, 'order:cancelled', {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
                 reason: order.cancelReason
@@ -738,11 +788,18 @@ export const cancelOrder = async (req, res) => {
             }
 
             // Notify managers/admin
-            socketService.notifyRole('manager', 'order:cancelled', {
+            const cancelData = {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
-                customerId: order.customerId
-            });
+                status: 'cancelled',
+                reason: order.cancelReason
+            };
+            socketService.notifyRole('manager', 'order:cancelled', cancelData);
+            socketService.notifyRole('admin', 'order:cancelled', cancelData);
+
+            // Also notify as status updated to refresh lists
+            socketService.notifyRole('manager', 'order:status-updated', cancelData);
+            socketService.notifyRole('admin', 'order:status-updated', cancelData);
         }
 
         res.status(200).json({
