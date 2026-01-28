@@ -1,5 +1,7 @@
 import User from '../../models/User.js';
 import Order from '../../models/Order.js';
+import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
+import { statsService } from '../../services/statsService.js';
 
 // Get all customers with filters and search
 export const getAllCustomers = async (req, res) => {
@@ -274,6 +276,19 @@ export const deleteCustomer = async (req, res) => {
         }
 
         await customer.deleteOne();
+
+        // Update Stats Transactionally
+        await statsService.decrement('totalCustomers');
+
+        // Emit Socket.io event
+        const socketService = req.app.get('socketService');
+        if (socketService) {
+            socketService.broadcast(SOCKET_EVENTS.USER_DELETED, {
+                id: customer._id,
+                role: 'customer',
+                totalCustomers: (await statsService.getStats()).totalCustomers // Send updated count
+            });
+        }
 
         res.status(200).json({
             success: true,
