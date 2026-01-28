@@ -60,7 +60,8 @@ export const getMyDeliveries = async (req, res) => {
                 },
                 statusHistory,
                 deliveryAddress: order.deliveryAddress,
-                estimatedDeliveryTime: order.estimatedDeliveryTime
+                estimatedDeliveryTime: order.estimatedDeliveryTime,
+                deliveryOtp: (delivery.status !== 'delivered' && delivery.status !== 'cancelled') ? delivery.deliveryOtp : null
             };
         });
 
@@ -135,7 +136,8 @@ export const trackDelivery = async (req, res) => {
                     orderNumber: delivery.orderId.orderNumber,
                     total: delivery.orderId.total,
                     deliveryAddress: delivery.orderId.deliveryAddress
-                }
+                },
+                deliveryOtp: (delivery.status !== 'delivered' && delivery.status !== 'cancelled') ? delivery.deliveryOtp : null
             }
         });
 
@@ -224,7 +226,8 @@ export const getDeliveryByOrder = async (req, res) => {
                     { status: 'picked_up', timestamp: delivery.pickedUpAt },
                     { status: 'delivered', timestamp: delivery.deliveredAt }
                 ].filter(h => h.timestamp),
-                deliveryAddress: order.deliveryAddress
+                deliveryAddress: order.deliveryAddress,
+                deliveryOtp: (delivery.status !== 'delivered' && delivery.status !== 'cancelled') ? delivery.deliveryOtp : null
             }
         });
 

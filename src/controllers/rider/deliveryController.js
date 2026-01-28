@@ -283,4 +283,4 @@ export const uploadDeliveryProof = async (req, res) => {
         logger.error('Upload Proof Error:', error);
         res.status(500).json({ success: false, message: 'Failed to upload proof' });
     }
-}
+};

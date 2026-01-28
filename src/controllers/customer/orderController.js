@@ -4,6 +4,7 @@
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
 import User from '../../models/User.js';
+import Delivery from '../../models/Delivery.js';
 import PDFDocument from 'pdfkit';
 import logger from '../../config/logger.js';
 import { notificationService } from '../../services/notificationService.js';
@@ -250,9 +251,24 @@ export const getOrderById = async (req, res) => {
             });
         }
 
+        // Fetch delivery info if exists
+        const delivery = await Delivery.findOne({ orderId: order._id })
+            .populate('riderId', 'name mobile');
+
+        const orderData = order.toObject();
+        if (delivery) {
+            orderData.delivery = {
+                status: delivery.status,
+                deliveryNumber: delivery.deliveryNumber,
+                estimatedTime: delivery.estimatedTime,
+                deliveryOtp: (order.status !== 'delivered' && order.status !== 'cancelled') ? delivery.deliveryOtp : null,
+                rider: delivery.riderId
+            };
+        }
+
         res.json({
             success: true,
-            data: order
+            data: orderData
         });
 
     } catch (error) {
