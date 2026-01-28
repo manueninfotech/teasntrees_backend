@@ -45,7 +45,6 @@ const app = express();
 const httpServer = createServer(app);
 
 // Initialize Socket.io with CORS
-// Initialize Socket.io with CORS
 const allowedOrigins = (process.env.FRONTEND_URL || '*').split(',').map(url => url.trim());
 
 const io = new Server(httpServer, {
@@ -61,7 +60,6 @@ io.use(socketAuth);
 
 // Setup Socket.io event handlers
 setupSocketHandlers(io);
-console.log('Backend configuration reloaded');
 
 // Create Socket Service and make it accessible to routes
 const socketService = new SocketService(io);
@@ -90,9 +88,18 @@ app.use(morgan(morganFormat, {
 }));
 
 // CORS configuration
-// CORS configuration
 const corsOptions = {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Check if origin is allowed
+        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     optionsSuccessStatus: 200
 };
