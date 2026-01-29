@@ -1,6 +1,8 @@
 import Rider from '../../models/Rider.js';
 import User from '../../models/User.js';
 import { generateOTP } from '../../utils/generateOTP.js';
+import { riderMetricsService } from "../../services/riderMetricsService.js";
+import { SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import logger from '../../config/logger.js';
@@ -238,18 +240,24 @@ export const toggleAvailability = async (req, res) => {
 
         await rider.save();
 
-        // Emit Socket Event (optional - only if socketService exists and has the method)
+        // Emit Socket Event DIRECTLY
         try {
-            const socketService = req.app?.get?.('socketService');
-            if (socketService && typeof socketService.emitToRole === 'function') {
+            const io = req.app.get('io');
+            if (io) {
                 const event = isOnline ? 'rider:online' : 'rider:offline';
-                socketService.emitToRole('admin', event, {
+                io.to(SOCKET_ROOMS.role('admin')).emit(event, {
+                    riderId: rider._id,
+                    name: rider.name,
+                    location: rider.currentLocation
+                });
+                io.to(SOCKET_ROOMS.role('manager')).emit(event, {
                     riderId: rider._id,
                     name: rider.name,
                     location: rider.currentLocation
                 });
             }
-        } catch (socketError) {
+        }
+        catch (socketError) {
             logger.warn('Socket emission failed (non-critical):', socketError.message);
             // Continue anyway - this is not critical
         }
@@ -262,10 +270,10 @@ export const toggleAvailability = async (req, res) => {
 
     } catch (error) {
         logger.error('Error in toggleAvailability:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Failed to update status',
-            error: error.message 
+            error: error.message
         });
     }
 };

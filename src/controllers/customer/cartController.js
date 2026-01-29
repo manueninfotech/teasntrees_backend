@@ -8,6 +8,8 @@ import Order from '../../models/Order.js';
 import Settings from '../../models/Settings.js';
 import logger from '../../config/logger.js';
 import { geocodingService } from '../../services/geocodingService.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
+import { statsService } from '../../services/statsService.js';
 
 // Get customer's cart
 export const getCart = async (req, res) => {
@@ -425,25 +427,37 @@ export const checkoutCart = async (req, res) => {
 
         // Emit socket event
         try {
-            const socketService = req.app.get('socketService');
-            if (socketService) {
+            // Update Dashboard Stats immediately
+            await statsService.increment('totalOrders');
+            await statsService.increment('pendingOrders');
+
+            // Emit socket event DIRECTLY
+
+            const io = req.app.get('io');
+            if (io) {
                 // Notify Customer
-                socketService.notifyUser(userId.toString(), 'order:created', {
+                io.to(SOCKET_ROOMS.user(userId.toString())).emit(SOCKET_EVENTS.ORDER_CREATED, {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     total: order.total
                 });
+
                 // Notify Admin & Manager
                 const notificationData = {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     total: order.total,
                     itemsCount: order.items.length,
-                    createdAt: order.createdAt
+                    createdAt: order.createdAt,
+                    // Include updated stats
+                    totalOrders: (await statsService.getStats()).totalOrders,
+                    pendingOrders: (await statsService.getStats()).pendingOrders
                 };
-                socketService.notifyRole('admin', 'order:new', notificationData);
-                socketService.notifyRole('manager', 'order:new', notificationData);
+
+                io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_NEW, notificationData);
+                io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_NEW, notificationData);
             }
+
         } catch (socketError) {
             console.error('Socket notification error (checkout continuing):', socketError);
             logger.warn('Socket notification failed during checkout', { error: socketError.message });

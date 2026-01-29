@@ -27,18 +27,18 @@ router.get('/', getAllUsers);
 router.get('/:id', validateUserId, getUserById);
 
 // Activate user
-router.put('/:id/activate', validateUserId, logActivity('activate', 'user'), activateUser);
+router.put('/:id/activate', validateUserId, activateUser);
 
 // Deactivate user
-router.put('/:id/deactivate', validateUserId, logActivity('deactivate', 'user'), deactivateUser);
+router.put('/:id/deactivate', validateUserId, deactivateUser);
 
 // Update user role
-router.put('/:id/role', validateUpdateUserRole, logActivity('update', 'user'), updateUserRole);
+router.put('/:id/role', validateUpdateUserRole, updateUserRole);
 
 // Get users by role
 router.get('/role/:role', getUsersByRole);
 
 // Delete user
-router.delete('/:id', validateUserId, logActivity('delete', 'user'), deleteUser);
+router.delete('/:id', validateUserId, deleteUser);
 
 export default router;

@@ -27,15 +27,15 @@ router.get('/', getAllOrders);
 router.get('/:id', validateOrderId, getOrderById);
 
 //Update order status
-router.put('/:id/status', validateUpdateOrderStatus, logActivity('update', 'order'), updateOrderStatus);
+router.put('/:id/status', validateUpdateOrderStatus, updateOrderStatus);
 
 // Update payment status
-router.put('/:id/payment-status', validateOrderId, logActivity('update', 'order'), updatePaymentStatus);
+router.put('/:id/payment-status', validateOrderId, updatePaymentStatus);
 
 // Assign delivery rider
-router.put('/:id/assign-rider', validateAssignRider, logActivity('assign', 'order'), assignDeliveryRider);
+router.put('/:id/assign-rider', validateAssignRider, assignDeliveryRider);
 
 // Cancel order
-router.put('/:id/cancel', validateOrderId, logActivity('cancel', 'order'), cancelOrder);
+router.put('/:id/cancel', validateOrderId, cancelOrder);
 
 export default router;

@@ -1,5 +1,6 @@
 import User from '../../models/User.js';
-import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Get all users with filters
 export const getAllUsers = async (req, res) => {
@@ -144,23 +145,35 @@ export const updateUserRole = async (req, res) => {
 
         await user.save();
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             // Notify the user whose role changed
-            socketService.notifyUser(user._id.toString(), 'user:role-updated', {
+            io.to(SOCKET_ROOMS.user(user._id.toString())).emit(SOCKET_EVENTS.USER_ROLE_UPDATED, {
                 userId: user._id,
                 newRole: role
             });
 
-            // Notify admin
-            socketService.notifyRole('admin', 'user:role-updated', {
+            // Notify admin (Broadcast to role room)
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.USER_ROLE_UPDATED, {
                 userId: user._id,
                 name: user.name,
                 mobile: user.mobile,
                 newRole: role
             });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'user',
+            resourceId: user._id,
+            details: {
+                name: user.name,
+                previousRole: user.role,
+                newRole: role
+            }
+        });
 
         res.status(200).json({
             success: true,
@@ -240,21 +253,29 @@ export const activateUser = async (req, res) => {
         user.isActive = true;
         await user.save();
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             // Notify the user
-            socketService.notifyUser(user._id.toString(), 'user:activated', {
+            io.to(SOCKET_ROOMS.user(user._id.toString())).emit(SOCKET_EVENTS.USER_ACTIVATED, {
                 message: 'Your account has been activated'
             });
 
             // Notify admins
-            socketService.notifyRole('admin', 'user:activated', {
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.USER_ACTIVATED, {
                 userId: user._id,
                 name: user.name,
                 mobile: user.mobile
             });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'activate',
+            resource: 'user',
+            resourceId: user._id,
+            details: { name: user.name, role: user.role }
+        });
 
         res.status(200).json({
             success: true,
@@ -311,21 +332,29 @@ export const deactivateUser = async (req, res) => {
         user.isActive = false;
         await user.save();
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             // Notify the user
-            socketService.notifyUser(user._id.toString(), 'user:deactivated', {
+            io.to(SOCKET_ROOMS.user(user._id.toString())).emit(SOCKET_EVENTS.USER_DEACTIVATED, {
                 message: 'Your account has been deactivated'
             });
 
             // Notify admins
-            socketService.notifyRole('admin', 'user:deactivated', {
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.USER_DEACTIVATED, {
                 userId: user._id,
                 name: user.name,
                 mobile: user.mobile
             });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'deactivate',
+            resource: 'user',
+            resourceId: user._id,
+            details: { name: user.name, role: user.role }
+        });
 
         res.status(200).json({
             success: true,
@@ -372,13 +401,21 @@ export const deleteUser = async (req, res) => {
         const userData = { id: user._id, name: user.name, role: user.role };
 
         // Optimistic Emission: Notify clients BEFORE DB deletion to ensure instant UI update
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            // Broadcast to all connected clients (Admin, Manager, etc.)
-            socketService.broadcast(SOCKET_EVENTS.USER_DELETED, userData);
+        // Using Direct IO
+        const io = req.app.get('io');
+        if (io) {
+            io.emit(SOCKET_EVENTS.USER_DELETED, userData);
         }
 
         await user.deleteOne();
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'delete',
+            resource: 'user',
+            resourceId: userData.id,
+            details: { name: userData.name, role: userData.role }
+        });
 
         res.status(200).json({
             success: true,

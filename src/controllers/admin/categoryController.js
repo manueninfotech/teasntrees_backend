@@ -78,17 +78,16 @@ export const createCategory = async (req, res) => {
             displayOrder
         });
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             const socketData = {
                 categoryId: category._id,
                 name: category.name,
                 icon: category.icon
             };
-            socketService.notifyRole('customer', SOCKET_EVENTS.CATEGORY_CREATED, socketData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.CATEGORY_CREATED, socketData);
-            socketService.notifyRole('admin', SOCKET_EVENTS.CATEGORY_CREATED, socketData);
+            // Broadcast to everyone
+            io.emit(SOCKET_EVENTS.CATEGORY_CREATED, socketData);
         }
 
         res.status(200).json({
@@ -133,17 +132,15 @@ export const updateCategory = async (req, res) => {
 
         await category.save();
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             const socketData = {
                 categoryId: category._id,
                 name: category.name,
                 icon: category.icon
             };
-            socketService.notifyRole('customer', SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
-            socketService.notifyRole('admin', SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
+            io.emit(SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
         }
 
         res.status(200).json({
@@ -174,12 +171,10 @@ export const deleteCategory = async (req, res) => {
         const categoryData = { id: category._id, name: category.name };
         await category.deleteOne();
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyRole('customer', SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
-            socketService.notifyRole('admin', SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
+            io.emit(SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
         }
 
         res.status(200).json({

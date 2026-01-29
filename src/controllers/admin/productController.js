@@ -2,6 +2,8 @@ import Product from "../../models/Product.js";
 import Category from "../../models/Category.js";
 import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../../utils/imageUpload.js";
 import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
+import { statsService } from "../../services/statsService.js";
+import activityLogService from '../../services/activityLogService.js';
 
 // Get all products
 export const getAllProducts = async (req, res) => {
@@ -153,20 +155,33 @@ export const createProduct = async (req, res) => {
         });
         const populatedProduct = await Product.findById(product._id).populate('category', 'name icon');
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+
+
+        // Update Stats
+        await statsService.increment('totalProducts');
+
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             const socketData = {
                 productId: product._id,
                 name: product.name,
                 category: categoryExists.name,
                 price: product.price,
-                isAvailable: product.isAvailable
+                isAvailable: product.isAvailable,
+                totalProducts: (await statsService.getStats()).totalProducts
             };
-            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_CREATED, socketData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_CREATED, socketData);
-            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_CREATED, socketData);
+            // Broadcast to everyone (Customers need to see new product, Admin/Manager need stats)
+            io.emit(SOCKET_EVENTS.PRODUCT_CREATED, socketData);
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'create',
+            resource: 'product',
+            resourceId: product._id,
+            details: { name: product.name, price: product.price }
+        });
 
         res.status(201).json({
             success: true,
@@ -233,19 +248,27 @@ export const updateProduct = async (req, res) => {
         await product.save();
         const updatedProduct = await Product.findById(product._id).populate('category', 'name icon');
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+
+
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             const socketData = {
                 productId: product._id,
                 name: product.name,
                 isAvailable: product.isAvailable,
                 price: product.price
             };
-            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
-            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
+            io.emit(SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'product',
+            resourceId: product._id,
+            details: { name: product.name }
+        });
 
         res.status(200).json({
             success: true,
@@ -285,13 +308,25 @@ export const deleteProduct = async (req, res) => {
             }
         }
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_DELETED, productData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_DELETED, productData);
-            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_DELETED, productData);
+        // Update Stats
+        await statsService.decrement('totalProducts');
+
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
+            io.emit(SOCKET_EVENTS.PRODUCT_DELETED, {
+                ...productData,
+                totalProducts: (await statsService.getStats()).totalProducts
+            });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'delete',
+            resource: 'product',
+            resourceId: productData.id,
+            details: { name: productData.name }
+        });
 
         res.status(200).json({
             success: true,
@@ -373,11 +408,9 @@ export const bulkUpdateProducts = async (req, res) => {
         });
 
         // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyRole('manager', SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
-            socketService.notifyRole('admin', SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
-            socketService.notifyRole('customer', SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
+        const io = req.app.get('io');
+        if (io) {
+            io.emit(SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
         }
     } catch (error) {
         res.status(500).json({
