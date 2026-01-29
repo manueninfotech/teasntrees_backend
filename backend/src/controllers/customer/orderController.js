@@ -8,6 +8,8 @@ import Delivery from '../../models/Delivery.js';
 import PDFDocument from 'pdfkit';
 import logger from '../../config/logger.js';
 import { notificationService } from '../../services/notificationService.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
+import { statsService } from '../../services/statsService.js';
 
 // Create new order
 // Create new order
@@ -108,39 +110,40 @@ export const createOrder = async (req, res) => {
             logger.error('Failed to update product stats', { error: err.message });
         });
 
-        // Emit socket event for real-time update
-        const socketService = req.app.get('socketService');
-        logger.info('SocketService status:', {
-            found: !!socketService,
-            type: typeof socketService,
-            isFunction: socketService ? typeof socketService.notifyUser === 'function' : false
-        });
+        // Update Dashboard Stats immediately
+        await statsService.increment('totalOrders');
+        await statsService.increment('pendingOrders');
 
-        if (socketService && typeof socketService.notifyUser === 'function') {
+        // Emit socket event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             try {
-                socketService.notifyUser(customerId.toString(), 'order:created', {
+                // Notify Customer
+                io.to(SOCKET_ROOMS.user(customerId.toString())).emit(SOCKET_EVENTS.ORDER_CREATED, {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     total: order.total
                 });
 
-                // Notify managers/admin
+                // Notify Admin & Manager
                 const newOrderData = {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     customerName: req.user.name,
                     total: order.total,
-                    status: order.status
+                    status: order.status,
+                    // Include updated stats for dashboard
+                    totalOrders: (await statsService.getStats()).totalOrders,
+                    pendingOrders: (await statsService.getStats()).pendingOrders
                 };
-                socketService.notifyRole('manager', 'order:new', newOrderData);
-                socketService.notifyRole('admin', 'order:new', newOrderData);
-                socketService.notifyRole('manager', 'order:status-updated', newOrderData);
-                socketService.notifyRole('admin', 'order:status-updated', newOrderData);
+
+                // Broadcast to admin dashboard/manager
+                io.emit(SOCKET_EVENTS.ORDER_NEW, newOrderData);
+                io.emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, newOrderData);
+
             } catch (socketError) {
                 logger.error('Socket notification failed', { error: socketError.message });
             }
-        } else {
-            logger.warn('SocketService missing or invalid, skipping notification');
         }
 
         // --- NEW: Push Notification to Admin ---
@@ -332,13 +335,19 @@ export const cancelOrder = async (req, res) => {
             customerId
         });
 
-        // Emit socket event
+        // Emit socket event DIRECTLY
         try {
-            const socketService = req.app.get('socketService');
-            if (socketService && typeof socketService.notifyUser === 'function') {
-                socketService.notifyUser(customerId.toString(), 'order:cancelled', {
+            const io = req.app.get('io');
+            if (io) {
+                io.to(SOCKET_ROOMS.user(customerId.toString())).emit(SOCKET_EVENTS.ORDER_CANCELLED, {
                     orderId: order._id,
                     orderNumber: order.orderNumber
+                });
+
+                // Also notify admin that order was cancelled
+                io.emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+                    orderId: order._id,
+                    status: 'cancelled'
                 });
             }
         } catch (socketError) {

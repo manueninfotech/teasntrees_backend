@@ -58,6 +58,9 @@ export const SOCKET_EVENTS = {
     // System events
     SYSTEM_MESSAGE: 'system:message',
 
+    // Activity Log events
+    ACTIVITY_LOG_NEW: 'activity-log:new',
+
     // Review events
     REVIEW_NEW: 'review:new',
     REVIEW_UPDATED: 'review:updated'

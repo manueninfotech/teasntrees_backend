@@ -4,7 +4,7 @@ import User from '../../models/User.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
 import { notificationService } from '../../services/notificationService.js';
-import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 
 // Submit review for order
 export const createReview = async (req, res) => {
@@ -105,9 +105,9 @@ export const createReview = async (req, res) => {
             orderId,
             customerId
         });
-        // Emit Socket.io event for real-time admin/manager updates
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event for real-time admin/manager updates DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             const socketData = {
                 reviewId: newReview._id,
                 orderId: order._id,
@@ -117,17 +117,19 @@ export const createReview = async (req, res) => {
                 review,
                 customerId
             };
-            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_NEW, socketData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_NEW, socketData);
+
+            // Broadcast to Admin/Manager Roles
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.REVIEW_NEW, socketData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.REVIEW_NEW, socketData);
 
             // Notify Admin of review for moderation
-            socketService.notifyRole('admin', 'notification:new', {
+            io.to(SOCKET_ROOMS.role('admin')).emit('notification:new', {
                 title: 'New Review Submitted',
                 message: `New review for Order #${order.orderNumber}`,
                 type: 'review',
                 data: { reviewId: newReview._id, orderId }
             });
-            socketService.notifyRole('manager', 'notification:new', {
+            io.to(SOCKET_ROOMS.role('manager')).emit('notification:new', {
                 title: 'New Review Submitted',
                 message: `New review for Order #${order.orderNumber}`,
                 type: 'review',
@@ -197,10 +199,10 @@ export const rateProduct = async (req, res) => {
             customerId
         });
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_NEW, {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.REVIEW_NEW, {
                 reviewId: productReview._id,
                 orderId,
                 productId,

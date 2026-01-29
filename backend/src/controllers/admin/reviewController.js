@@ -4,7 +4,7 @@
 import Review from '../../models/Review.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
-import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 
 // Get all reviews with filters
 export const getAllReviews = async (req, res) => {
@@ -136,11 +136,11 @@ export const approveReview = async (req, res) => {
             adminId: req.user.userId
         });
 
-        // Notify Customer and broadcast update
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Notify Customer and broadcast update DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             if (review.customerId) {
-                socketService.notifyUser(review.customerId.toString(), 'notification:new', {
+                io.to(SOCKET_ROOMS.user(review.customerId.toString())).emit('notification:new', {
                     title: 'Review Approved',
                     message: 'Your review has been approved and is now visible!',
                     type: 'review',
@@ -150,8 +150,8 @@ export const approveReview = async (req, res) => {
 
             // Broadcast to Admin/Manager for real-time list update
             const socketData = { reviewId, isApproved: true };
-            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.REVIEW_UPDATED, socketData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.REVIEW_UPDATED, socketData);
         }
 
         res.json({
@@ -193,11 +193,11 @@ export const rejectReview = async (req, res) => {
             adminId: req.user.userId
         });
 
-        // Notify Customer and broadcast update
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Notify Customer and broadcast update DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             if (review.customerId) {
-                socketService.notifyUser(review.customerId.toString(), 'notification:new', {
+                io.to(SOCKET_ROOMS.user(review.customerId.toString())).emit('notification:new', {
                     title: 'Review Update',
                     message: 'Your review was not approved. Please check guidelines.',
                     type: 'review',
@@ -207,8 +207,8 @@ export const rejectReview = async (req, res) => {
 
             // Broadcast to Admin/Manager for real-time list update
             const socketData = { reviewId, isApproved: false };
-            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
-            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_UPDATED, socketData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.REVIEW_UPDATED, socketData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.REVIEW_UPDATED, socketData);
         }
 
         res.json({
@@ -251,11 +251,11 @@ export const deleteReview = async (req, res) => {
             message: 'Review deleted successfully'
         });
 
-        // Broadcast to Admin/Manager for real-time list update
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyRole('admin', SOCKET_EVENTS.REVIEW_UPDATED, { reviewId, status: 'deleted' });
-            socketService.notifyRole('manager', SOCKET_EVENTS.REVIEW_UPDATED, { reviewId, status: 'deleted' });
+        // Broadcast to Admin/Manager DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.REVIEW_UPDATED, { reviewId, status: 'deleted' });
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.REVIEW_UPDATED, { reviewId, status: 'deleted' });
         }
 
     } catch (error) {

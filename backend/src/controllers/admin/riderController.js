@@ -3,6 +3,7 @@ import Delivery from '../../models/Delivery.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
 import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Get all riders (with filters)
 export const getAllRiders = async (req, res) => {
@@ -183,6 +184,14 @@ export const approveRider = async (req, res) => {
         rider.isApproved = true;
         await rider.save();
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'activate',
+            resource: 'user', // Treat rider as user resource
+            resourceId: rider._id,
+            details: { name: rider.name, role: 'rider', type: 'approval' }
+        });
+
         res.json({
             success: true,
             message: 'Rider approved successfully',
@@ -231,6 +240,14 @@ export const rejectRider = async (req, res) => {
         rider.rejectionReason = reason || 'Not specified';
         await rider.save();
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'deactivate',
+            resource: 'user',
+            resourceId: rider._id,
+            details: { name: rider.name, role: 'rider', type: 'rejection', reason: rider.rejectionReason }
+        });
+
         res.json({
             success: true,
             message: 'Rider approval revoked',
@@ -274,6 +291,14 @@ export const toggleRiderStatus = async (req, res) => {
         rider.isActive = isActive;
         await rider.save();
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: isActive ? 'activate' : 'deactivate',
+            resource: 'user',
+            resourceId: rider._id,
+            details: { name: rider.name, role: 'rider' }
+        });
+
         res.json({
             success: true,
             message: `Rider ${isActive ? 'activated' : 'deactivated'} successfully`,
@@ -311,6 +336,14 @@ export const deleteRider = async (req, res) => {
                 message: 'Rider not found'
             });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'delete',
+            resource: 'user',
+            resourceId: id,
+            details: { role: 'rider' }
+        });
 
         res.json({
             success: true,

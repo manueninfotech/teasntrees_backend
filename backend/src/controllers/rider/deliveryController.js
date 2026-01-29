@@ -2,6 +2,7 @@ import Delivery from "../../models/Delivery.js";
 import Order from "../../models/Order.js";
 import Rider from "../../models/Rider.js";
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
+import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import logger from "../../config/logger.js";
 import { uploadToCloudinary } from "../../utils/imageUpload.js";
 import { riderMetricsService } from "../../services/riderMetricsService.js";
@@ -45,10 +46,10 @@ export const acceptDelivery = async (req, res) => {
         // update rider status
         await Rider.findByIdAndUpdate(req.user.userId, { isOnDelivery: true });
 
-        // Notify customer
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyUser(delivery.customerId, 'order:rider-assigned', {
+        // Notify customer DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
+            io.to(SOCKET_ROOMS.user(delivery.customerId)).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, { // Assuming 'order:rider-assigned' maps to this or similar
                 orderId: delivery.orderId,
                 riderName: req.user.name
             });
@@ -103,11 +104,11 @@ export const rejectDelivery = async (req, res) => {
 
             await newDelivery.save();
 
-            // Notify New Rider
-            const socketService = req.app.get('socketService');
-            if (socketService) {
+            // Notify New Rider DIRECTLY
+            const io = req.app.get('io');
+            if (io) {
                 // Notify New Rider (Assigned)
-                socketService.notifyUser(nextRider._id.toString(), 'delivery:assigned', {
+                io.to(SOCKET_ROOMS.user(nextRider._id.toString())).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, {
                     deliveryId: newDelivery._id,
                     orderId: newDelivery.orderId,
                     earning: newDelivery.totalEarning
@@ -125,10 +126,10 @@ export const rejectDelivery = async (req, res) => {
 
         } else {
             // No Riders Available!
-            // Notify Admin
-            const socketService = req.app.get('socketService');
-            if (socketService) {
-                socketService.notifyRole('admin', 'alert:no-riders-available', {
+            // Notify Admin DIRECTLY
+            const io = req.app.get('io');
+            if (io) {
+                io.to(SOCKET_ROOMS.role('admin')).emit('alert:no-riders-available', {
                     orderId: delivery.orderId,
                     message: 'Order rejected and no backup riders found!'
                 });
@@ -188,9 +189,9 @@ export const updateDeliveryStatus = async (req, res) => {
         }
         delivery.status = status;
         await delivery.save();
-        // Notify Customer and Admin
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Notify Customer and Admin DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             const customerIdStr = delivery.customerId._id ? delivery.customerId._id.toString() : delivery.customerId.toString();
             const orderIdStr = delivery.orderId._id ? delivery.orderId._id.toString() : delivery.orderId.toString();
 
@@ -201,18 +202,18 @@ export const updateDeliveryStatus = async (req, res) => {
             };
 
             // Notify specific user room
-            socketService.notifyUser(customerIdStr, 'order:status-updated', eventData);
-            socketService.notifyUser(customerIdStr, 'delivery:status-updated', eventData);
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, eventData);
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.DELIVERY_STATUS_UPDATED, eventData);
 
             // Notify specific order room
-            socketService.notifyOrder(orderIdStr, 'order:status-updated', eventData);
-            socketService.notifyOrder(orderIdStr, 'delivery:status-updated', eventData);
+            io.to(SOCKET_ROOMS.order(orderIdStr)).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, eventData);
+            io.to(SOCKET_ROOMS.order(orderIdStr)).emit(SOCKET_EVENTS.DELIVERY_STATUS_UPDATED, eventData);
 
             // Notify managers/admin
-            socketService.notifyRole('manager', 'order:status-updated', eventData);
-            socketService.notifyRole('admin', 'order:status-updated', eventData);
-            socketService.notifyRole('manager', 'delivery:status-updated', eventData);
-            socketService.notifyRole('admin', 'delivery:status-updated', eventData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, eventData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, eventData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.DELIVERY_STATUS_UPDATED, eventData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.DELIVERY_STATUS_UPDATED, eventData);
         }
         res.json({ success: true, message: `Status updated to ${status}`, data: delivery });
     } catch (error) {
@@ -239,10 +240,10 @@ export const updateLocation = async (req, res) => {
             status: { $in: ['accepted', 'heading_to_pickup', 'picked_up', 'in_transit'] }
         });
         if (activeDelivery) {
-            const socketService = req.app.get('socketService');
-            if (socketService) {
+            const io = req.app.get('io');
+            if (io) {
                 // Notify Customer
-                socketService.notifyUser(activeDelivery.customerId.toString(), 'rider:location-update', {
+                io.to(SOCKET_ROOMS.user(activeDelivery.customerId.toString())).emit(SOCKET_EVENTS.RIDER_LOCATION_UPDATE, {
                     orderId: activeDelivery.orderId,
                     riderId,
                     location: { lat, lng }

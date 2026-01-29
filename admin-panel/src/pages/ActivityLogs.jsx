@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../utils/api';
 import LogDetailsModal from '../components/LogDetailsModal';
+import { useSocket } from '../context/SocketContext';
 
 const ActivityLogs = () => {
     const [logs, setLogs] = useState([]);
@@ -26,10 +27,60 @@ const ActivityLogs = () => {
         search: ''
     });
 
+    const { socket, isConnected } = useSocket();
+    const [debugInfo, setDebugInfo] = useState({
+        lastEvent: null,
+        lastEventTime: null,
+        socketId: null
+    });
+
+    useEffect(() => {
+        if (socket && isConnected) {
+            setDebugInfo(prev => ({ ...prev, socketId: socket.id }));
+
+            const handleNewLog = (newLog) => {
+                setDebugInfo(prev => ({
+                    ...prev,
+                    lastEvent: newLog,
+                    lastEventTime: new Date().toLocaleTimeString()
+                }));
+
+                // OPTIMISTIC UPDATE: Prepend new log immediately
+                setLogs(prevLogs => {
+                    // Only prepend if we are on page 1 and not filtering deeply
+                    // (Simplification: Just prepend, user can refresh if order looks off,
+                    // but usually new logs belong at top)
+                    if (page === 1) {
+                        // Keep list size reasonable, e.g., 20 items
+                        const updated = [newLog, ...prevLogs].slice(0, 20);
+                        return updated;
+                    }
+                    return prevLogs;
+                });
+
+                // Update stats locally
+                setStats(prevStats => {
+                    if (!prevStats) return prevStats;
+                    return {
+                        ...prevStats,
+                        totalLogs: prevStats.totalLogs + 1,
+                        todayLogs: prevStats.todayLogs + 1
+                    };
+                });
+            };
+
+            socket.on('activity-log:new', handleNewLog);
+
+            return () => {
+                socket.off('activity-log:new', handleNewLog);
+            };
+        }
+    }, [socket, isConnected, page, filters]);
+
     useEffect(() => {
         fetchLogs();
         fetchStats();
-    }, [page, filters.action, filters.resource, filters.startDate, filters.endDate]);
+    }, [page, filters.action, filters.resource, filters.startDate, filters.endDate, filters.search]);
 
     const fetchLogs = async () => {
         setLoading(true);
@@ -112,7 +163,13 @@ const ActivityLogs = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Activity Logs</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-gray-900">Activity Logs</h1>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter border ${isConnected ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'
+                            }`}>
+                            {isConnected ? 'Live' : 'Offline'}
+                        </span>
+                    </div>
                     <p className="text-gray-500 mt-1">Audit trail of all administrative actions</p>
                 </div>
                 <div className="flex gap-3">

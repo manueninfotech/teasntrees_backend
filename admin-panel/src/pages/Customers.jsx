@@ -3,6 +3,7 @@ import { Users, Search, Filter, UserPlus, TrendingUp, UserCheck, UserX } from 'l
 import api from '../utils/api';
 import CustomerCard from '../components/CustomerCard';
 import CustomerDetailsModal from '../components/CustomerDetailsModal';
+import { useSocket } from '../context/SocketContext';
 
 const Customers = () => {
     const [customers, setCustomers] = useState([]);
@@ -18,6 +19,30 @@ const Customers = () => {
         limit: 20,
         totalCustomers: 0
     });
+
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (socket) {
+            const handleUserUpdate = () => {
+                console.log('User update received, refreshing customers...');
+                fetchStats();
+                fetchCustomers();
+            };
+
+            socket.on('user:registered', handleUserUpdate);
+            socket.on('user:deleted', handleUserUpdate);
+            socket.on('user:activated', handleUserUpdate);
+            socket.on('user:deactivated', handleUserUpdate);
+
+            return () => {
+                socket.off('user:registered', handleUserUpdate);
+                socket.off('user:deleted', handleUserUpdate);
+                socket.off('user:activated', handleUserUpdate);
+                socket.off('user:deactivated', handleUserUpdate);
+            };
+        }
+    }, [socket, pagination.currentPage, searchTerm, filterStatus]);
 
     useEffect(() => {
         fetchStats();

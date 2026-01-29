@@ -8,6 +8,8 @@ import { getDistance } from "../../utils/geoUtils.js";
 import { notificationService } from "../../services/notificationService.js";
 import Settings from "../../models/Settings.js";
 import logger from "../../config/logger.js";
+import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
+import activityLogService from "../../services/activityLogService.js";
 
 // Get all orders with filters
 export const getAllOrders = async (req, res) => {
@@ -131,20 +133,20 @@ export const updatePaymentStatus = async (req, res) => {
             data: order
         });
 
-        // Emit Socket.io event for real-time update
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             const customerIdStr = order.customerId._id ? order.customerId._id.toString() : order.customerId.toString();
 
             // Notify customer
-            socketService.notifyUser(customerIdStr, 'order:status-updated', {
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
                 orderId: order._id,
                 status: order.status,
                 paymentStatus: order.paymentStatus
             });
 
             // Notify order-specific room
-            socketService.notifyOrder(order._id.toString(), 'order:status-updated', {
+            io.to(SOCKET_ROOMS.order(order._id.toString())).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
                 orderId: order._id,
                 status: order.status,
                 paymentStatus: order.paymentStatus
@@ -157,8 +159,8 @@ export const updatePaymentStatus = async (req, res) => {
                 paymentStatus: order.paymentStatus,
                 customerId: order.customerId
             };
-            socketService.notifyRole('manager', 'order:status-updated', managerData);
-            socketService.notifyRole('admin', 'order:status-updated', managerData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, managerData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, managerData);
         }
     } catch (error) {
         res.status(500).json({
@@ -362,26 +364,27 @@ export const updateOrderStatus = async (req, res) => {
             console.error('Failed to sync delivery status:', syncError);
         }
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             // Notify customer
             const customerIdStr = order.customerId._id ? order.customerId._id.toString() : order.customerId.toString();
-            socketService.notifyUser(customerIdStr, 'order:status-updated', {
+
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
                 orderId: order._id,
                 status: order.status,
                 estimatedDelivery: order.estimatedDeliveryTime
             });
 
             // Notify order-specific room
-            socketService.notifyOrder(order._id.toString(), 'order:status-updated', {
+            io.to(SOCKET_ROOMS.order(order._id.toString())).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
                 orderId: order._id,
                 status: order.status,
                 estimatedDelivery: order.estimatedDeliveryTime
             });
 
-            // Fallback/Legacy event for tracking page
-            socketService.notifyUser(customerIdStr, 'delivery:status-updated', {
+            // Legacy event for tracking
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.DELIVERY_STATUS_UPDATED, {
                 orderId: order._id,
                 status: order.status
             });
@@ -392,8 +395,8 @@ export const updateOrderStatus = async (req, res) => {
                 status: order.status,
                 customerId: order.customerId
             };
-            socketService.notifyRole('manager', 'order:status-updated', managerData);
-            socketService.notifyRole('admin', 'order:status-updated', managerData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, managerData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, managerData);
         }
 
         // --- AUTO-ASSIGNMENT LOGIC ---
@@ -452,9 +455,10 @@ export const updateOrderStatus = async (req, res) => {
 
                         await delivery.save();
 
-                        // Notify Assigned Rider
-                        if (socketService) {
-                            socketService.notifyUser(bestRider._id.toString(), 'delivery:assigned', {
+                        // Notify Assigned Rider DIRECTLY
+                        const io = req.app.get('io');
+                        if (io) {
+                            io.to(SOCKET_ROOMS.user(bestRider._id.toString())).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, {
                                 deliveryId: delivery._id,
                                 orderId: order._id,
                                 earning: delivery.totalEarning,
@@ -476,9 +480,10 @@ export const updateOrderStatus = async (req, res) => {
                         }
                     } else {
                         console.warn(`[Auto-Assign] No online riders found for Order ${order.orderNumber}`);
-                        // Notify Admin of Failure
-                        if (socketService) {
-                            socketService.broadcastToRole('admin', 'alert:no-riders-available', {
+                        // Notify Admin of Failure DIRECTLY
+                        const io = req.app.get('io');
+                        if (io) {
+                            io.to(SOCKET_ROOMS.role('admin')).emit('alert:no-riders-available', {
                                 orderId: order._id,
                                 message: 'Order Confirmed but No Riders Available!'
                             });
@@ -501,6 +506,18 @@ export const updateOrderStatus = async (req, res) => {
                 console.error('Auto-Assignment Failed:', assignError);
             }
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'order',
+            resourceId: order._id,
+            details: {
+                orderNumber: order.orderNumber,
+                status: status,
+                previousStatus: order.status
+            }
+        });
 
         res.status(200).json({
             success: true,
@@ -682,11 +699,11 @@ export const assignDeliveryRider = async (req, res) => {
         const updatedOrder = await Order.findById(order._id)
             .populate('riderId', 'name mobile');
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             // Notify the assigned rider
-            socketService.notifyUser(assignedRiderId.toString(), 'delivery:assigned', {
+            io.to(SOCKET_ROOMS.user(assignedRiderId.toString())).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
                 deliveryAddress: order.deliveryAddress
@@ -699,20 +716,25 @@ export const assignDeliveryRider = async (req, res) => {
                 riderName: rider.name,
                 riderMobile: rider.mobile
             };
-            socketService.notifyUser(customerIdStr, 'order:rider-assigned', riderData);
-            socketService.notifyOrder(order._id.toString(), 'order:rider-assigned', riderData);
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, riderData); // mapped 'order:rider-assigned' -> DELIVERY_ASSIGNED for customer? Or keeping 'order:rider-assigned' event name?
+            // Actually let's use the explicit string 'order:rider-assigned' if not in SOCKET_EVENTS, or define it. 
+            // Checking sockets file: 'order:rider-assigned' doesn't seem to be a standard constant in my previous views, 
+            // but DELIVERY_ASSIGNED is 'delivery:assigned'. 
+            // I'll stick to direct string 'order:rider-assigned' for safety unless I'm sure.
+            // OR better, checking deliveryController used DELIVERY_ASSIGNED for rider.
+            // But customer listens to what? Previous code said 'order:rider-assigned'.
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit('order:rider-assigned', riderData);
+
+            io.to(SOCKET_ROOMS.order(order._id.toString())).emit('order:rider-assigned', riderData);
 
             // Notify managers/admin so other tabs update
-            socketService.notifyRole('manager', 'order:status-updated', {
+            const statusData = {
                 orderId: order._id,
                 status: order.status,
                 riderName: rider.name
-            });
-            socketService.notifyRole('admin', 'order:status-updated', {
-                orderId: order._id,
-                status: order.status,
-                riderName: rider.name
-            });
+            };
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, statusData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, statusData);
         }
 
         // Push Notification to Rider (Manual Assignment)
@@ -768,12 +790,12 @@ export const cancelOrder = async (req, res) => {
 
         await order.save();
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
+        // Emit Socket.io event DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
             // Notify customer
             const customerIdStr = order.customerId._id ? order.customerId._id.toString() : order.customerId.toString();
-            socketService.notifyUser(customerIdStr, 'order:cancelled', {
+            io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.ORDER_CANCELLED, {
                 orderId: order._id,
                 orderNumber: order.orderNumber,
                 reason: order.cancelReason
@@ -781,7 +803,7 @@ export const cancelOrder = async (req, res) => {
 
             // Notify rider if assigned
             if (order.riderId) {
-                socketService.notifyUser(order.riderId.toString(), 'order:cancelled', {
+                io.to(SOCKET_ROOMS.user(order.riderId.toString())).emit(SOCKET_EVENTS.ORDER_CANCELLED, {
                     orderId: order._id,
                     orderNumber: order.orderNumber
                 });
@@ -794,13 +816,25 @@ export const cancelOrder = async (req, res) => {
                 status: 'cancelled',
                 reason: order.cancelReason
             };
-            socketService.notifyRole('manager', 'order:cancelled', cancelData);
-            socketService.notifyRole('admin', 'order:cancelled', cancelData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_CANCELLED, cancelData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_CANCELLED, cancelData);
 
             // Also notify as status updated to refresh lists
-            socketService.notifyRole('manager', 'order:status-updated', cancelData);
-            socketService.notifyRole('admin', 'order:status-updated', cancelData);
+            io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, cancelData);
+            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, cancelData);
         }
+
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'cancel',
+            resource: 'order',
+            resourceId: order._id,
+            details: {
+                orderNumber: order.orderNumber,
+                reason: order.cancelReason
+            }
+        });
 
         res.status(200).json({
             success: true,

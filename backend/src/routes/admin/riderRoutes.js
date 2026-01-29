@@ -22,15 +22,15 @@ router.get('/pending', getPendingRiders);
 router.get('/:id', getRiderById);
 
 // Approve rider
-router.put('/:id/approve', logActivity('approve', 'rider'), approveRider);
+router.put('/:id/approve', approveRider);
 
 // Reject/Revoke rider approval
-router.put('/:id/reject', logActivity('reject', 'rider'), rejectRider);
+router.put('/:id/reject', rejectRider);
 
 // Toggle rider active status
-router.put('/:id/status', logActivity('update', 'rider'), toggleRiderStatus);
+router.put('/:id/status', toggleRiderStatus);
 
 // Delete rider
-router.delete('/:id', logActivity('delete', 'rider'), deleteRider);
+router.delete('/:id', deleteRider);
 
 export default router;

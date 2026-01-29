@@ -11,6 +11,8 @@ import { generateToken, generateRefreshToken } from '../../utils/jwtHelper.js';
 import { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } from '../../utils/validators.js';
 import otpConfig from '../../config/otp.js';
 import logger from '../../config/logger.js';
+import { statsService } from '../../services/statsService.js';
+import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 
 // Send OTP to mobile number
 
@@ -409,18 +411,14 @@ const completeProfile = async (req, res) => {
         // Delete OTP after profile completion
         await OTP.deleteOne({ _id: otpDoc._id });
 
-        // Emit socket event for admin dashboard
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.notifyRole('admin', 'user:registered', {
+        // Emit socket event for admin dashboard DIRECTLY
+        const io = req.app.get('io');
+        if (io) {
+            io.emit(SOCKET_EVENTS.USER_REGISTERED, {
                 userId: user._id,
                 name: user.name,
-                role: user.role
-            });
-            socketService.notifyRole('manager', 'user:registered', {
-                userId: user._id,
-                name: user.name,
-                role: user.role
+                role: user.role,
+                totalCustomers: (await statsService.getStats()).totalCustomers
             });
         }
 

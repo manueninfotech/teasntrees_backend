@@ -2,6 +2,7 @@ import User from '../../models/User.js';
 import Order from '../../models/Order.js';
 import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Get all customers with filters and search
 export const getAllCustomers = async (req, res) => {
@@ -238,6 +239,14 @@ export const toggleCustomerStatus = async (req, res) => {
         customer.isActive = !customer.isActive;
         await customer.save();
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: customer.isActive ? 'activate' : 'deactivate',
+            resource: 'user',
+            resourceId: customer._id,
+            details: { name: customer.name, role: 'customer' }
+        });
+
         res.status(200).json({
             success: true,
             message: `Customer ${customer.isActive ? 'activated' : 'deactivated'} successfully`,
@@ -280,15 +289,24 @@ export const deleteCustomer = async (req, res) => {
         // Update Stats Transactionally
         await statsService.decrement('totalCustomers');
 
-        // Emit Socket.io event
-        const socketService = req.app.get('socketService');
-        if (socketService) {
-            socketService.broadcast(SOCKET_EVENTS.USER_DELETED, {
+        // Emit Socket.io event DIRECTLY (Bypassing service for reliability)
+        const io = req.app.get('io');
+        if (io) {
+            console.log('EMITTED user:deleted via direct IO');
+            io.emit(SOCKET_EVENTS.USER_DELETED, {
                 id: customer._id,
                 role: 'customer',
-                totalCustomers: (await statsService.getStats()).totalCustomers // Send updated count
+                totalCustomers: (await statsService.getStats()).totalCustomers
             });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'delete',
+            resource: 'user',
+            resourceId: customer._id,
+            details: { name: customer.name, role: 'customer' }
+        });
 
         res.status(200).json({
             success: true,
