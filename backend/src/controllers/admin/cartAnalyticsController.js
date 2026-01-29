@@ -25,11 +25,12 @@ export const getCartAnalytics = async (req, res) => {
 
             // Track popular items
             for (const item of cart.items) {
+                if (!item.product) continue; // Skip items with no product reference
                 const productId = item.product.toString();
                 if (!itemFrequency[productId]) {
                     itemFrequency[productId] = {
                         productId,
-                        name: item.name,
+                        name: item.name || 'Unknown Item',
                         count: 0,
                         totalQuantity: 0
                     };
@@ -113,16 +114,21 @@ export const getAbandonedCarts = async (req, res) => {
         res.json({
             success: true,
             data: {
-                abandonedCarts: abandonedCarts.map(cart => ({
-                    userId: cart.userId._id,
-                    userName: cart.userId.name,
-                    userMobile: cart.userId.mobile,
-                    items: cart.items,
-                    subtotal: cart.subtotal,
-                    itemCount: cart.items.length,
-                    lastUpdated: cart.updatedAt,
-                    daysAbandoned: Math.floor((new Date() - cart.updatedAt) / (1000 * 60 * 60 * 24))
-                })),
+                abandonedCarts: abandonedCarts
+                    .filter(cart => cart.userId) // Filter out carts with missing users
+                    .map(cart => ({
+                        userId: cart.userId._id,
+                        userName: cart.userId.name,
+                        userMobile: cart.userId.mobile,
+                        items: cart.items.map(item => ({
+                            ...item.toObject(),
+                            name: item.product ? item.product.name : (item.name || 'Unknown Product')
+                        })),
+                        subtotal: cart.subtotal,
+                        itemCount: cart.items.length,
+                        lastUpdated: cart.updatedAt,
+                        daysAbandoned: Math.floor((new Date() - cart.updatedAt) / (1000 * 60 * 60 * 24))
+                    })),
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(total / limit),

@@ -67,103 +67,99 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }) 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md border border-gray-100">
                 {/* Header */}
-                <div className="border-b border-gray-200 p-6 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-900">
+                <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-50 p-8 flex items-center justify-between z-10">
+                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
                         {category ? 'Edit Category' : 'Add New Category'}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
                     >
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     {error && (
-                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
-                            {error}
+                        <div className="bg-red-50 border border-red-100 text-red-600 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                            ERROR: {error}
                         </div>
                     )}
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                             Category Name *
                         </label>
                         <input
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            placeholder="e.g., Tea, Coffee, Snacks"
-                            className="input"
+                            placeholder="E.G. HANDCRAFTED TEAS"
+                            className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
                             required
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Description
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                            Short Description
                         </label>
                         <textarea
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Brief description of the category"
-                            className="input resize-none"
+                            placeholder="BRIEF CLASSIFICATION SUMMARY..."
+                            className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white min-h-[100px] resize-none transition-all"
                             rows="3"
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Icon (Emoji or Icon Code)
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.icon}
-                            onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                            placeholder="e.g., ☕, 🍵, or icon-coffee"
-                            className="input"
-                        />
-                        {formData.icon && (
-                            <p className="text-sm text-gray-600 mt-2">
-                                Preview: <span className="text-2xl">{formData.icon}</span>
-                            </p>
-                        )}
-                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                Icon (Emoji)
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.icon}
+                                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+                                placeholder="E.G. ☕"
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white text-center transition-all"
+                            />
+                        </div>
 
-                    <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Display Order
-                        </label>
-                        <input
-                            type="number"
-                            value={formData.displayOrder}
-                            onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })}
-                            placeholder="e.g., 1, 2, 3"
-                            className="input"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Lower numbers appear first</p>
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                Display Order
+                            </label>
+                            <input
+                                type="number"
+                                value={formData.displayOrder}
+                                onChange={(e) => setFormData({ ...formData, displayOrder: e.target.value })}
+                                placeholder="E.G. 1"
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
+                            />
+                        </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-4 pt-4">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 btn-secondary py-3"
+                            className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all border border-transparent"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 btn-primary py-3 disabled:opacity-50"
+                            className="flex-1 py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-xl shadow-emerald-200"
                         >
-                            {loading ? 'Saving...' : (category ? 'Update Category' : 'Add Category')}
+                            {loading ? 'Saving...' : (category ? 'Update Category' : 'Create Category')}
                         </button>
                     </div>
                 </form>

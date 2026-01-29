@@ -20,68 +20,47 @@ const UserCard = ({ user, onToggleStatus, onDelete, onViewDetails }) => {
     const isActive = user.isActive !== false;
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all flex flex-col group">
-            {/* Top Section / Header */}
-            <div className={`h-24 bg-gradient-to-br transition-colors ${user.role === 'admin' ? 'from-purple-500 to-indigo-600' :
-                    user.role === 'rider' ? 'from-orange-400 to-red-500' :
-                        user.role === 'manager' ? 'from-blue-500 to-cyan-600' :
-                            'from-emerald-400 to-teal-500'
-                } flex items-center justify-center relative`}>
-                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center font-bold text-2xl text-gray-700 shadow-md uppercase">
-                    {user.name?.charAt(0)}
+        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col">
+            {/* Header Area */}
+            <div className="p-6 pb-0 flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 group-hover:bg-indigo-50 transition-colors">
+                        <RoleIcon className={`w-7 h-7 ${user.role === 'admin' ? 'text-purple-600' : user.role === 'manager' ? 'text-blue-600' : 'text-orange-600'}`} />
+                    </div>
+                    <div>
+                        <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm truncate max-w-[150px]">{user.name}</h3>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{roleStyle.label}</p>
+                    </div>
                 </div>
-
-                {/* Status Toggle (Floating) */}
                 <button
                     onClick={() => onToggleStatus(user)}
-                    className={`absolute top-3 right-3 p-1.5 rounded-full shadow-sm border transition-all ${isActive
-                            ? 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
-                            : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
-                        }`}
-                    title={isActive ? 'Deactivate' : 'Activate'}
+                    className={`px-2 py-1 rounded-md text-[8px] font-black uppercase transition-all ${isActive ? 'bg-green-50 text-green-600 hover:bg-green-600 hover:text-white' : 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'}`}
                 >
-                    {isActive ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    {isActive ? 'Active' : 'Banned'}
                 </button>
             </div>
 
-            {/* Content Section */}
-            <div className="p-5 flex flex-col flex-1">
-                <div className="text-center mb-4">
-                    <h3 className="font-bold text-lg text-gray-900 line-clamp-1">{user.name}</h3>
-                    <div className={`mt-1 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${roleStyle.bg} ${roleStyle.text}`}>
-                        <RoleIcon className="w-3.5 h-3.5" />
-                        {roleStyle.label}
+            {/* Content Area */}
+            <div className="p-6 space-y-5 flex-1 flex flex-col justify-between">
+                <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gray-50 rounded-lg">
+                            <Mail className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
+                        <span className="text-[10px] font-black text-gray-500 lowercase tracking-widest truncate max-w-[180px]">{user.email || 'NO EMAIL'}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gray-50 rounded-lg">
+                            <Phone className="w-3.5 h-3.5 text-gray-400" />
+                        </div>
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{user.mobile || 'NO PHONE'}</span>
                     </div>
                 </div>
 
-                <div className="space-y-3 flex-1">
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                        <div className="p-2 bg-gray-50 rounded-lg">
-                            <Mail className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <span className="truncate" title={user.email}>{user.email || 'No email'}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                        <div className="p-2 bg-gray-50 rounded-lg">
-                            <Phone className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <span>{user.mobile || 'No mobile'}</span>
-                    </div>
-                </div>
-
-                {/* Footer Section / Action Buttons */}
-                <div className="mt-5 pt-4 border-t border-gray-100 flex gap-2">
-                    <button
-                        onClick={() => onViewDetails(user)}
-                        className="flex-1 btn-secondary flex items-center justify-center gap-2 text-sm py-2 hover:bg-gray-50 bg-white"
-                    >
-                        <Eye className="w-4 h-4" />
-                        View
-                    </button>
-                    <button
-                        onClick={() => onDelete(user._id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                    >
+                {/* Actions */}
+                <div className="flex gap-2 pt-4 border-t border-gray-100">
+                    <button onClick={() => onViewDetails(user)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">View Profile</button>
+                    <button onClick={() => onDelete(user._id)} className="px-4 py-3 bg-red-50 text-red-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all">
                         <Trash2 className="w-4 h-4" />
                     </button>
                 </div>

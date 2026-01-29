@@ -88,79 +88,98 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden relative z-10 flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-emerald-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100 flex flex-col">
                 {/* Header */}
-                <div className={`p-6 text-white flex items-center justify-between ${user.role === 'admin' ? 'bg-purple-600' :
-                    user.role === 'rider' ? 'bg-orange-500' :
-                        user.role === 'manager' ? 'bg-blue-600' :
-                            'bg-emerald-600'
+                <div className={`p-8 flex items-center justify-between border-b border-gray-50 z-10 ${user.role === 'admin' ? 'bg-purple-50' :
+                    user.role === 'rider' ? 'bg-orange-50' :
+                        user.role === 'manager' ? 'bg-blue-50' :
+                            'bg-emerald-50'
                     }`}>
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center font-bold text-2xl uppercase">
+                    <div className="flex items-center gap-6">
+                        <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center font-black text-3xl uppercase border shadow-sm ${user.role === 'admin' ? 'bg-white text-purple-600 border-purple-100' :
+                            user.role === 'rider' ? 'bg-white text-orange-600 border-orange-100' :
+                                user.role === 'manager' ? 'bg-white text-blue-600 border-blue-100' :
+                                    'bg-white text-emerald-600 border-emerald-100'
+                            }`}>
                             {user.name?.charAt(0)}
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold">{user.name}</h2>
-                            <div className="flex items-center gap-2 text-white/80 text-sm mt-1">
-                                <RoleIcon className="w-4 h-4" />
-                                <span className="capitalize">{user.role}</span>
+                            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{user.name}</h2>
+                            <div className="flex items-center gap-2 mt-1">
+                                <RoleIcon className={`w-3 h-3 ${user.role === 'admin' ? 'text-purple-600' :
+                                    user.role === 'rider' ? 'text-orange-600' :
+                                        user.role === 'manager' ? 'text-blue-600' :
+                                            'text-emerald-600'
+                                    }`} />
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">User Node ID: {user.role}</span>
                             </div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+                    <button
+                        onClick={onClose}
+                        className="p-4 bg-white/50 text-gray-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all border border-black/5"
+                    >
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto flex-1">
+                <div className="p-10 overflow-y-auto flex-1 space-y-10">
                     {loading ? (
-                        <div className="flex flex-col items-center justify-center py-12">
-                            <div className="w-10 h-10 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                            <p className="text-gray-500 mt-4 font-medium">Loading profile details...</p>
+                        <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
+                            <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Syncing Profile Buffer...</p>
                         </div>
                     ) : (
-                        <div className="space-y-8">
+                        <div className="space-y-10">
                             {/* Summary Stats / Status */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className={`p-4 rounded-xl flex items-center gap-4 ${isActive ? 'bg-green-50 border border-green-100' : 'bg-red-50 border border-red-100'}`}>
-                                    <div className={`p-2 rounded-lg ${isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className={`p-6 rounded-[2rem] flex items-center gap-4 border ${isActive ? 'bg-emerald-50/50 border-emerald-100' : 'bg-red-50/50 border-red-100'}`}>
+                                    <div className={`p-3 rounded-xl shadow-sm bg-white ${isActive ? 'text-emerald-600' : 'text-red-600'}`}>
                                         {isActive ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Account Status</p>
-                                        <p className={`font-bold ${isActive ? 'text-green-700' : 'text-red-700'}`}>{isActive ? 'Active' : 'Inactive'}</p>
+                                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-1">State</p>
+                                        <p className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-emerald-700' : 'text-red-700'}`}>{isActive ? 'ACTIVE_NODE' : 'OFFLINE_NODE'}</p>
                                     </div>
                                 </div>
-                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-4">
-                                    <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                                <div className="p-6 bg-gray-50/50 rounded-[2rem] border border-gray-100 flex items-center gap-4">
+                                    <div className="p-3 bg-white text-gray-900 shadow-sm rounded-xl">
                                         <Calendar className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Member Since</p>
-                                        <p className="font-bold text-gray-900">{new Date(user.createdAt).toLocaleDateString()}</p>
+                                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-1">Epoch</p>
+                                        <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{new Date(user.createdAt).toLocaleDateString()}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Contact Information */}
-                            <div>
-                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Contact Information</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl">
-                                        <Mail className="w-5 h-5 text-gray-400" />
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 px-2">
+                                    <div className="p-2 bg-gray-50 rounded-lg">
+                                        <Shield className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Contact Matrix</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex items-center gap-4 p-6 bg-white border border-gray-100 rounded-[2rem]">
+                                        <div className="p-2 bg-gray-50 rounded-lg text-gray-400">
+                                            <Mail className="w-4 h-4" />
+                                        </div>
                                         <div>
-                                            <p className="text-xs text-gray-500">Email Address</p>
-                                            <p className="text-sm font-medium">{user.email || 'N/A'}</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Electronic Mail</p>
+                                            <p className="text-xs font-black text-gray-900">{user.email || 'N/A'}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl">
-                                        <Phone className="w-5 h-5 text-gray-400" />
+                                    <div className="flex items-center gap-4 p-6 bg-white border border-gray-100 rounded-[2rem]">
+                                        <div className="p-2 bg-gray-50 rounded-lg text-gray-400">
+                                            <Phone className="w-4 h-4" />
+                                        </div>
                                         <div>
-                                            <p className="text-xs text-gray-500">Mobile Number</p>
-                                            <p className="text-sm font-medium">{user.mobile || 'N/A'}</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Vocal Link</p>
+                                            <p className="text-xs font-black text-gray-900">{user.mobile || 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -168,18 +187,20 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
 
                             {/* Role Specific Section (For Customer) */}
                             {user.role === 'customer' && details?.wishlist?.length > 0 && (
-                                <div>
-                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                        <Heart className="w-4 h-4 text-red-400" />
-                                        Wishlist Items ({details.wishlist.length})
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 px-2">
+                                        <div className="p-2 bg-red-50 rounded-lg text-red-400">
+                                            <Heart className="w-4 h-4" />
+                                        </div>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Interest Cache ({details.wishlist.length})</h3>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
                                         {details.wishlist.slice(0, 4).map(item => (
-                                            <div key={item._id} className="flex items-center gap-3 p-2 border border-gray-100 rounded-lg">
-                                                <img src={item.image} alt={item.name} className="w-10 h-10 object-cover rounded" />
+                                            <div key={item._id} className="flex items-center gap-4 p-4 border border-gray-100 rounded-[1.5rem] bg-white hover:border-emerald-600 transition-all group">
+                                                <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-xl grayscale group-hover:grayscale-0 transition-all" />
                                                 <div className="overflow-hidden">
-                                                    <p className="text-xs font-semibold truncate">{item.name}</p>
-                                                    <p className="text-xs text-indigo-600 font-bold">₹{item.price}</p>
+                                                    <p className="text-[10px] font-black uppercase text-gray-900 truncate tracking-tight">{item.name}</p>
+                                                    <p className="text-[10px] text-gray-900 font-black uppercase tracking-widest mt-1 italic">₹{item.price}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -189,26 +210,24 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
 
                             {/* Role Specific Section (For Riders) */}
                             {user.role === 'rider' && (
-                                <div>
-                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                        <TrendingUp className="w-4 h-4 text-orange-500" />
-                                        Performance Overview
-                                    </h3>
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <div className="bg-gray-50 p-3 rounded-xl text-center">
-                                            <p className="text-[10px] text-gray-500 uppercase">Deliveries</p>
-                                            <p className="font-bold text-lg">{details?.totalDeliveries || 0}</p>
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 px-2">
+                                        <div className="p-2 bg-orange-50 rounded-lg text-orange-400">
+                                            <TrendingUp className="w-4 h-4" />
                                         </div>
-                                        <div className="bg-gray-50 p-3 rounded-xl text-center">
-                                            <p className="text-[10px] text-gray-500 uppercase">Rating</p>
-                                            <p className="font-bold text-lg">{details?.averageRating?.toFixed(1) || '0.0'}</p>
-                                        </div>
-                                        <div className="bg-gray-50 p-3 rounded-xl text-center">
-                                            <p className="text-[10px] text-gray-500 uppercase">Status</p>
-                                            <p className={`font-bold text-xs mt-1 ${details?.isOnline ? 'text-green-600' : 'text-gray-400'}`}>
-                                                {details?.isOnline ? 'Online' : 'Offline'}
-                                            </p>
-                                        </div>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Operational Overview</h3>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        {[
+                                            { label: 'Deliveries', value: details?.totalDeliveries || 0 },
+                                            { label: 'Rating', value: (details?.averageRating || 0).toFixed(1) },
+                                            { label: 'State', value: details?.isOnline ? 'ONLINE' : 'OFFLINE', color: details?.isOnline ? 'text-emerald-600' : 'text-gray-400' }
+                                        ].map((stat, i) => (
+                                            <div key={i} className="bg-white border border-gray-100 p-6 rounded-[2rem] text-center shadow-sm">
+                                                <p className="text-[8px] font-black text-gray-400 uppercase mb-2 tracking-widest">{stat.label}</p>
+                                                <p className={`font-black text-xl tracking-tight ${stat.color || 'text-gray-900'}`}>{stat.value}</p>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -216,40 +235,42 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                             {/* Staff Activity History */}
                             {(user.role === 'admin' || user.role === 'manager') && (
                                 <div className="space-y-4">
-                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
-                                        <History className="w-4 h-4 text-indigo-500" />
-                                        Activity History (Recent)
-                                    </h3>
+                                    <div className="flex items-center gap-3 px-2">
+                                        <div className="p-2 bg-indigo-50 rounded-lg text-indigo-400">
+                                            <History className="w-4 h-4" />
+                                        </div>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Operation Logs (Recent)</h3>
+                                    </div>
                                     <div className="space-y-3">
                                         {logsLoading ? (
-                                            <div className="flex items-center gap-3 animate-pulse p-2">
-                                                <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
-                                                <div className="flex-1 space-y-2">
-                                                    <div className="h-3 bg-gray-100 rounded w-1/2"></div>
-                                                    <div className="h-2 bg-gray-50 rounded w-1/4"></div>
+                                            <div className="flex items-center gap-4 animate-pulse p-6 bg-gray-50/50 rounded-[2rem]">
+                                                <div className="w-10 h-10 bg-white rounded-xl"></div>
+                                                <div className="flex-1 space-y-3">
+                                                    <div className="h-2 bg-white rounded w-1/2"></div>
+                                                    <div className="h-1.5 bg-white rounded w-1/4"></div>
                                                 </div>
                                             </div>
                                         ) : activityLogs.length === 0 ? (
-                                            <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                                <p className="text-xs text-gray-400 font-medium">No recent activity recorded</p>
+                                            <div className="text-center py-10 bg-gray-50/50 rounded-[2.5rem] border border-dashed border-gray-200">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Buffer Empty</p>
                                             </div>
                                         ) : (
                                             activityLogs.slice(0, 5).map((log) => (
-                                                <div key={log._id} className="flex items-start gap-4 p-3 bg-white border border-gray-100 rounded-xl hover:shadow-sm transition-all group">
-                                                    <div className={`p-2 rounded-lg shrink-0 ${getActionColor(log.action)}`}>
+                                                <div key={log._id} className="flex items-start gap-4 p-6 bg-white border border-gray-100 rounded-[2rem] hover:border-emerald-600 transition-all group">
+                                                    <div className={`p-3 rounded-xl shadow-sm bg-gray-50 ${getActionColor(log.action)}`}>
                                                         <Clock className="w-4 h-4" />
                                                     </div>
                                                     <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-bold text-gray-900 capitalize">
-                                                                {log.action} {log.resource}
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-[11px] font-black text-gray-900 uppercase tracking-tight">
+                                                                {log.action}_{log.resource}
                                                             </span>
-                                                            <span className="text-[10px] font-bold text-gray-400 uppercase">
+                                                            <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest">
                                                                 {formatRelativeTime(log.createdAt)}
                                                             </span>
                                                         </div>
-                                                        <p className="text-xs text-gray-500 truncate mt-0.5 italic">
-                                                            ID: {log.resourceId || 'System'}
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight mt-1 truncate italic">
+                                                            PTR: {log.resourceId || 'SYS_CORE'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -263,12 +284,12 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                <div className="p-8 bg-gray-50/50 border-t border-gray-50">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-300 transition-colors"
+                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                     >
-                        Close Profile
+                        Terminate View
                     </button>
                 </div>
             </div>

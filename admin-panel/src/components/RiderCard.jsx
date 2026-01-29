@@ -1,4 +1,4 @@
-import { Bike, Star, Phone, MapPin, Trash2, Power, Eye } from 'lucide-react';
+import { Bike, Star, Phone, MapPin, Trash2, Power, Eye, XCircle } from 'lucide-react';
 import RiderStatusBadge from './RiderStatusBadge';
 
 export default function RiderCard({ rider, onViewDetails, onApprove, onReject, onToggleStatus, onDelete, isPending }) {
@@ -7,116 +7,82 @@ export default function RiderCard({ rider, onViewDetails, onApprove, onReject, o
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 border-b border-gray-200">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                            <Bike className="w-6 h-6 text-teal-600" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold text-gray-900">{rider.name}</h3>
-                            <p className="text-sm text-gray-600 flex items-center gap-1">
-                                <Phone className="w-3 h-3" />
-                                {rider.mobile}
-                            </p>
-                        </div>
+        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">
+            {/* Header Area */}
+            <div className="p-6 pb-0 flex items-start justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 group-hover:bg-teal-50 transition-colors">
+                        <Bike className="w-7 h-7 text-teal-600" />
                     </div>
-                    {!isPending && (
-                        <div className="flex flex-col gap-1 items-end">
-                            <RiderStatusBadge type="online" status={rider.isOnline} />
-                            <RiderStatusBadge type="active" status={rider.isActive} />
-                        </div>
-                    )}
+                    <div>
+                        <h3 className="font-black text-gray-900 uppercase tracking-tight text-sm truncate max-w-[150px]">{rider.name}</h3>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">{rider.mobile}</p>
+                    </div>
                 </div>
+                {!isPending && (
+                    <div className="flex flex-col gap-1.5 items-end">
+                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${rider.isOnline ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+                            {rider.isOnline ? 'Active' : 'Offline'}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded-md text-[8px] font-black uppercase ${rider.isActive ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-600'}`}>
+                            {rider.isActive ? 'Live' : 'Banned'}
+                        </span>
+                    </div>
+                )}
             </div>
 
-            {/* Content */}
-            <div className="p-4 space-y-3">
-                {/* Vehicle Info */}
-                <div className="flex items-center gap-2 text-sm">
-                    {getVehicleIcon(rider.vehicleType)}
-                    <span className="text-gray-600">{rider.vehicleType || 'N/A'}</span>
-                    <span className="text-gray-400">•</span>
-                    <span className="font-medium text-gray-900">{rider.vehicleNumber || 'N/A'}</span>
+            {/* Content Area */}
+            <div className="p-6 space-y-5">
+                {/* Info Block */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-gray-50 rounded-lg">
+                            <MapPin className="w-3 h-3 text-gray-400" />
+                        </div>
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{rider.vehicleNumber || 'NO PLATE'}</span>
+                    </div>
+                    <span className="bg-gray-50 text-gray-400 text-[8px] font-black uppercase px-2 py-0.5 rounded-md">{rider.vehicleType || 'BIKE'}</span>
                 </div>
 
-                {/* Stats */}
+                {/* Stats Grid */}
                 {!isPending && (
-                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                         <div>
-                            <p className="text-xs text-gray-500">Deliveries</p>
-                            <p className="font-bold text-gray-900">{rider.totalDeliveries || 0}</p>
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Jobs Done</p>
+                            <p className="text-xl font-black text-gray-900">{rider.totalDeliveries || 0}</p>
                         </div>
                         <div>
-                            <p className="text-xs text-gray-500">Rating</p>
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Rating</p>
                             <div className="flex items-center gap-1">
-                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                <span className="font-bold text-gray-900">{rider.averageRating?.toFixed(1) || '0.0'}</span>
-                                <span className="text-xs text-gray-500">({rider.ratingsCount || 0})</span>
+                                <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                <span className="text-xl font-black text-gray-900">{rider.averageRating?.toFixed(1) || '0.0'}</span>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Approval Status for Pending */}
                 {isPending && (
-                    <div className="pt-3 border-t border-gray-100">
-                        <RiderStatusBadge type="approval" status="pending" />
+                    <div className="pt-4 border-t border-gray-100">
+                        <span className="bg-orange-50 text-orange-600 text-[10px] font-black uppercase px-3 py-1 rounded-xl">Review Pending</span>
                     </div>
                 )}
-            </div>
 
-            {/* Actions */}
-            <div className="p-4 bg-gray-50 border-t border-gray-200">
-                {isPending ? (
-                    <div className="flex flex-col gap-2">
-                        <button
-                            onClick={() => onViewDetails(rider)}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
-                        >
-                            <Eye className="w-4 h-4" /> View Details
-                        </button>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => onApprove(rider)}
-                                className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
-                            >
-                                Approve
-                            </button>
-                            <button
-                                onClick={() => onReject(rider)}
-                                className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
-                            >
-                                Reject
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => onViewDetails(rider)}
-                            className="flex-1 btn-primary text-sm"
-                        >
-                            View Details
-                        </button>
-                        <button
-                            onClick={() => onToggleStatus(rider)}
-                            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                            title={rider.isActive ? 'Deactivate' : 'Activate'}
-                        >
-                            <Power className="w-4 h-4" />
-                        </button>
-                        <button
-                            onClick={() => onDelete(rider)}
-                            className="px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
-                            title="Delete"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </button>
-                    </div>
-                )}
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                    {isPending ? (
+                        <>
+                            <button onClick={() => onViewDetails(rider)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">Details</button>
+                            <button onClick={() => onApprove(rider)} className="flex-1 bg-green-50 text-green-600 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-green-600 hover:text-white transition-all">Approve</button>
+                            <button onClick={() => onReject(rider)} className="px-4 py-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><XCircle className="w-4 h-4" /></button>
+                        </>
+                    ) : (
+                        <>
+                            <button onClick={() => onViewDetails(rider)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all">View</button>
+                            <button onClick={() => onToggleStatus(rider)} className="px-4 py-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all"><Power className="w-4 h-4" /></button>
+                            <button onClick={() => onDelete(rider)} className="px-4 py-3 bg-red-50 text-red-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );

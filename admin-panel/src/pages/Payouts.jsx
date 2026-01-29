@@ -1,35 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     Wallet, IndianRupee, Clock, CheckCircle2,
     ArrowRight, Loader2, RefreshCw, AlertCircle,
     User, Bike, Calendar
 } from 'lucide-react';
 import api from '../utils/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+const TableSkeleton = () => (
+    <div className="space-y-4 animate-pulse p-8">
+        {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="h-16 bg-gray-50 rounded-2xl"></div>
+        ))}
+    </div>
+);
 
 const Payouts = () => {
-    const [stats, setStats] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
     const [processingId, setProcessingId] = useState(null);
     const [notification, setNotification] = useState(null);
 
-    useEffect(() => {
-        fetchStats();
-    }, []);
-
-    const fetchStats = async () => {
-        setLoading(true);
-        try {
+    const { data: stats = [], isLoading: loading, isFetching, refetch } = useQuery({
+        queryKey: ['payouts-stats'],
+        queryFn: async () => {
             const response = await api.get('/admin/payouts/stats');
-            if (response.data.success) {
-                setStats(response.data.data);
-            }
-        } catch (error) {
-            console.error('Error fetching payout stats:', error);
-            showNotification('error', 'Failed to load payout statistics');
-        } finally {
-            setLoading(false);
+            return response.data.data || [];
         }
-    };
+    });
+
+    const isSyncing = isFetching;
 
     const handleProcessPayout = async (riderId) => {
         setProcessingId(riderId);
@@ -37,7 +36,7 @@ const Payouts = () => {
             const response = await api.post('/admin/payouts/process', { riderId });
             if (response.data.success) {
                 showNotification('success', response.data.message);
-                fetchStats(); // Refresh data
+                queryClient.invalidateQueries({ queryKey: ['payouts-stats'] });
             }
         } catch (error) {
             console.error('Error processing payout:', error);
@@ -56,167 +55,126 @@ const Payouts = () => {
     const activeRiders = stats.length;
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="space-y-8">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Payouts Management</h1>
-                    <p className="text-gray-500 mt-1">Review and process unpaid earnings for delivery riders</p>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Rider Payments</h1>
+                    <p className="text-gray-500 mt-1 font-bold">Manage payments and earnings for riders</p>
                 </div>
                 <button
-                    onClick={fetchStats}
-                    disabled={loading}
-                    className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-2xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm hover:shadow-md disabled:opacity-50"
+                    onClick={() => refetch()}
+                    disabled={isSyncing}
+                    className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg hover:shadow-black/20 disabled:opacity-50"
                 >
-                    <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh Stats
+                    <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                    {isSyncing ? 'Syncing...' : 'Sync Treasury'}
                 </button>
             </div>
 
-            {/* Notification */}
             {notification && (
-                <div className={`p-4 rounded-2xl border flex items-center gap-3 animate-in slide-in-from-top duration-300 ${notification.type === 'success'
-                        ? 'bg-green-50 text-green-700 border-green-100'
-                        : 'bg-red-50 text-red-700 border-red-100'
-                    }`}>
-                    {notification.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                    <p className="text-sm font-bold">{notification.message}</p>
+                <div className={`p-6 rounded-[2rem] border-2 flex items-center gap-4 animate-in slide-in-from-top duration-300 shadow-xl ${notification.type === 'success' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                    <div className={`p-2 rounded-xl ${notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                        {notification.type === 'success' ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                    </div>
+                    <p className="text-sm font-black uppercase tracking-tight">{notification.message}</p>
                 </div>
             )}
 
-            {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <StatCard
-                    label="Total Unpaid"
-                    value={`₹${totalUnpaid.toLocaleString()}`}
-                    icon={Wallet}
-                    theme="amber"
-                    desc="Pending payments"
-                />
-                <StatCard
-                    label="Active Riders"
-                    value={activeRiders}
-                    icon={Bike}
-                    theme="indigo"
-                    desc="With unpaid earnings"
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                <StatCard label="Pending Payments" value={`₹${totalUnpaid.toLocaleString()}`} icon={Wallet} theme="amber" desc="Money to be paid" loading={loading} />
+                <StatCard label="Riders to Pay" value={activeRiders} icon={Bike} theme="indigo" desc="Waiting for payment" loading={loading} />
             </div>
 
-            {/* Rider Payout Table */}
-            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden min-h-[400px]">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead>
-                            <tr className="text-[10px] text-gray-400 font-black uppercase tracking-widest border-b border-gray-50 bg-gray-50/20">
-                                <th className="px-8 py-5">Rider Details</th>
-                                <th className="px-8 py-5">Deliveries</th>
-                                <th className="px-8 py-5">Total Earnings</th>
-                                <th className="px-8 py-5">Last Delivery</th>
-                                <th className="px-8 py-5 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50 font-sans">
-                            {loading ? (
-                                Array.from({ length: 5 }).map((_, i) => (
-                                    <tr key={i} className="animate-pulse">
-                                        <td className="px-8 py-6"><div className="h-12 bg-gray-50 rounded-2xl w-48"></div></td>
-                                        <td className="px-8 py-6"><div className="h-8 bg-gray-50 rounded-full w-16"></div></td>
-                                        <td className="px-8 py-6"><div className="h-10 bg-gray-50 rounded-xl w-32"></div></td>
-                                        <td className="px-8 py-6"><div className="h-4 bg-gray-50 rounded w-24"></div></td>
-                                        <td className="px-8 py-6"><div className="h-10 bg-gray-50 rounded-xl w-32 float-right"></div></td>
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
+                <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/20">
+                    <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Payable Accounts</h2>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stats.length} entities tracked</span>
+                </div>
+
+                <div className="flex-1">
+                    {loading && stats.length === 0 ? (
+                        <TableSkeleton />
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="text-[10px] text-gray-400 font-black uppercase tracking-widest bg-gray-50/30">
+                                        <th className="px-8 py-6">Rider Name</th>
+                                        <th className="px-8 py-6">Orders Delivered</th>
+                                        <th className="px-8 py-6">Amount to Pay</th>
+                                        <th className="px-8 py-6">Last Order</th>
+                                        <th className="px-8 py-6 text-right">Action</th>
                                     </tr>
-                                ))
-                            ) : stats.length === 0 ? (
-                                <tr>
-                                    <td colSpan="5" className="px-8 py-20 text-center">
-                                        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <CheckCircle2 className="w-10 h-10 text-emerald-200" />
-                                        </div>
-                                        <p className="text-gray-500 font-bold">All riders are paid up!</p>
-                                        <p className="text-xs text-gray-400 mt-1 uppercase font-black tracking-widest">No pending payouts found</p>
-                                    </td>
-                                </tr>
-                            ) : (
-                                stats.map((rider) => (
-                                    <tr key={rider.riderId} className="group hover:bg-indigo-50/30 transition-all duration-300">
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-gray-100 text-gray-400 rounded-2xl flex items-center justify-center group-hover:bg-white group-hover:text-indigo-600 border border-transparent group-hover:border-indigo-100 transition-all">
-                                                    <User className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{rider.riderName || 'Anonymous Rider'}</p>
-                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">{rider.riderMobile || 'No Mobile'}</p>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <span className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-[10px] font-black uppercase">
-                                                {rider.count} Orders
-                                            </span>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <p className="text-lg font-black text-indigo-600 tracking-tight">₹{rider.totalAmount.toLocaleString()}</p>
-                                        </td>
-                                        <td className="px-8 py-6">
-                                            <div className="flex items-center gap-2 text-gray-400">
-                                                <Calendar className="w-3.5 h-3.5" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">
-                                                    {new Date(rider.lastDeliveryDate).toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-8 py-6 text-right">
-                                            <button
-                                                onClick={() => handleProcessPayout(rider.riderId)}
-                                                disabled={processingId === rider.riderId}
-                                                className="inline-flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-indigo-600 shadow-sm hover:shadow-lg disabled:opacity-50 group/btn"
-                                            >
-                                                {processingId === rider.riderId ? (
-                                                    <Loader2 className="w-3 h-3 animate-spin" />
-                                                ) : (
-                                                    <IndianRupee className="w-3 h-3 transition-transform group-hover/btn:rotate-12" />
-                                                )}
-                                                Pay Rider
-                                                <ArrowRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-1" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {stats.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="5" className="px-8 py-32 text-center text-gray-200 font-black uppercase tracking-[0.2em]">All accounts balanced</td>
+                                        </tr>
+                                    ) : (
+                                        stats.map((rider) => (
+                                            <tr key={rider.riderId} className="group hover:bg-indigo-50/20 transition-all duration-300">
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-12 h-12 bg-gray-50 border border-gray-100 text-gray-400 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm">
+                                                            <User className="w-6 h-6" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-black text-gray-900 uppercase mb-0.5">{rider.riderName || 'Anonymous'}</p>
+                                                            <p className="text-[10px] text-gray-400 font-black tracking-tight">{rider.riderMobile}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className="px-4 py-2 bg-gray-100 text-gray-500 rounded-xl text-[10px] font-black uppercase tracking-widest">{rider.count} Orders</span>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <span className="text-xl font-black text-indigo-600">₹{rider.totalAmount.toLocaleString()}</span>
+                                                </td>
+                                                <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-1.5 text-[10px] font-black uppercase text-gray-400 tracking-widest"><Calendar className="w-3.5 h-3.5" /> {new Date(rider.lastDeliveryDate).toLocaleDateString()}</div>
+                                                </td>
+                                                <td className="px-8 py-6 text-right">
+                                                    <button
+                                                        onClick={() => handleProcessPayout(rider.riderId)}
+                                                        disabled={processingId === rider.riderId}
+                                                        className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-indigo-600 shadow-xl shadow-black/10 disabled:opacity-50 group/btn active:scale-95"
+                                                    >
+                                                        {processingId === rider.riderId ? <Loader2 className="w-4 h-4 animate-spin" /> : <IndianRupee className="w-4 h-4" />}
+                                                        Process <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
 };
 
-const StatCard = ({ label, value, icon: Icon, theme, desc }) => {
+const StatCard = ({ label, value, icon: Icon, theme, desc, loading }) => {
     const themes = {
         indigo: 'from-indigo-600 to-indigo-700 shadow-indigo-100 text-indigo-600 bg-indigo-50',
         amber: 'from-amber-500 to-amber-600 shadow-amber-100 text-amber-600 bg-amber-50',
     };
-
     const style = themes[theme] || themes.indigo;
     const [gradientFrom, gradientTo, shadow, textColor, bgColor] = style.split(' ');
-
     return (
-        <div className="relative overflow-hidden bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group duration-300">
-            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${gradientFrom} ${gradientTo} opacity-[0.03] rounded-bl-full transform translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform duration-700`}></div>
-
+        <div className="relative overflow-hidden bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
             <div className="relative flex items-center justify-between">
                 <div className="space-y-1">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">{label}</p>
-                    <div className="flex items-baseline gap-1">
-                        <h3 className="text-3xl font-black text-gray-900 tracking-tight">{value}</h3>
-                    </div>
-                    <div className={`flex items-center gap-1.5 py-1 px-2 ${bgColor} rounded-lg w-fit transition-all group-hover:translate-x-1`}>
-                        <Clock className={`w-3 h-3 ${textColor}`} />
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{label}</p>
+                    <h3 className={`text-3xl font-black text-gray-900 tracking-tighter ${loading ? 'animate-pulse opacity-50' : ''}`}>{value}</h3>
+                    <div className={`flex items-center gap-1 py-1 px-3 ${bgColor} rounded-full w-fit`}>
+                        <ArrowRight className={`w-3 h-3 ${textColor}`} />
                         <span className={`text-[10px] font-black uppercase tracking-tight ${textColor}`}>{desc}</span>
                     </div>
                 </div>
-
                 <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg ${shadow} transform group-hover:rotate-12 transition-all duration-300`}>
                     <Icon className="w-7 h-7" />
                 </div>

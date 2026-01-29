@@ -1,420 +1,231 @@
 import { useState, useEffect } from 'react';
-import { Bike, Users, Clock, TrendingUp, Search, Filter } from 'lucide-react';
+import { Bike, Users, Clock, TrendingUp, Search, Filter, ArrowRight, User, RefreshCw } from 'lucide-react';
 import RiderCard from '../components/RiderCard';
 import RiderDetailsModal from '../components/RiderDetailsModal';
 import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+const CardSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+        {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="bg-white rounded-xl border border-gray-100 h-64"></div>
+        ))}
+    </div>
+);
 
 export default function Riders() {
-    const [activeTab, setActiveTab] = useState('all'); // 'all' or 'pending'
-    const [riders, setRiders] = useState([]);
-    const [pendingRiders, setPendingRiders] = useState([]);
-    const [stats, setStats] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const queryClient = useQueryClient();
+    const { socket } = useSocket();
+
+    const [activeTab, setActiveTab] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedRider, setSelectedRider] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showRejectModal, setShowRejectModal] = useState(false);
     const [rejectReason, setRejectReason] = useState('');
     const [riderToReject, setRiderToReject] = useState(null);
-    const [filters, setFilters] = useState({
-        status: '', // all, active, inactive, online, onDelivery
-    });
-    const { socket } = useSocket();
+    const [filters, setFilters] = useState({ status: '' });
 
-    useEffect(() => {
-        fetchStats();
-        fetchRiders();
-        fetchPendingRiders();
-    }, []);
-
-    useEffect(() => {
-        if (socket) {
-            const handleRiderChange = (data) => {
-                console.log('Real-time rider change:', data);
-                fetchStats();
-                fetchRiders(true); // Background refresh
-                fetchPendingRiders(true); // Background refresh
-            };
-
-            socket.on('rider:status-updated', handleRiderChange);
-            socket.on('rider:new', handleRiderChange); // For new applications
-
-            return () => {
-                socket.off('rider:status-updated', handleRiderChange);
-                socket.off('rider:new', handleRiderChange);
-            };
-        }
-    }, [socket]);
-
-    useEffect(() => {
-        if (activeTab === 'all') {
-            fetchRiders();
-        }
-    }, [filters, searchTerm]);
-
-    const fetchStats = async () => {
-        try {
-            // Get total riders
-            const allResponse = await api.get('/admin/riders?limit=1000');
-            const allRiders = allResponse.data.data?.riders || [];
-
-            const totalRiders = allRiders.length;
-            const activeRiders = allRiders.filter(r => r.isOnline).length;
-            const pendingCount = allRiders.filter(r => !r.isApproved).length;
-            const totalDeliveries = allRiders.reduce((sum, r) => sum + (r.totalDeliveries || 0), 0);
-
-            setStats({
-                totalRiders,
-                activeRiders,
-                pendingApprovals: pendingCount,
-                totalDeliveries
-            });
-        } catch (error) {
-            console.error('Failed to fetch stats:', error);
-        }
-    };
-
-    const fetchRiders = async (isBackground = false) => {
-        try {
-            if (!isBackground) setLoading(true);
-            const params = new URLSearchParams({
-                isApproved: 'true',
-                limit: 100
-            });
-
+    // Fetch All Riders
+    const { data: ridersData, isLoading: ridersLoading, isFetching: ridersFetching, refetch: ridersRefetch } = useQuery({
+        queryKey: ['riders', filters, searchTerm],
+        queryFn: async () => {
+            const params = new URLSearchParams({ isApproved: 'true', limit: 100 });
             if (filters.status === 'active') params.append('isActive', 'true');
             if (filters.status === 'inactive') params.append('isActive', 'false');
-
             const response = await api.get(`/admin/riders?${params.toString()}`);
-            let ridersData = response.data.data?.riders || [];
-
-            console.log('Fetched riders:', ridersData.length, ridersData);
-
-            // Apply client-side filters
-            if (filters.status === 'online') {
-                ridersData = ridersData.filter(r => r.isOnline);
-            }
-            if (filters.status === 'onDelivery') {
-                ridersData = ridersData.filter(r => r.isOnDelivery);
-            }
+            let riders = response.data.data?.riders || [];
+            if (filters.status === 'online') riders = riders.filter(r => r.isOnline);
+            if (filters.status === 'onDelivery') riders = riders.filter(r => r.isOnDelivery);
             if (searchTerm) {
-                ridersData = ridersData.filter(r =>
+                riders = riders.filter(r =>
                     r.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     r.mobile?.includes(searchTerm) ||
                     r.vehicleNumber?.toLowerCase().includes(searchTerm.toLowerCase())
                 );
             }
+            return riders;
+        },
+        enabled: activeTab === 'all'
+    });
 
-            console.log('After filters:', ridersData.length);
-            setRiders(ridersData);
-        } catch (error) {
-            console.error('Failed to fetch riders:', error);
-            setRiders([]);
-        } finally {
-            if (!isBackground) setLoading(false);
-        }
-    };
-
-    const fetchPendingRiders = async (isBackground = false) => {
-        try {
+    // Fetch Pending Riders
+    const { data: pendingRiders = [], isLoading: pendingLoading, isFetching: pendingFetching, refetch: pendingRefetch } = useQuery({
+        queryKey: ['riders-pending'],
+        queryFn: async () => {
             const response = await api.get('/admin/riders/pending');
-            setPendingRiders(response.data.data || []);
-        } catch (error) {
-            console.error('Failed to fetch pending riders:', error);
-            setPendingRiders([]);
+            return response.data.data || [];
         }
-    };
+    });
+
+    // Fetch Stats
+    const { data: statsData, isLoading: statsLoading } = useQuery({
+        queryKey: ['riders-stats'],
+        queryFn: async () => {
+            const allResponse = await api.get('/admin/riders?limit=1000');
+            const allRiders = allResponse.data.data?.riders || [];
+            return {
+                totalRiders: allRiders.length,
+                activeRiders: allRiders.filter(r => r.isOnline).length,
+                pendingApprovals: allRiders.filter(r => !r.isApproved).length,
+                totalDeliveries: allRiders.reduce((sum, r) => sum + (r.totalDeliveries || 0), 0)
+            };
+        }
+    });
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleUpdate = () => {
+            queryClient.invalidateQueries({ queryKey: ['riders'] });
+            queryClient.invalidateQueries({ queryKey: ['riders-pending'] });
+            queryClient.invalidateQueries({ queryKey: ['riders-stats'] });
+        };
+        socket.on('rider:status-updated', handleUpdate);
+        socket.on('rider:new', handleUpdate);
+        return () => {
+            socket.off('rider:status-updated', handleUpdate);
+            socket.off('rider:new', handleUpdate);
+        };
+    }, [socket, queryClient]);
 
     const handleApprove = async (rider) => {
         if (!confirm(`Approve ${rider.name} as a rider?`)) return;
-
         try {
             await api.put(`/admin/riders/${rider._id}/approve`);
-            alert('Rider approved successfully!');
-            fetchStats();
-            fetchRiders();
-            fetchPendingRiders();
-        } catch (error) {
-            console.error('Failed to approve rider:', error);
-            alert(error.response?.data?.message || 'Failed to approve rider');
-        }
+            queryClient.invalidateQueries({ queryKey: ['riders'] });
+            queryClient.invalidateQueries({ queryKey: ['riders-pending'] });
+            queryClient.invalidateQueries({ queryKey: ['riders-stats'] });
+        } catch (error) { console.error('Failed to approve rider:', error); }
     };
 
-    const handleReject = (rider) => {
-        setRiderToReject(rider);
-        setShowRejectModal(true);
-    };
+    const handleReject = (rider) => { setRiderToReject(rider); setShowRejectModal(true); };
 
     const confirmReject = async () => {
-        if (!rejectReason.trim()) {
-            alert('Please provide a reason for rejection');
-            return;
-        }
-
+        if (!rejectReason.trim()) return;
         try {
             await api.put(`/admin/riders/${riderToReject._id}/reject`, { reason: rejectReason });
-            alert('Rider rejected successfully!');
-            setShowRejectModal(false);
-            setRejectReason('');
-            setRiderToReject(null);
-            fetchStats();
-            fetchRiders();
-            fetchPendingRiders();
-        } catch (error) {
-            console.error('Failed to reject rider:', error);
-            alert(error.response?.data?.message || 'Failed to reject rider');
-        }
+            setShowRejectModal(false); setRejectReason(''); setRiderToReject(null);
+            queryClient.invalidateQueries({ queryKey: ['riders-pending'] });
+            queryClient.invalidateQueries({ queryKey: ['riders-stats'] });
+        } catch (error) { console.error('Failed to reject rider:', error); }
     };
 
     const handleToggleStatus = async (rider) => {
         const action = rider.isActive ? 'deactivate' : 'activate';
         if (!confirm(`Are you sure you want to ${action} ${rider.name}?`)) return;
-
         try {
             await api.put(`/admin/riders/${rider._id}/status`, { isActive: !rider.isActive });
-            alert(`Rider ${action}d successfully!`);
-            fetchStats();
-            fetchRiders();
-        } catch (error) {
-            console.error('Failed to toggle status:', error);
-            alert(error.response?.data?.message || 'Failed to update rider status');
-        }
+            queryClient.invalidateQueries({ queryKey: ['riders'] });
+        } catch (error) { console.error('Failed to toggle status:', error); }
     };
 
     const handleDelete = async (rider) => {
-        if (!confirm(`Are you sure you want to delete ${rider.name}? This action cannot be undone.`)) return;
-
+        if (!confirm(`Are you sure you want to delete ${rider.name}?`)) return;
         try {
             await api.delete(`/admin/riders/${rider._id}`);
-            alert('Rider deleted successfully!');
-            fetchStats();
-            fetchRiders();
-        } catch (error) {
-            console.error('Failed to delete rider:', error);
-            alert(error.response?.data?.message || 'Failed to delete rider');
-        }
+            queryClient.invalidateQueries({ queryKey: ['riders'] });
+            queryClient.invalidateQueries({ queryKey: ['riders-stats'] });
+        } catch (error) { console.error('Failed to delete rider:', error); }
     };
 
-    const handleViewDetails = (rider) => {
-        setSelectedRider(rider);
-        setShowDetailsModal(true);
-    };
+    const handleViewDetails = (rider) => { setSelectedRider(rider); setShowDetailsModal(true); };
 
-    const clearFilters = () => {
-        setFilters({ status: '' });
-        setSearchTerm('');
-    };
+    const clearFilters = () => { setFilters({ status: '' }); setSearchTerm(''); };
 
-    if (loading && riders.length === 0 && pendingRiders.length === 0) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <div className="w-12 h-12 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
-    }
-
-    const displayRiders = activeTab === 'all' ? riders : pendingRiders;
+    const loading = activeTab === 'all' ? ridersLoading : pendingLoading;
+    const displayRiders = activeTab === 'all' ? (ridersData || []) : pendingRiders;
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
+        <div className="space-y-6 text-gray-900">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Riders Management</h1>
-                    <p className="text-gray-500 mt-1">Manage delivery riders and approvals</p>
+                    <h1 className="text-3xl font-black uppercase tracking-tight">Riders</h1>
+                    <p className="text-gray-500 mt-1 font-bold">Manage riders and applications</p>
                 </div>
+                <button
+                    onClick={() => {
+                        queryClient.invalidateQueries({ queryKey: ['riders-stats'] });
+                        ridersRefetch();
+                        pendingRefetch();
+                    }}
+                    disabled={ridersFetching || pendingFetching}
+                    className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                >
+                    <RefreshCw className={`w-5 h-5 ${(ridersFetching || pendingFetching) ? 'animate-spin text-teal-600' : 'text-gray-400'}`} />
+                </button>
             </div>
 
-            {/* Stats Cards */}
-            {stats && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-gradient-to-br from-teal-500 to-cyan-600 rounded-xl p-6 text-white">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-teal-100 text-sm">Total Riders</p>
-                                <p className="text-3xl font-bold mt-1">{stats.totalRiders || 0}</p>
-                            </div>
-                            <Users className="w-12 h-12 text-teal-200" />
-                        </div>
-                    </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                <StatCard label="Total Riders" value={statsData?.totalRiders || 0} icon={Users} theme="teal" desc="All riders" loading={statsLoading} />
+                <StatCard label="Online Now" value={statsData?.activeRiders || 0} icon={Bike} theme="emerald" desc="Currently online" loading={statsLoading} />
+                <StatCard label="New Applications" value={statsData?.pendingApprovals || 0} icon={Clock} theme="orange" desc="Need approval" loading={statsLoading} />
+                <StatCard label="Total Deliveries" value={statsData?.totalDeliveries || 0} icon={TrendingUp} theme="purple" desc="Jobs completed" loading={statsLoading} />
+            </div>
 
-                    <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-6 text-white">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-green-100 text-sm">Active Now</p>
-                                <p className="text-3xl font-bold mt-1">{stats.activeRiders || 0}</p>
-                            </div>
-                            <Bike className="w-12 h-12 text-green-200" />
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-orange-500 to-amber-600 rounded-xl p-6 text-white">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-orange-100 text-sm">Pending Approvals</p>
-                                <p className="text-3xl font-bold mt-1">{stats.pendingApprovals || 0}</p>
-                            </div>
-                            <Clock className="w-12 h-12 text-orange-200" />
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl p-6 text-white">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-purple-100 text-sm">Total Deliveries</p>
-                                <p className="text-3xl font-bold mt-1">{stats.totalDeliveries || 0}</p>
-                            </div>
-                            <TrendingUp className="w-12 h-12 text-purple-200" />
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div className="flex border-b border-gray-200">
-                    <button
-                        onClick={() => setActiveTab('all')}
-                        className={`flex-1 px-6 py-4 font-medium transition-colors ${activeTab === 'all'
-                            ? 'text-teal-600 border-b-2 border-teal-600'
-                            : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                    >
-                        All Riders ({riders.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('pending')}
-                        className={`flex-1 px-6 py-4 font-medium transition-colors relative ${activeTab === 'pending'
-                            ? 'text-orange-600 border-b-2 border-orange-600'
-                            : 'text-gray-600 hover:text-gray-900'
-                            }`}
-                    >
-                        Pending Approvals
-                        {pendingRiders.length > 0 && (
-                            <span className="ml-2 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
-                                {pendingRiders.length}
-                            </span>
-                        )}
-                    </button>
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div className="flex border-b border-gray-100 bg-gray-50/30">
+                    <button onClick={() => setActiveTab('all')} className={`flex-1 px-8 py-6 font-black uppercase text-[10px] tracking-[0.2em] transition-all ${activeTab === 'all' ? 'text-teal-600 bg-white border-b-2 border-teal-600' : 'text-gray-400 hover:text-teal-500'}`}>All Fleet ({ridersData?.length || 0})</button>
+                    <button onClick={() => setActiveTab('pending')} className={`flex-1 px-8 py-6 font-black uppercase text-[10px] tracking-[0.2em] transition-all relative ${activeTab === 'pending' ? 'text-orange-600 bg-white border-b-2 border-orange-600' : 'text-gray-400 hover:text-orange-500'}`}>Approvals {pendingRiders.length > 0 && <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-600 rounded-lg text-[10px]">{pendingRiders.length}</span>}</button>
                 </div>
 
-                {/* Search and Filters (Only for All Riders tab) */}
                 {activeTab === 'all' && (
-                    <div className="p-4 space-y-4">
-                        {/* Search */}
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search by name, mobile, or vehicle number..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="input pl-10"
-                            />
-                        </div>
-
-                        {/* Filters */}
-                        <div className="flex items-center gap-4">
-                            <Filter className="w-5 h-5 text-gray-600" />
-                            <select
-                                value={filters.status}
-                                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-                                className="input flex-1"
-                            >
-                                <option value="">All Status</option>
+                    <div className="p-8 space-y-6">
+                        <div className="flex flex-col md:flex-row gap-6">
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                <input type="text" placeholder="Search by name, mobile or vehicle..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-4 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-teal-500/20" />
+                            </div>
+                            <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="bg-gray-50 border-none rounded-2xl px-6 py-4 md:w-56 text-[10px] font-black uppercase tracking-widest focus:ring-2 focus:ring-teal-500/20">
+                                <option value="">Fleet Status</option>
                                 <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="online">Online Now</option>
-                                <option value="onDelivery">On Delivery</option>
+                                <option value="inactive">Banned</option>
+                                <option value="online">Online</option>
+                                <option value="onDelivery">On Job</option>
                             </select>
-
-                            {(filters.status || searchTerm) && (
-                                <button
-                                    onClick={clearFilters}
-                                    className="text-sm text-teal-600 hover:text-teal-700 font-medium"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
+                            {(filters.status || searchTerm) && <button onClick={clearFilters} className="text-[10px] font-black uppercase text-teal-600 hover:text-teal-700 transition-colors">Clear</button>}
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* Riders Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {displayRiders.map((rider) => (
-                    <RiderCard
-                        key={rider._id}
-                        rider={rider}
-                        isPending={activeTab === 'pending'}
-                        onViewDetails={handleViewDetails}
-                        onApprove={handleApprove}
-                        onReject={handleReject}
-                        onToggleStatus={handleToggleStatus}
-                        onDelete={handleDelete}
-                    />
-                ))}
+            <div className="min-h-[400px]">
+                {loading && displayRiders.length === 0 ? (
+                    <CardSkeleton />
+                ) : displayRiders.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {displayRiders.map((rider) => (
+                            <RiderCard
+                                key={rider._id}
+                                rider={rider}
+                                isPending={activeTab === 'pending'}
+                                onViewDetails={handleViewDetails}
+                                onApprove={handleApprove}
+                                onReject={handleReject}
+                                onToggleStatus={handleToggleStatus}
+                                onDelete={handleDelete}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-20 bg-white rounded-[2.5rem] border border-gray-100 font-black text-gray-200 uppercase tracking-widest">
+                        <Bike className="w-20 h-20 mx-auto mb-4 opacity-20" />
+                        <h3 className="text-2xl">{activeTab === 'pending' ? 'Clear Deck' : 'No riders found'}</h3>
+                    </div>
+                )}
             </div>
 
-            {/* Empty State */}
-            {displayRiders.length === 0 && !loading && (
-                <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-                    <Bike className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg">
-                        {activeTab === 'pending' ? 'No pending approvals' : 'No riders found'}
-                    </p>
-                    <p className="text-gray-400 text-sm mt-1">
-                        {activeTab === 'pending'
-                            ? 'New rider applications will appear here'
-                            : 'Riders will appear here once approved'}
-                    </p>
-                </div>
-            )}
+            <RiderDetailsModal isOpen={showDetailsModal} onClose={() => setShowDetailsModal(false)} rider={selectedRider} onApprove={handleApprove} onReject={handleReject} onToggleStatus={handleToggleStatus} />
 
-            {/* Rider Details Modal */}
-            <RiderDetailsModal
-                isOpen={showDetailsModal}
-                onClose={() => setShowDetailsModal(false)}
-                rider={selectedRider}
-                onApprove={handleApprove}
-                onReject={handleReject}
-                onToggleStatus={handleToggleStatus}
-            />
-
-            {/* Reject Modal */}
             {showRejectModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                        <h3 className="text-lg font-bold mb-4">Reject Rider</h3>
-                        <p className="text-sm text-gray-600 mb-4">
-                            Please provide a reason for rejecting {riderToReject?.name}
-                        </p>
-                        <textarea
-                            value={rejectReason}
-                            onChange={(e) => setRejectReason(e.target.value)}
-                            placeholder="Reason for rejection..."
-                            className="input resize-none mb-4"
-                            rows="3"
-                        />
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => {
-                                    setShowRejectModal(false);
-                                    setRejectReason('');
-                                    setRiderToReject(null);
-                                }}
-                                className="flex-1 btn-secondary"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmReject}
-                                className="flex-1 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                            >
-                                Reject
-                            </button>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl">
+                        <h3 className="text-xl font-black uppercase mb-2">Reject Application</h3>
+                        <p className="text-sm text-gray-500 font-bold mb-6">Provide a reason for the rider force rejection.</p>
+                        <textarea value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="Documentation missing, vehicle inspection failed..." className="input mb-6 h-32 resize-none pt-4" />
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowRejectModal(false)} className="flex-1 btn-secondary text-xs font-black uppercase py-4">Cancel</button>
+                            <button onClick={confirmReject} className="flex-1 bg-red-600 text-white rounded-2xl text-xs font-black uppercase hover:bg-red-700 transition-all font-black">Confirm Reject</button>
                         </div>
                     </div>
                 </div>
@@ -422,3 +233,31 @@ export default function Riders() {
         </div>
     );
 }
+
+const StatCard = ({ label, value, icon: Icon, theme, desc, loading }) => {
+    const themes = {
+        teal: 'from-teal-600 to-teal-700 shadow-teal-100 text-teal-600 bg-teal-50',
+        emerald: 'from-emerald-600 to-emerald-700 shadow-emerald-100 text-emerald-600 bg-emerald-50',
+        orange: 'from-orange-500 to-orange-600 shadow-orange-100 text-orange-600 bg-orange-50',
+        purple: 'from-purple-600 to-purple-700 shadow-purple-100 text-purple-600 bg-purple-50'
+    };
+    const style = themes[theme] || themes.teal;
+    const [gradientFrom, gradientTo, shadow, textColor, bgColor] = style.split(' ');
+    return (
+        <div className="relative overflow-hidden bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+            <div className="relative flex items-center justify-between">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{label}</p>
+                    <h3 className={`text-3xl font-black text-gray-900 tracking-tight ${loading ? 'animate-pulse opacity-50' : ''}`}>{value}</h3>
+                    <div className={`flex items-center gap-1.5 py-1 px-2 ${bgColor} rounded-lg w-fit`}>
+                        <ArrowRight className={`w-3 h-3 ${textColor}`} />
+                        <span className={`text-[10px] font-black uppercase ${textColor}`}>{desc}</span>
+                    </div>
+                </div>
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg ${shadow} transform group-hover:rotate-12 transition-all`}>
+                    <Icon className="w-7 h-7" />
+                </div>
+            </div>
+        </div>
+    );
+};

@@ -3,14 +3,14 @@ import React from 'react';
 const CustomerStatusBadge = ({ isActive }) => {
     if (isActive) {
         return (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700">
+            <span className="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest bg-green-50 text-green-600 border border-green-100">
                 Active
             </span>
         );
     }
 
     return (
-        <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+        <span className="px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest bg-gray-50 text-gray-400 border border-gray-100">
             Inactive
         </span>
     );

@@ -161,28 +161,30 @@ const ServiceAreas = () => {
     if (loading) return <div className="p-8 text-center">Loading map...</div>;
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto flex flex-col relative">
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
-                <div>
-                    <h2 className="font-semibold text-gray-800 flex items-center gap-2">
-                        <MapPin className="w-5 h-5 text-green-600" />
-                        Delivery Zones
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                        Draw custom zones on the map. Customers in these zones will be charged the specified amount.
-                    </p>
+        <div className="space-y-8 max-w-5xl mx-auto flex flex-col relative pb-10">
+            {/* Header */}
+            <div className="bg-white p-10 rounded-[2.5rem] shadow-sm border border-gray-100 flex justify-between items-center z-10">
+                <div className="flex items-center gap-6">
+                    <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center border border-gray-100 shadow-sm">
+                        <MapPin className="w-10 h-10 text-emerald-900" />
+                    </div>
+                    <div>
+                        <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Geo-Fencing</h2>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Spatial Delivery logic</p>
+                    </div>
                 </div>
                 <button
                     onClick={saveAllZones}
                     disabled={saving}
-                    className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 disabled:opacity-70"
+                    className="flex items-center gap-3 px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 disabled:opacity-70 hover:scale-105 active:scale-95"
                 >
                     <Save className="w-4 h-4" />
-                    {saving ? 'Saving...' : 'Save Changes'}
+                    {saving ? 'Syncing...' : 'Commit Zones'}
                 </button>
             </div>
 
-            <div className="h-[600px] bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative z-0">
+            {/* Map Container */}
+            <div className="h-[650px] bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden relative z-0">
                 <MapContainer
                     center={DEFAULT_CENTER}
                     zoom={12}
@@ -207,17 +209,18 @@ const ServiceAreas = () => {
                                 polygon: {
                                     allowIntersection: false,
                                     drawError: {
-                                        color: '#e1e100', // Color the shape will turn when intersects
-                                        message: '<strong>Oh snap!<strong> you can\'t draw that!' // Message that will show when intersect
+                                        color: '#e1e100',
+                                        message: '<strong>Error:</strong> Illegal Polygon Intersection'
                                     },
                                     shapeOptions: {
-                                        color: '#2563eb'
+                                        color: '#059669',
+                                        weight: 4
                                     }
                                 }
                             }}
                             edit={{
-                                edit: false, // Disable shape editing for simplicity and robustness
-                                remove: false // Disable toolbar delete, use popup delete
+                                edit: false,
+                                remove: false
                             }}
                         />
                     </FeatureGroup>
@@ -226,7 +229,7 @@ const ServiceAreas = () => {
                     <Circle
                         center={DEFAULT_CENTER}
                         radius={(settings?.maxDeliveryDistance || 10) * 1000}
-                        pathOptions={{ color: 'green', fillColor: 'green', fillOpacity: 0.1, dashArray: '5, 10' }}
+                        pathOptions={{ color: '#059669', fillColor: '#059669', fillOpacity: 0.05, dashArray: '10, 20', weight: 2 }}
                     />
 
                     {/* Render Saved Service Areas */}
@@ -234,15 +237,15 @@ const ServiceAreas = () => {
                         <Polygon
                             key={index}
                             positions={area.coordinates}
-                            pathOptions={{ color: 'blue', fillColor: 'blue', fillOpacity: 0.2 }}
+                            pathOptions={{ color: '#059669', fillColor: '#059669', fillOpacity: 0.4, weight: 3 }}
                         >
-                            <Popup>
-                                <div className="p-2 min-w-[150px]">
-                                    <h3 className="font-bold text-gray-800 mb-1">{area.name}</h3>
-                                    <p className="text-sm text-gray-600 mb-3">Delivery Charge: ₹{area.deliveryCharge}</p>
+                            <Popup className="neo-popup">
+                                <div className="p-4 min-w-[200px] text-center">
+                                    <h3 className="font-black text-gray-900 uppercase tracking-tight text-lg mb-1">{area.name}</h3>
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">Surcharge: ₹{area.deliveryCharge}</p>
                                     <button
                                         onClick={() => deleteZone(index)}
-                                        className="w-full flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 text-xs font-medium transition-colors"
+                                        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all"
                                     >
                                         <X className="w-3 h-3" />
                                         Delete Zone
@@ -255,58 +258,62 @@ const ServiceAreas = () => {
             </div>
 
             {/* Zone Information Overlay */}
-            <div className="bg-blue-50 text-blue-800 text-sm p-4 rounded-lg flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <p>
-                    Use the <strong>Pentagon Icon</strong> in the top-right toolbar to draw a new zone.
-                    <br />
-                    The <strong>Green Circle</strong> shows your standard delivery radius. Zones outside this circle allow you to serve wider areas with custom fees.
-                </p>
+            <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex items-start gap-6">
+                <div className="p-3 bg-gray-50 rounded-xl">
+                    <AlertCircle className="w-6 h-6 text-emerald-900" />
+                </div>
+                <div>
+                    <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-2">Operational Guide</h4>
+                    <p className="text-sm text-gray-500 font-medium leading-relaxed">
+                        Utilize the <strong className="text-emerald-900">Polygon Tool</strong> (Top-Right) to demarcate new zones.
+                        The <strong className="text-emerald-900">Dotted Perimeter</strong> defines the standard operational radius. Zones exterior to this boundary allow for custom surcharge calibration.
+                    </p>
+                </div>
             </div>
 
             {/* Creation Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center">
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 m-4 animate-in fade-in zoom-in duration-200">
-                        <h3 className="text-lg font-bold text-gray-800 mb-4">New Delivery Zone</h3>
+                <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 animate-in fade-in zoom-in duration-200 border border-gray-100">
+                        <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight mb-8">Define New Sector</h3>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Zone Name</label>
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Sector Designation</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. Downtown Area"
+                                    placeholder="e.g. NORTH_QUADRANT"
                                     value={zoneForm.name}
                                     onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                    className="w-full px-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-black text-sm uppercase placeholder:text-gray-300"
                                     autoFocus
                                 />
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Charge (₹)</label>
+                            <div className="space-y-2">
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Logistics Fee (₹)</label>
                                 <input
                                     type="number"
-                                    placeholder="e.g. 50"
+                                    placeholder="00"
                                     value={zoneForm.deliveryCharge}
                                     onChange={(e) => setZoneForm({ ...zoneForm, deliveryCharge: e.target.value })}
-                                    className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                    className="w-full px-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-black text-sm uppercase placeholder:text-gray-300"
                                 />
                             </div>
                         </div>
 
-                        <div className="flex gap-3 mt-8">
+                        <div className="flex gap-4 mt-10">
                             <button
                                 onClick={handleModalCancel}
-                                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors"
+                                className="flex-1 px-6 py-4 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200"
                             >
-                                Cancel
+                                Abort
                             </button>
                             <button
                                 onClick={handleModalSave}
                                 disabled={!zoneForm.name || !zoneForm.deliveryCharge}
-                                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
                             >
-                                Add Zone
+                                Initialize
                             </button>
                         </div>
                     </div>

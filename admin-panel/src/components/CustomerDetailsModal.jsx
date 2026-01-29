@@ -64,226 +64,209 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
     const stats = customerDetails.stats || {};
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-gray-100 flex flex-col">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6">
-                    <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                <User className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold">{customerDetails.name || 'N/A'}</h2>
-                                <p className="text-blue-100">Customer Details</p>
-                            </div>
+                <div className="bg-white border-b border-gray-50 p-8 flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center border border-gray-100">
+                            <User className="w-10 h-10 text-gray-400" />
                         </div>
-                        <button
-                            onClick={onClose}
-                            className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
-                        >
-                            <X className="w-6 h-6" />
-                        </button>
+                        <div>
+                            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{customerDetails.name || 'N/A'}</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Customer Registry Node</p>
+                        </div>
                     </div>
+                    <button
+                        onClick={onClose}
+                        className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
+                    >
+                        <X className="w-6 h-6" />
+                    </button>
                 </div>
 
                 {/* Tabs */}
-                <div className="border-b border-gray-200">
-                    <div className="flex">
+                <div className="border-b border-gray-50 px-8 bg-gray-50/30">
+                    <div className="flex gap-8">
                         <button
                             onClick={() => setActiveTab('info')}
-                            className={`flex-1 px-6 py-3 font-medium transition-colors ${activeTab === 'info'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                            className={`px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'info'
+                                ? 'text-gray-900'
+                                : 'text-gray-400 hover:text-gray-900'
                                 }`}
                         >
-                            Customer Info
+                            General Meta
+                            {activeTab === 'info' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-full" />}
                         </button>
                         <button
                             onClick={() => setActiveTab('orders')}
-                            className={`flex-1 px-6 py-3 font-medium transition-colors ${activeTab === 'orders'
-                                    ? 'text-blue-600 border-b-2 border-blue-600'
-                                    : 'text-gray-500 hover:text-gray-700'
+                            className={`px-4 py-6 text-[10px] font-black uppercase tracking-[0.2em] transition-all relative ${activeTab === 'orders'
+                                ? 'text-gray-900'
+                                : 'text-gray-400 hover:text-gray-900'
                                 }`}
                         >
                             Order History ({stats.orderCount || 0})
+                            {activeTab === 'orders' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-full" />}
                         </button>
                     </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto max-h-[calc(90vh-250px)]">
+                <div className="p-8 overflow-y-auto flex-1 space-y-8">
                     {activeTab === 'info' ? (
-                        <div className="space-y-6">
+                        <div className="space-y-8">
                             {/* Stats Grid */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="bg-blue-50 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-blue-600 mb-2">
-                                        <ShoppingBag className="w-5 h-5" />
-                                        <span className="text-sm font-medium">Total Orders</span>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                {[
+                                    { label: 'Total Orders', value: stats.orderCount || 0, icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50/50' },
+                                    { label: 'Completed', value: stats.completedOrders || 0, icon: CheckCircle, color: 'text-emerald-600', bg: 'bg-emerald-50/50' },
+                                    { label: 'Pending', value: stats.pendingOrders || 0, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50/50' },
+                                    { label: 'Net Value', value: formatCurrency(stats.totalSpent || 0), icon: IndianRupee, color: 'text-purple-600', bg: 'bg-purple-50/50' }
+                                ].map((stat, i) => (
+                                    <div key={i} className={`${stat.bg} rounded-[2rem] p-6 border border-white`}>
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className={`p-2 bg-white rounded-xl ${stat.color} shadow-sm`}>
+                                                <stat.icon className="w-4 h-4" />
+                                            </div>
+                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{stat.label}</span>
+                                        </div>
+                                        <p className="text-2xl font-black text-gray-900 tracking-tight">{stat.value}</p>
                                     </div>
-                                    <p className="text-2xl font-bold text-gray-900">{stats.orderCount || 0}</p>
-                                </div>
-                                <div className="bg-green-50 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-green-600 mb-2">
-                                        <CheckCircle className="w-5 h-5" />
-                                        <span className="text-sm font-medium">Completed</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">{stats.completedOrders || 0}</p>
-                                </div>
-                                <div className="bg-yellow-50 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-yellow-600 mb-2">
-                                        <Clock className="w-5 h-5" />
-                                        <span className="text-sm font-medium">Pending</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">{stats.pendingOrders || 0}</p>
-                                </div>
-                                <div className="bg-purple-50 rounded-lg p-4">
-                                    <div className="flex items-center gap-2 text-purple-600 mb-2">
-                                        <IndianRupee className="w-5 h-5" />
-                                        <span className="text-sm font-medium">Total Spent</span>
-                                    </div>
-                                    <p className="text-2xl font-bold text-gray-900">
-                                        {formatCurrency(stats.totalSpent || 0)}
-                                    </p>
-                                </div>
+                                ))}
                             </div>
 
-                            {/* Personal Information */}
-                            <div className="bg-gray-50 rounded-lg p-4">
-                                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                    <User className="w-5 h-5" />
-                                    Personal Information
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-sm text-gray-500">Full Name</label>
-                                        <p className="font-medium text-gray-900">{customerDetails.name || 'N/A'}</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                {/* Personal Information */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 px-2">
+                                        <div className="p-2 bg-gray-50 rounded-lg">
+                                            <User className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Profile Data</h3>
                                     </div>
-                                    <div>
-                                        <label className="text-sm text-gray-500">Status</label>
-                                        <div className="mt-1">
-                                            <CustomerStatusBadge isActive={customerDetails.isActive} />
+                                    <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 space-y-6 shadow-sm">
+                                        <div className="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Full Legal Name</p>
+                                                <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{customerDetails.name || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">System Status</p>
+                                                <CustomerStatusBadge isActive={customerDetails.isActive} />
+                                            </div>
+                                            <div className="col-span-2">
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Mobile Contact</p>
+                                                <p className="font-black text-gray-900 text-sm tracking-tight flex items-center gap-2">
+                                                    {customerDetails.mobile || 'N/A'}
+                                                </p>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Electronic Mail</p>
+                                                <p className="font-black text-gray-900 text-sm tracking-tight lowercase">{customerDetails.email || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Registry Date</p>
+                                                <p className="font-black text-gray-900 text-[10px]">{formatDate(customerDetails.createdAt)}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Last Synchronized</p>
+                                                <p className="font-black text-gray-900 text-[10px]">{formatDate(customerDetails.updatedAt)}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="text-sm text-gray-500">Mobile Number</label>
-                                        <p className="font-medium text-gray-900 flex items-center gap-2">
-                                            <Phone className="w-4 h-4 text-gray-400" />
-                                            {customerDetails.mobile || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-gray-500">Email Address</label>
-                                        <p className="font-medium text-gray-900 flex items-center gap-2">
-                                            <Mail className="w-4 h-4 text-gray-400" />
-                                            {customerDetails.email || 'N/A'}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-gray-500">Joined Date</label>
-                                        <p className="font-medium text-gray-900 flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-gray-400" />
-                                            {formatDate(customerDetails.createdAt)}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-gray-500">Last Updated</label>
-                                        <p className="font-medium text-gray-900 flex items-center gap-2">
-                                            <Calendar className="w-4 h-4 text-gray-400" />
-                                            {formatDate(customerDetails.updatedAt)}
-                                        </p>
-                                    </div>
                                 </div>
-                            </div>
 
-                            {/* Addresses */}
-                            {customerDetails.addresses && customerDetails.addresses.length > 0 && (
-                                <div className="bg-gray-50 rounded-lg p-4">
-                                    <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                        <MapPin className="w-5 h-5" />
-                                        Saved Addresses ({customerDetails.addresses.length})
-                                    </h3>
-                                    <div className="space-y-3">
-                                        {customerDetails.addresses.map((address, index) => (
-                                            <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
-                                                <div className="flex items-start justify-between mb-2">
-                                                    <p className="font-medium text-gray-900">{address.label || 'Address'}</p>
+                                {/* Addresses */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-3 px-2">
+                                        <div className="p-2 bg-gray-50 rounded-lg">
+                                            <MapPin className="w-4 h-4 text-gray-400" />
+                                        </div>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Deployment Sites ({customerDetails.addresses?.length || 0})</h3>
+                                    </div>
+                                    <div className="space-y-4">
+                                        {customerDetails.addresses?.map((address, index) => (
+                                            <div key={index} className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-sm hover:border-emerald-600 transition-colors group">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{address.label || 'SITE_LOC'}</p>
                                                     {address.isDefault && (
-                                                        <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                                                            Default
+                                                        <span className="px-2 py-1 text-[8px] font-black uppercase tracking-widest rounded-md bg-emerald-600 text-white">
+                                                            Primary
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-sm text-gray-600">
+                                                <p className="text-sm font-black text-gray-900 leading-relaxed uppercase tracking-tight">
                                                     {address.street}, {address.area}
                                                 </p>
-                                                <p className="text-sm text-gray-600">
+                                                <p className="text-[10px] font-bold text-gray-400 mt-2 uppercase">
                                                     {address.city}, {address.state} - {address.pincode}
                                                 </p>
                                                 {address.landmark && (
-                                                    <p className="text-sm text-gray-500 mt-1">
-                                                        Landmark: {address.landmark}
-                                                    </p>
+                                                    <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">NAV_MARK:</p>
+                                                        <p className="text-xs font-black text-gray-700 uppercase">{address.landmark}</p>
+                                                    </div>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {loading ? (
-                                <div className="text-center py-8">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                                    <p className="text-gray-500 mt-4">Loading orders...</p>
+                                <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent mx-auto"></div>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Retrieving Registry History...</p>
                                 </div>
                             ) : orders.length === 0 ? (
-                                <div className="text-center py-8">
-                                    <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500">No orders found</p>
+                                <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
+                                    <Package className="w-20 h-20 text-gray-200 mx-auto mb-6" />
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Zero Node Entries Found</p>
                                 </div>
                             ) : (
-                                orders.map((order) => (
-                                    <div key={order._id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div>
-                                                <p className="font-semibold text-gray-900">#{order.orderNumber}</p>
-                                                <p className="text-sm text-gray-500">{formatDate(order.createdAt)}</p>
+                                <div className="grid grid-cols-1 gap-4">
+                                    {orders.map((order) => (
+                                        <div key={order._id} className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm hover:border-emerald-600 transition-all group">
+                                            <div className="flex items-center justify-between mb-6">
+                                                <div>
+                                                    <p className="text-lg font-black text-gray-900 uppercase tracking-tight">#{order.orderNumber}</p>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">{formatDate(order.createdAt)}</p>
+                                                </div>
+                                                <OrderStatusBadge status={order.status} />
                                             </div>
-                                            <OrderStatusBadge status={order.status} />
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
+                                            <div className="grid grid-cols-3 gap-8">
                                                 <div>
-                                                    <p className="text-sm text-gray-500">Items</p>
-                                                    <p className="font-medium text-gray-900">{order.items?.length || 0}</p>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Payload Units</p>
+                                                    <p className="font-black text-gray-900">{order.items?.length || 0}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm text-gray-500">Total</p>
-                                                    <p className="font-medium text-gray-900">{formatCurrency(order.total)}</p>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Credit Value</p>
+                                                    <p className="font-black text-gray-900">{formatCurrency(order.total)}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm text-gray-500">Payment</p>
-                                                    <p className="font-medium text-gray-900 capitalize">{order.paymentStatus}</p>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Treasury State</p>
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-600'}`}>
+                                                        {order.paymentStatus}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))
+                                    ))}
+                                </div>
                             )}
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="border-t border-gray-200 p-4 bg-gray-50">
+                <div className="p-8 bg-gray-50/50 border-t border-gray-50">
                     <button
                         onClick={onClose}
-                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                     >
-                        Close
+                        Terminate View
                     </button>
                 </div>
             </div>

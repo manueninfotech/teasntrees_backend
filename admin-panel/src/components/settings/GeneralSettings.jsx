@@ -100,47 +100,54 @@ const GeneralSettings = () => {
     if (loading) return <div className="p-8 text-center">Loading settings...</div>;
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl mx-auto pb-10">
+        <form onSubmit={handleSubmit} className="space-y-12 max-w-5xl mx-auto pb-20">
             {/* Store Information */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
-                    <Building className="w-5 h-5 text-gray-500" />
-                    <h2 className="font-semibold text-gray-800">Store Information</h2>
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-10 py-8 border-b border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-sm">
+                            <Building className="w-6 h-6 text-emerald-900" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Store Core</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Physical Node Configuration</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Store Address</label>
+                <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="col-span-2 space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Store Spatial Address</label>
                         <textarea
                             name="address"
-                            rows="2"
+                            rows="3"
                             value={settings.address || ''}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-colors"
+                            className="w-full px-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-black text-sm uppercase"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Voice Channel</label>
                         <div className="relative">
-                            <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                            <Phone className="w-4 h-4 text-gray-400 absolute left-6 top-1/2 -translate-y-1/2" />
                             <input
                                 type="text"
                                 name="contactPhone"
                                 value={settings.contactPhone || ''}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                                className="w-full pl-14 pr-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-black text-sm uppercase"
                             />
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Digital Mailbox</label>
                         <div className="relative">
-                            <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3" />
+                            <Mail className="w-4 h-4 text-gray-400 absolute left-6 top-1/2 -translate-y-1/2" />
                             <input
                                 type="email"
                                 name="contactEmail"
                                 value={settings.contactEmail || ''}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                                className="w-full pl-14 pr-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-black text-sm uppercase"
                             />
                         </div>
                     </div>
@@ -148,128 +155,156 @@ const GeneralSettings = () => {
             </div>
 
             {/* Fees & Taxes */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
-                    <DollarSign className="w-5 h-5 text-gray-500" />
-                    <h2 className="font-semibold text-gray-800">Fees & Limit Settings</h2>
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-10 py-8 border-b border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-sm">
+                            <DollarSign className="w-6 h-6 text-emerald-900" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Fiscal Logic</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Parameters & Thresholds</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Delivery Charge (₹)</label>
+                <div className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Transit Fee (₹)</label>
                         <input
                             type="number"
                             name="deliveryCharge"
                             value={settings.deliveryCharge}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                            className="w-full px-6 py-4 rounded-[1.2rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-black text-sm"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Gov Surcharge (%)</label>
                         <input
                             type="number"
                             name="taxRate"
                             value={settings.taxRate}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                            className="w-full px-6 py-4 rounded-[1.2rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all font-black text-sm"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Min Order Value (₹)</label>
-                        <input
-                            type="number"
-                            name="minOrderAmount"
-                            value={settings.minOrderAmount}
-                            onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">GST Rate (%)</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">GST Vector (%)</label>
                         <input
                             type="number"
                             name="gstRate"
                             value={settings.gstRate}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                            className="w-full px-6 py-4 rounded-[1.2rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all font-black text-sm"
                         />
                     </div>
-                    <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Max Delivery Distance (KM)</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Min Threshold (₹)</label>
+                        <input
+                            type="number"
+                            name="minOrderAmount"
+                            value={settings.minOrderAmount}
+                            onChange={handleChange}
+                            className="w-full px-6 py-4 rounded-[1.2rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all font-black text-sm"
+                        />
+                    </div>
+                    <div className="col-span-full md:col-span-2 space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Max Spatial Radius (KM)</label>
                         <input
                             type="number"
                             name="maxDeliveryDistance"
                             value={settings.maxDeliveryDistance}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                            className="w-full px-6 py-4 rounded-[1.2rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all font-black text-sm"
                         />
                     </div>
                 </div>
             </div>
 
             {/* Rider Earnings */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
-                    <Bike className="w-5 h-5 text-gray-500" />
-                    <h2 className="font-semibold text-gray-800">Rider Earning Logic</h2>
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-10 py-8 border-b border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-sm">
+                            <Bike className="w-6 h-6 text-emerald-900" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Personnel Compensation</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Earning Calibration</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Base Earning per Order (₹)</label>
+                <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Base Earning Buffer (₹)</label>
                         <input
                             type="number"
                             name="riderBaseEarning"
                             value={settings.riderBaseEarning}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                            className="w-full px-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all font-black text-sm"
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Distance Bonus (₹ per KM)</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Distance Multiplier (₹/KM)</label>
                         <input
                             type="number"
                             name="distanceBonusPerKm"
                             value={settings.distanceBonusPerKm}
                             onChange={handleChange}
-                            className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                            className="w-full px-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all font-black text-sm"
                         />
                     </div>
                 </div>
             </div>
 
             {/* Operating Hours */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2 bg-gray-50/50">
-                    <Clock className="w-5 h-5 text-gray-500" />
-                    <h2 className="font-semibold text-gray-800">Operating Hours</h2>
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div className="px-10 py-8 border-b border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center border border-gray-100 shadow-sm">
+                            <Clock className="w-6 h-6 text-emerald-900" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Temporal Window</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Uptime Protocols</p>
+                        </div>
+                    </div>
                 </div>
-                <div className="p-6">
-                    <div className="grid gap-4">
+                <div className="p-10">
+                    <div className="space-y-4">
                         {Object.entries(settings.operatingHours || {}).map(([day, hours]) => (
-                            <div key={day} className="flex items-center gap-4">
-                                <div className="w-28 font-medium capitalize text-gray-700">{day}</div>
-                                <div className="flex items-center gap-2">
+                            <div key={day} className="flex items-center gap-6 p-4 rounded-2xl hover:bg-gray-50 transition-colors group">
+                                <div className="w-32 font-black uppercase text-[10px] text-gray-400 tracking-widest">{day}</div>
+                                <div className="flex-1 flex items-center gap-4">
                                     <input
                                         type="time"
                                         value={hours.open}
                                         onChange={(e) => handleHoursChange(day, 'open', e.target.value)}
-                                        className="px-3 py-1.5 rounded-md border border-gray-200 text-sm focus:outline-none focus:border-green-500"
+                                        className="px-4 py-2 rounded-xl border border-gray-100 font-black text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 outline-none transition-all uppercase"
                                     />
-                                    <span className="text-gray-400">to</span>
+                                    <span className="text-[10px] font-black text-gray-300 uppercase">{"->"}</span>
                                     <input
                                         type="time"
                                         value={hours.close}
                                         onChange={(e) => handleHoursChange(day, 'close', e.target.value)}
-                                        className="px-3 py-1.5 rounded-md border border-gray-200 text-sm focus:outline-none focus:border-green-500"
+                                        className="px-4 py-2 rounded-xl border border-gray-100 font-black text-xs focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 outline-none transition-all uppercase"
                                     />
-                                    <label className="flex items-center gap-2 ml-4 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={hours.isOpen}
-                                            onChange={(e) => handleHoursChange(day, 'isOpen', e.target.checked)}
-                                            className="w-4 h-4 text-green-600 rounded border-gray-300 focus:ring-green-500"
-                                        />
-                                        <span className="text-sm text-gray-600">Open</span>
+                                    <label className="flex items-center gap-3 ml-6 cursor-pointer group/label">
+                                        <div className="relative">
+                                            <input
+                                                type="checkbox"
+                                                checked={hours.isOpen}
+                                                onChange={(e) => handleHoursChange(day, 'isOpen', e.target.checked)}
+                                                className="sr-only"
+                                            />
+                                            <div className={`w-10 h-6 rounded-full transition-all border ${hours.isOpen ? 'bg-emerald-600 border-emerald-600' : 'bg-gray-100 border-gray-200'}`}>
+                                                <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-all transform ${hours.isOpen ? 'translate-x-4' : ''}`}></div>
+                                            </div>
+                                        </div>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${hours.isOpen ? 'text-emerald-900' : 'text-gray-400'}`}>
+                                            {hours.isOpen ? 'Active' : 'Offline'}
+                                        </span>
                                     </label>
                                 </div>
                             </div>
@@ -278,14 +313,14 @@ const GeneralSettings = () => {
                 </div>
             </div>
 
-            <div className="flex justify-end pt-4">
+            <div className="flex justify-end sticky bottom-10 z-20">
                 <button
                     type="submit"
                     disabled={saving}
-                    className="flex items-center gap-2 px-8 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20 disabled:opacity-70"
+                    className="flex items-center gap-3 px-12 py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-2xl shadow-emerald-200 disabled:opacity-50 hover:scale-105 active:scale-95"
                 >
                     <Save className="w-5 h-5" />
-                    {saving ? 'Saving...' : 'Save Settings'}
+                    {saving ? 'Synchronizing...' : 'Commit Settings'}
                 </button>
             </div>
         </form>

@@ -29,172 +29,168 @@ export default function ReviewDetailsModal({ isOpen, onClose, reviewId }) {
     if (!isOpen) return null;
 
     const StarRating = ({ rating }) => (
-        <div className="flex gap-1">
+        <div className="flex gap-1.5">
             {[1, 2, 3, 4, 5].map((star) => (
                 <Star
                     key={star}
-                    className={`w-4 h-4 ${star <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                    className={`w-3 h-3 ${star <= rating ? 'fill-black text-gray-900' : 'text-gray-200'}`}
                 />
             ))}
         </div>
     );
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                        <MessageSquare className="w-5 h-5 text-indigo-600" />
-                        Review Details
-                    </h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-emerald-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100 flex flex-col relative z-10">
+                {/* Header */}
+                <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-white z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center border border-gray-100 shadow-sm">
+                            <MessageSquare className="w-10 h-10 text-gray-900" />
+                        </div>
+                        <div>
+                            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Feedback Hub</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Vocal Unit Node</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
+                    >
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 
-                <div className="p-6">
+                <div className="p-10 overflow-y-auto flex-1">
                     {loading ? (
-                        <div className="flex justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                        <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
+                            <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Decoding Signal...</p>
                         </div>
                     ) : review ? (
-                        <div className="space-y-8">
+                        <div className="space-y-10">
                             {/* Order Info */}
-                            <div className="flex items-start justify-between bg-gray-50 p-4 rounded-xl">
-                                <div>
-                                    <p className="text-sm text-gray-500 mb-1">Order #</p>
-                                    <p className="font-bold text-gray-900">{review.orderId?.orderNumber || 'N/A'}</p>
+                            <div className="flex items-center justify-between bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-50">
+                                <div className="space-y-1">
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Protocol Reference</p>
+                                    <p className="text-xl font-black text-gray-900 uppercase tracking-tight">ID: #{review.orderId?.orderNumber || 'NULL'}</p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-sm text-gray-500 mb-1 flex items-center justify-end gap-1">
+                                <div className="text-right space-y-1">
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-end gap-2">
                                         <Calendar className="w-3 h-3" />
-                                        Date
+                                        Temporal Meta
                                     </p>
-                                    <p className="font-medium text-gray-900">
+                                    <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">
                                         {new Date(review.createdAt).toLocaleDateString()}
                                     </p>
-                                    <p className="text-xs text-gray-500">
-                                        {new Date(review.createdAt).toLocaleTimeString()}
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                                        {new Date(review.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Ratings Section */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {/* Food Rating */}
-                                {review.foodRating && (
-                                    <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm text-center">
-                                        <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <ShoppingBag className="w-5 h-5 text-orange-600" />
+                                {[
+                                    { label: 'Payload Quality', rating: review.foodRating, icon: ShoppingBag, color: 'text-orange-600', bg: 'bg-orange-50/50' },
+                                    { label: 'Personnel Performance', rating: review.riderRating, icon: Bike, color: 'text-blue-600', bg: 'bg-blue-50/50' },
+                                    { label: 'Unit Compliance', rating: review.productRating, icon: Star, color: 'text-purple-600', bg: 'bg-purple-50/50' }
+                                ].filter(r => r.rating).map((r, i) => (
+                                    <div key={i} className="bg-white border border-gray-100 p-6 rounded-[2rem] shadow-sm flex flex-col items-center text-center space-y-3">
+                                        <div className={`w-12 h-12 ${r.bg} rounded-2xl flex items-center justify-center border border-white shadow-sm`}>
+                                            <r.icon className={`w-6 h-6 ${r.color}`} />
                                         </div>
-                                        <p className="text-sm text-gray-500 mb-2">Food Quality</p>
-                                        <div className="flex justify-center mb-1">
-                                            <StarRating rating={review.foodRating} />
+                                        <div>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">{r.label}</p>
+                                            <StarRating rating={r.rating} />
+                                            <p className="font-black text-2xl text-gray-900 tracking-tight mt-2">{r.rating}.0</p>
                                         </div>
-                                        <p className="font-bold text-lg text-gray-900">{review.foodRating}.0</p>
                                     </div>
-                                )}
-
-                                {/* Rider Rating */}
-                                {review.riderRating && (
-                                    <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm text-center">
-                                        <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <Bike className="w-5 h-5 text-teal-600" />
-                                        </div>
-                                        <p className="text-sm text-gray-500 mb-2">Delivery Service</p>
-                                        <div className="flex justify-center mb-1">
-                                            <StarRating rating={review.riderRating} />
-                                        </div>
-                                        <p className="font-bold text-lg text-gray-900">{review.riderRating}.0</p>
-                                    </div>
-                                )}
-
-                                {/* Product Rating */}
-                                {review.productRating && (
-                                    <div className="bg-white border border-gray-100 p-4 rounded-xl shadow-sm text-center">
-                                        <div className="w-10 h-10 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                            <Star className="w-5 h-5 text-purple-600" />
-                                        </div>
-                                        <p className="text-sm text-gray-500 mb-2">Product Specific</p>
-                                        <div className="flex justify-center mb-1">
-                                            <StarRating rating={review.productRating} />
-                                        </div>
-                                        <p className="font-bold text-lg text-gray-900">{review.productRating}.0</p>
-                                    </div>
-                                )}
+                                ))}
                             </div>
 
                             {/* Review Content */}
-                            <div>
-                                <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase tracking-wider">Customer Feedback</h3>
-                                <div className="bg-gray-50 rounded-xl p-6 relative">
-                                    <MessageSquare className="absolute top-6 left-6 w-6 h-6 text-gray-200" />
-                                    <p className="text-gray-700 italic relative z-10 pl-8">
-                                        "{review.review}"
+                            <div className="space-y-4">
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
+                                    <MessageSquare className="w-4 h-4" /> Personnel Remarks
+                                </h3>
+                                <div className="bg-emerald-950 rounded-[2.5rem] p-10 relative overflow-hidden group">
+                                    <div className="absolute -top-6 -left-6 w-24 h-24 bg-white/5 rounded-full blur-2xl"></div>
+                                    <p className="text-white text-lg font-black italic relative z-10 leading-relaxed uppercase tracking-tight">
+                                        " {review.review} "
                                     </p>
+                                    <div className="absolute bottom-6 right-10 text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">Verified Signal</div>
                                 </div>
                             </div>
 
                             {/* Product Details */}
                             {review.productId && (
-                                <div className="bg-white border border-gray-100 p-4 rounded-xl flex items-center gap-4 shadow-sm">
-                                    <div className="w-16 h-16 bg-gray-50 rounded-lg flex items-center justify-center overflow-hidden shrink-0 border border-gray-200">
+                                <div className="bg-white border border-gray-100 p-8 rounded-[2.5rem] flex items-center gap-8 shadow-sm">
+                                    <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center overflow-hidden shrink-0 border border-gray-100">
                                         {review.productId.image ? (
                                             <img
                                                 src={review.productId.image}
                                                 alt={review.productId.name}
-                                                className="w-full h-full object-cover"
+                                                className="w-full h-full object-cover grayscale opacity-80 hover:grayscale-0 hover:opacity-100 transition-all"
                                             />
                                         ) : (
-                                            <ShoppingBag className="w-8 h-8 text-indigo-200" />
+                                            <ShoppingBag className="w-8 h-8 text-gray-300" />
                                         )}
                                     </div>
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full uppercase tracking-wide">
-                                                Product
-                                            </span>
-                                        </div>
-                                        <h4 className="font-bold text-gray-900 text-lg leading-tight">{review.productId.name}</h4>
+                                    <div className="space-y-2">
+                                        <span className="text-[8px] font-black text-gray-900 bg-gray-100 px-3 py-1 rounded-md uppercase tracking-[0.2em]">
+                                            Unit Designation
+                                        </span>
+                                        <h4 className="font-black text-gray-900 text-xl uppercase tracking-tight">{review.productId.name}</h4>
                                         {review.productId.price && (
-                                            <p className="text-sm text-gray-500 mt-0.5">Price: ₹{review.productId.price}</p>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Unit Value: ₹{review.productId.price}</p>
                                         )}
                                     </div>
                                 </div>
                             )}
 
                             {/* Entities Involved */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-50">
                                 {/* Customer */}
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-600 font-bold">
+                                <div className="flex items-center gap-4 p-4 bg-gray-50/30 rounded-2xl border border-gray-50">
+                                    <div className="w-12 h-12 bg-white rounded-[1.2rem] flex items-center justify-center text-gray-900 font-black text-xl border border-gray-100 shadow-sm">
                                         {review.customerId?.name?.charAt(0) || 'U'}
                                     </div>
                                     <div>
-                                        <p className="text-xs text-gray-500">Customer</p>
-                                        <p className="font-medium text-gray-900">{review.customerId?.name || 'Unknown'}</p>
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Source Node</p>
+                                        <p className="font-black text-gray-900 uppercase text-xs tracking-tight">{review.customerId?.name || 'GENERIC_USER'}</p>
                                     </div>
                                 </div>
 
                                 {/* Rider (if applicable) */}
                                 {review.riderId && (
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold">
-                                            <Bike className="w-5 h-5" />
+                                    <div className="flex items-center gap-4 p-4 bg-gray-50/30 rounded-2xl border border-gray-50">
+                                        <div className="w-12 h-12 bg-white rounded-[1.2rem] flex items-center justify-center text-gray-900 border border-gray-100 shadow-sm">
+                                            <Bike className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-gray-500">Rider</p>
-                                            <p className="font-medium text-gray-900">{review.riderId?.name || 'Unknown'}</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Logistics Unit</p>
+                                            <p className="font-black text-gray-900 uppercase text-xs tracking-tight">{review.riderId?.name || 'PERSONNEL_UNASSIGNED'}</p>
                                         </div>
                                     </div>
                                 )}
                             </div>
                         </div>
                     ) : (
-                        <div className="text-center py-12">
-                            <p className="text-gray-500">Review not found</p>
+                        <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-dashed border-gray-200">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Signal Lost - Data Not Found</p>
                         </div>
                     )}
+                </div>
+
+                {/* Footer */}
+                <div className="p-8 border-t border-gray-50 bg-gray-50/50">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
+                    >
+                        Terminate Signal
+                    </button>
                 </div>
             </div>
         </div>

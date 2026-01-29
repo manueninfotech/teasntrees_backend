@@ -77,23 +77,23 @@ export default function ProductDetail() {
                         <ArrowLeft className="w-6 h-6 text-gray-600" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Product Details</h1>
-                        <p className="text-gray-600 mt-1">View and manage product information</p>
+                        <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Product Details</h1>
+                        <p className="text-gray-500 mt-1 font-bold">Manage product configuration and availability</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={() => setShowModal(true)}
-                        className="btn-secondary flex items-center gap-2"
+                        className="px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase hover:bg-gray-900 transition-all flex items-center gap-2 shadow-lg"
                     >
-                        <Edit className="w-5 h-5" />
-                        Edit
+                        <Edit className="w-4 h-4" />
+                        Edit Item
                     </button>
                     <button
                         onClick={deleteProduct}
-                        className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2"
+                        className="px-6 py-3 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all flex items-center gap-2"
                     >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4" />
                         Delete
                     </button>
                 </div>
@@ -125,43 +125,35 @@ export default function ProductDetail() {
                         </div>
                     </div>
 
-                    {/* Product Details */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
-                        {/* Name */}
+                    {/* Details */}
+                    <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 space-y-8">
                         <div>
-                            <label className="text-sm font-medium text-gray-600">Name</label>
-                            <p className="text-2xl font-bold text-gray-900 mt-2">{product.name}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Item Name</p>
+                            <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{product.name}</h3>
                         </div>
 
-                        {/* Description */}
                         <div>
-                            <label className="text-sm font-medium text-gray-600">Description</label>
-                            <p className="text-gray-700 mt-2 leading-relaxed">{product.description || 'No description'}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-3">Item Description</p>
+                            <p className="text-gray-500 font-bold leading-relaxed">{product.description || 'No description provided'}</p>
                         </div>
 
-                        {/* Price & Category */}
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-8">
                             <div>
-                                <label className="text-sm font-medium text-gray-600">Price</label>
-                                <p className="text-2xl font-bold text-green-600 mt-2">
-                                    {product.sizeOptions?.length > 0
-                                        ? `₹${product.displayPrice}`
-                                        : `₹${product.displayPrice}`}
-                                </p>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-3">Pricing</p>
+                                <p className="text-3xl font-black text-gray-900">₹{product.displayPrice}</p>
                             </div>
                             <div>
-                                <label className="text-sm font-medium text-gray-600">Category</label>
-                                <p className="text-lg font-semibold text-gray-900 mt-2">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-3">Classification</p>
+                                <p className="text-lg font-black text-indigo-600 uppercase">
                                     {typeof product.category === 'string' ? product.category : product.category?.name}
                                 </p>
                             </div>
                         </div>
 
-                        {/* Availability */}
                         <div>
-                            <label className="text-sm font-medium text-gray-600">Availability</label>
-                            <div className="mt-2">
-                                <span className={`px-4 py-2 rounded-full font-semibold ${product.isAvailable ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-3">Status</p>
+                            <div className="flex items-center gap-2">
+                                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight ${product.isAvailable ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
                                     {product.isAvailable ? 'Available' : 'Unavailable'}
                                 </span>
                             </div>

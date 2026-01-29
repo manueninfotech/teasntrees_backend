@@ -3,6 +3,7 @@ import api from '../utils/api';
 import CategoryModal from '../components/CategoryModal';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
     Plus,
     Edit,
@@ -11,297 +12,214 @@ import {
     ChevronLeft,
     ChevronRight,
     Folder,
-    Eye
+    Eye,
+    ArrowRight,
+    LayoutGrid,
+    ListFilter,
+    RefreshCw
 } from 'lucide-react';
 
+const CardSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
+        {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white rounded-[2rem] border border-gray-100 h-64"></div>
+        ))}
+    </div>
+);
+
 export default function Categories() {
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+    const { socket } = useSocket();
+    const queryClient = useQueryClient();
+
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
     const [error, setError] = useState(null);
-    const navigate = useNavigate();
-    const { socket } = useSocket();
-    const [pagination, setPagination] = useState({
-        currentPage: 1,
-        totalPages: 1,
-        totalCategories: 0,
-        limit: 12
-    });
-    const [filters, setFilters] = useState({
-        sortBy: 'displayOrder',
-        order: 'asc'
-    });
 
-    useEffect(() => {
-        fetchCategories();
-    }, [pagination.currentPage, searchTerm, filters]);
+    const [pagination, setPagination] = useState({ currentPage: 1, limit: 12 });
+    const [filters, setFilters] = useState({ sortBy: 'displayOrder', order: 'asc' });
 
-    useEffect(() => {
-        if (socket) {
-            const handleCategoryChange = (data) => {
-                console.log('Real-time category change:', data);
-                fetchCategories();
-            };
-
-            socket.on('category:created', handleCategoryChange);
-            socket.on('category:updated', handleCategoryChange);
-            socket.on('category:deleted', handleCategoryChange);
-
-            return () => {
-                socket.off('category:created', handleCategoryChange);
-                socket.off('category:updated', handleCategoryChange);
-                socket.off('category:deleted', handleCategoryChange);
-            };
-        }
-    }, [socket]);
-
-    const fetchCategories = async () => {
-        try {
-            const params = new URLSearchParams({
-                page: pagination.currentPage,
-                limit: pagination.limit,
-                sortBy: filters.sortBy,
-                order: filters.order
-            });
-
+    const { data, isLoading: loading, isFetching, refetch } = useQuery({
+        queryKey: ['categories', pagination.currentPage, searchTerm, filters],
+        queryFn: async () => {
+            const params = new URLSearchParams({ page: pagination.currentPage, limit: pagination.limit, sortBy: filters.sortBy, order: filters.order });
             if (searchTerm) params.append('search', searchTerm);
-
             const response = await api.get(`/admin/categories?${params.toString()}`);
-            const categoriesData = response.data.data || [];
-            setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-
-            // Update pagination info
-            if (response.data.pagination) {
-                setPagination(prev => ({
-                    ...prev,
-                    totalPages: response.data.pagination.totalPages || 1,
-                    totalCategories: response.data.pagination.totalItems || 0
-                }));
-            }
-            setError(null);
-        } catch (error) {
-            console.error('Failed to fetch categories:', error);
-            setError('Failed to load categories');
-            setCategories([]);
-        } finally {
-            setLoading(false);
+            return response.data;
         }
-    };
+    });
+
+    const isSyncing = isFetching;
+
+    const categories = data?.data || [];
+    const totalCount = data?.pagination?.totalItems || categories.length;
+    const totalPages = data?.pagination?.totalPages || 1;
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleCategoryChange = () => { queryClient.invalidateQueries({ queryKey: ['categories'] }); };
+        socket.on('category:created', handleCategoryChange);
+        socket.on('category:updated', handleCategoryChange);
+        socket.on('category:deleted', handleCategoryChange);
+        return () => {
+            socket.off('category:created', handleCategoryChange);
+            socket.off('category:updated', handleCategoryChange);
+            socket.off('category:deleted', handleCategoryChange);
+        };
+    }, [socket, queryClient]);
 
     const deleteCategory = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this category?')) return;
-
+        if (!window.confirm('Are you sure?')) return;
         try {
             await api.delete(`/admin/categories/${id}`);
-            fetchCategories();
-        } catch (error) {
-            console.error('Failed to delete category:', error);
-            setError(error.response?.data?.message || 'Failed to delete category');
-        }
+            queryClient.invalidateQueries({ queryKey: ['categories'] });
+        } catch (error) { setError(error.response?.data?.message || 'Failed to delete category'); }
     };
-
-    const filteredCategories = categories.filter(category =>
-        category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-96">
-                <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Categories</h1>
-                    <p className="text-gray-600 mt-1">Organize your products into categories</p>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Categories</h1>
+                    <p className="text-gray-500 mt-1 font-bold">Manage product categories and structure</p>
                 </div>
-                <button
-                    onClick={() => setShowModal(true)}
-                    className="btn-primary flex items-center gap-2"
-                >
-                    <Plus className="w-5 h-5" />
-                    Add Category
-                </button>
-            </div>
-
-            {/* Error Alert */}
-            {error && (
-                <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
-                    {error}
-                </div>
-            )}
-
-            {/* Search */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Search categories..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="input pl-10"
-                    />
-                </div>
-            </div>
-
-            {/* Filters */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Sort By Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Sort By
-                        </label>
-                        <select
-                            value={filters.sortBy}
-                            onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
-                            className="input"
-                        >
-                            <option value="displayOrder">Display Order</option>
-                            <option value="name">Name</option>
-                            <option value="createdAt">Created Date</option>
-                        </select>
-                    </div>
-
-                    {/* Sort Order Filter */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Order
-                        </label>
-                        <select
-                            value={filters.order}
-                            onChange={(e) => setFilters({ ...filters, order: e.target.value })}
-                            className="input"
-                        >
-                            <option value="asc">Ascending</option>
-                            <option value="desc">Descending</option>
-                        </select>
-                    </div>
-                </div>
-
-                {/* Clear Filters Button */}
-                {(filters.sortBy !== 'displayOrder' || filters.order !== 'asc') && (
+                <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setFilters({ sortBy: 'displayOrder', order: 'asc' })}
-                        className="mt-4 text-sm text-green-600 hover:text-green-700 font-medium"
+                        onClick={() => refetch()}
+                        disabled={isSyncing}
+                        className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
                     >
-                        Reset filters
+                        <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
                     </button>
+                    <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg hover:shadow-black/20">
+                        <Plus className="w-5 h-5" />
+                        New Group
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+                <StatCard label="Total Categories" value={totalCount} icon={LayoutGrid} theme="blue" desc="Groups in use" loading={loading && !data} />
+                <StatCard label="Sort Mode" value={filters.sortBy === 'displayOrder' ? 'Custom' : 'By Name'} icon={ListFilter} theme="purple" desc="Order of items" />
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-4">
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input type="text" placeholder="Search categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input pl-12 text-sm font-bold" />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <select value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })} className="input text-xs font-black uppercase">
+                        <option value="displayOrder">Sort: Display Order</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="createdAt">Sort: Created Date</option>
+                    </select>
+                    <select value={filters.order} onChange={(e) => setFilters({ ...filters, order: e.target.value })} className="input text-xs font-black uppercase">
+                        <option value="asc">Direction: Ascending</option>
+                        <option value="desc">Direction: Descending</option>
+                    </select>
+                </div>
+            </div>
+
+            {error && <div className="bg-red-50 border-2 border-red-100 text-red-700 px-6 py-4 rounded-2xl font-black text-xs uppercase">{error}</div>}
+
+            <div className="min-h-[400px]">
+                {loading && categories.length === 0 ? (
+                    <CardSkeleton />
+                ) : categories.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {categories.map((category) => (
+                            <div key={category._id} className="bg-white rounded-[2rem] shadow-sm border-2 border-gray-50 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all flex flex-col group">
+                                <div className="h-40 bg-gray-50/50 flex items-center justify-center relative group-hover:bg-indigo-50 transition-colors">
+                                    <span className="text-7xl transform group-hover:scale-110 group-hover:rotate-12 transition-all duration-500 drop-shadow-sm">{category.icon || '📦'}</span>
+                                    <div className="absolute bottom-4 right-4 bg-white/80 backdrop-blur-md px-2 py-1 rounded-lg border border-gray-100"><span className="text-[8px] font-black uppercase text-gray-400 select-none">Order: {category.displayOrder || 0}</span></div>
+                                </div>
+                                <div className="p-6 flex flex-col flex-1">
+                                    <div className="flex-1">
+                                        <h3 className="font-black text-gray-900 uppercase truncate text-sm mb-1">{category.name}</h3>
+                                        <p className="text-[10px] text-gray-400 font-bold line-clamp-2 leading-relaxed">{category.description || 'Global classification group'}</p>
+                                    </div>
+                                    <div className="flex gap-2 mt-6">
+                                        <button onClick={() => navigate(`/categories/${category._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View Products</button>
+                                        <button onClick={() => { setEditingCategory(category); setShowModal(true); }} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Edit</button>
+                                        <button onClick={() => deleteCategory(category._id)} className="px-4 py-3 bg-red-50 text-red-300 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-32 bg-white rounded-3xl border-2 border-dashed border-gray-100">
+                        <Folder className="w-24 h-24 text-gray-100 mx-auto mb-6" />
+                        <h3 className="text-2xl font-black text-gray-300 uppercase tracking-widest">No matching groups</h3>
+                    </div>
                 )}
             </div>
 
-            {/* Categories Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredCategories.map((category) => (
-                    <div
-                        key={category._id}
-                        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
-                    >
-                        {/* Category Icon Background */}
-                        <div className="h-32 bg-gradient-to-br from-green-100 to-emerald-100 flex items-center justify-center">
-                            <span className="text-6xl">{category.icon || '📦'}</span>
-                        </div>
-
-                        {/* Category Info */}
-                        <div className="p-4 flex flex-col flex-1">
-                            <div className="flex-1">
-                                <h3 className="font-bold text-lg text-gray-900 mb-2">{category.name}</h3>
-                                <p className="text-sm text-gray-600 line-clamp-3">{category.description || 'No description'}</p>
-
-                                {/* Display Order Badge */}
-                                <div className="mt-3 inline-block">
-                                    <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-                                        Order: {category.displayOrder || 0}
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-2 mt-4">
-                                <button
-                                    onClick={() => navigate(`/categories/${category._id}`)}
-                                    className="flex-1 btn-secondary flex items-center justify-center gap-2 text-sm py-2"
-                                >
-                                    <Eye className="w-4 h-4" />
-                                    View
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setEditingCategory(category);
-                                        setShowModal(true);
-                                    }}
-                                    className="flex-1 btn-secondary flex items-center justify-center gap-2 text-sm py-2"
-                                >
-                                    <Edit className="w-4 h-4" />
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => deleteCategory(category._id)}
-                                    className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {filteredCategories.length === 0 && (
-                <div className="text-center py-12">
-                    <Folder className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No categories found</p>
-                </div>
-            )}
-
             {/* Pagination */}
-            {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                    <div className="text-sm text-gray-600">
-                        Page <span className="font-medium">{pagination.currentPage}</span> of{' '}
-                        <span className="font-medium">{pagination.totalPages}</span>
-                        {' • '}
-                        <span className="font-medium">{pagination.totalCategories}</span> total categories
-                    </div>
+            {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 py-10">
+                    <button
+                        onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
+                        disabled={pagination.currentPage === 1}
+                        className="p-4 bg-white border border-gray-100 rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all shadow-sm"
+                    >
+                        <ChevronLeft className="w-5 h-5" />
+                    </button>
+
                     <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-                            disabled={pagination.currentPage === 1}
-                            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                        >
-                            <ChevronLeft className="w-4 h-4" />
-                            Previous
-                        </button>
-                        <button
-                            onClick={() => setPagination(prev => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-                            disabled={pagination.currentPage === pagination.totalPages}
-                            className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                        >
-                            Next
-                            <ChevronRight className="w-4 h-4" />
-                        </button>
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button
+                                key={i + 1}
+                                onClick={() => setPagination(prev => ({ ...prev, currentPage: i + 1 }))}
+                                className={`w-12 h-12 rounded-2xl text-[10px] font-black transition-all ${pagination.currentPage === i + 1
+                                    ? 'bg-black text-white shadow-xl scale-110'
+                                    : 'bg-white text-gray-400 border border-gray-100 hover:bg-gray-50'
+                                    }`}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
                     </div>
+
+                    <button
+                        onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(totalPages, prev.currentPage + 1) }))}
+                        disabled={pagination.currentPage === totalPages}
+                        className="p-4 bg-white border border-gray-100 rounded-2xl disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 transition-all shadow-sm"
+                    >
+                        <ChevronRight className="w-5 h-5" />
+                    </button>
                 </div>
             )}
 
-            {/* Category Modal */}
-            <CategoryModal
-                isOpen={showModal}
-                onClose={() => {
-                    setShowModal(false);
-                    setEditingCategory(null);
-                }}
-                category={editingCategory}
-                onSuccess={fetchCategories}
-            />
+            <CategoryModal isOpen={showModal} onClose={() => { setShowModal(false); setEditingCategory(null); }} category={editingCategory} onSuccess={() => queryClient.invalidateQueries({ queryKey: ['categories'] })} />
         </div>
     );
 }
+
+const StatCard = ({ label, value, icon: Icon, theme, desc, loading }) => {
+    const themes = {
+        blue: 'from-blue-600 to-indigo-700 shadow-blue-100 text-blue-600 bg-blue-50',
+        purple: 'from-purple-600 to-pink-700 shadow-purple-100 text-purple-600 bg-purple-50'
+    };
+    const style = themes[theme] || themes.blue;
+    const [gradientFrom, gradientTo, shadow, textColor, bgColor] = style.split(' ');
+    return (
+        <div className="relative overflow-hidden bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+            <div className="relative flex items-center justify-between">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{label}</p>
+                    <h3 className={`text-3xl font-black text-gray-900 tracking-tight ${loading ? 'animate-pulse opacity-50' : ''}`}>{value}</h3>
+                    <div className={`flex items-center gap-1 py-1 px-3 ${bgColor} rounded-full w-fit`}>
+                        <ArrowRight className={`w-3 h-3 ${textColor}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-tight ${textColor}`}>{desc}</span>
+                    </div>
+                </div>
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg ${shadow} transform group-hover:rotate-12 transition-all`}>
+                    <Icon className="w-7 h-7" />
+                </div>
+            </div>
+        </div>
+    );
+};

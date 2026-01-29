@@ -185,58 +185,59 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-100">
                 {/* Header */}
-                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-                    <h2 className="text-2xl font-bold text-gray-900">
+                <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-50 p-8 flex items-center justify-between z-10">
+                    <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">
                         {product ? 'Edit Product' : 'Add New Product'}
                     </h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
                     >
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-8 space-y-8">
                     {error && (
-                        <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded">
-                            {error}
+                        <div className="bg-red-50 border border-red-100 text-red-600 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                            ERROR: {error}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="col-span-2 space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                                 Product Name *
                             </label>
                             <input
                                 type="text"
                                 value={formData.name}
                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                className="input"
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
+                                placeholder="E.G. CLASSIC LATTE"
                                 required
                             />
                         </div>
 
-                        <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <div className="col-span-2 space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                                 Description *
                             </label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                className="input resize-none"
-                                rows="3"
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all min-h-[100px] resize-none"
+                                placeholder="PRODUCT COMPOSITION AND TASTE NOTES..."
                                 required
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                                 Price (₹) *
                             </label>
                             <input
@@ -244,42 +245,55 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                 step="0.01"
                                 value={formData.price}
                                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                className="input"
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
                                 required
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                                 Category *
                             </label>
                             <select
                                 value={formData.category}
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="input"
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all appearance-none"
                                 required
                             >
-                                <option value="">Select category</option>
+                                <option value="">SELECT GROUP</option>
                                 {categories.map((cat) => (
                                     <option key={cat._id} value={cat._id}>
-                                        {cat.name}
+                                        {cat.name.toUpperCase()}
                                     </option>
                                 ))}
                             </select>
                         </div>
 
-                        <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <div className="col-span-2 space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                Tags (separate with comma)
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.tags}
+                                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
+                                placeholder="E.G. NEW, BESTSELLER, SPICY"
+                            />
+                        </div>
+
+                        <div className="col-span-2 space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                                 Product Image
                             </label>
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 {/* Image Preview */}
                                 {(imagePreview || formData.image) && (
-                                    <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                                    <div className="relative w-full h-56 bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 group">
                                         <img
                                             src={imagePreview || formData.image}
                                             alt="Preview"
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                         />
                                         <button
                                             type="button"
@@ -288,7 +302,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                                 setImagePreview('');
                                                 setFormData({ ...formData, image: '' });
                                             }}
-                                            className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                                            className="absolute top-4 right-4 p-3 bg-red-600 text-white rounded-xl hover:bg-emerald-600 transition-all shadow-xl"
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -296,13 +310,13 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                 )}
 
                                 {/* File Upload */}
-                                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                                <label className="flex flex-col items-center justify-center w-full h-40 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] cursor-pointer hover:bg-gray-100 transition-all group">
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                                        <p className="text-sm text-gray-600">
-                                            <span className="font-semibold">Click to upload</span> or drag and drop
+                                        <Upload className="w-8 h-8 text-gray-300 mb-3 group-hover:text-emerald-900 transition-colors" />
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] group-hover:text-emerald-900">
+                                            Click to Upload
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-1">PNG, JPG, WEBP up to 5MB</p>
+                                        <p className="text-[8px] font-black text-gray-300 mt-2 uppercase">MAX 5MB_WEBP_JPG</p>
                                     </div>
                                     <input
                                         type="file"
@@ -314,57 +328,36 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                             </div>
                         </div>
 
-                        <div className="col-span-2">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Tags
+                        <div className="col-span-2 space-y-4">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                Settings
                             </label>
-                            <div className="flex flex-wrap gap-3">
-                                {['new-intro', 'must-try', 'best-seller', 'egg-contains'].map((tag) => (
-                                    <label key={tag} className="flex items-center gap-2 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={formData.tags.split(',').map(t => t.trim()).includes(tag)}
-                                            onChange={(e) => {
-                                                const currentTags = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
-                                                if (e.target.checked) {
-                                                    setFormData({ ...formData, tags: [...currentTags, tag].join(', ') });
-                                                } else {
-                                                    setFormData({ ...formData, tags: currentTags.filter(t => t !== tag).join(', ') });
-                                                }
-                                            }}
-                                            className="w-4 h-4 text-green-600 rounded"
-                                        />
-                                        <span className="text-sm text-gray-700 capitalize">{tag.replace('-', ' ')}</span>
-                                    </label>
-                                ))}
+                            <div className="grid grid-cols-2 gap-4">
+                                <label className={`flex items-center justify-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${formData.isAvailable ? 'bg-emerald-600 border-emerald-600 text-white shadow-xl shadow-emerald-200' : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-emerald-900'}`}>
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.isAvailable}
+                                        onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
+                                        className="hidden"
+                                    />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">In Stock</span>
+                                </label>
+
+                                <label className={`flex items-center justify-center gap-3 p-4 rounded-2xl border transition-all cursor-pointer ${formData.isSeasonal ? 'bg-orange-600 border-orange-600 text-white shadow-xl shadow-orange-100' : 'bg-gray-50 border-gray-100 text-gray-400 hover:text-orange-600'}`}>
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.isSeasonal}
+                                        onChange={(e) => handleSeasonalChange(e.target.checked)}
+                                        className="hidden"
+                                    />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Seasonal Item</span>
+                                </label>
                             </div>
                         </div>
 
-                        <div className="col-span-2 flex gap-4">
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.isAvailable}
-                                    onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
-                                    className="w-4 h-4 text-green-600 rounded"
-                                />
-                                <span className="text-sm font-medium text-gray-700">Available</span>
-                            </label>
-
-                            <label className="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.isSeasonal}
-                                    onChange={(e) => handleSeasonalChange(e.target.checked)}
-                                    className="w-4 h-4 text-orange-600 rounded"
-                                />
-                                <span className="text-sm font-medium text-gray-700">Seasonal Product</span>
-                            </label>
-                        </div>
-
                         {formData.isSeasonal && (
-                            <div className="col-span-2">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <div className="col-span-2 space-y-4">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                                     Available Months
                                 </label>
                                 <div className="grid grid-cols-6 gap-2">
@@ -373,9 +366,9 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                             key={index}
                                             type="button"
                                             onClick={() => toggleMonth(index + 1)}
-                                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${formData.availableMonths.includes(index + 1)
-                                                ? 'bg-green-600 text-white'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            className={`py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${formData.availableMonths.includes(index + 1)
+                                                ? 'bg-orange-50 text-orange-600 border-orange-100 border'
+                                                : 'bg-gray-50 text-gray-400 border-transparent border hover:bg-gray-100'
                                                 }`}
                                         >
                                             {month}
@@ -387,20 +380,20 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-4 pt-6">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 btn-secondary py-3"
+                            className="flex-1 py-5 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all border border-transparent"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading || uploading}
-                            className="flex-1 btn-primary py-3 disabled:opacity-50"
+                            className="flex-1 py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-xl shadow-emerald-200"
                         >
-                            {uploading ? 'Uploading image...' : loading ? 'Saving...' : (product ? 'Update Product' : 'Add Product')}
+                            {uploading ? 'Uploading...' : loading ? 'Saving...' : (product ? 'Update Product' : 'Create Product')}
                         </button>
                     </div>
                 </form>

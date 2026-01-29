@@ -34,17 +34,17 @@ export default function Layout() {
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: FolderTree, label: 'Categories', path: '/categories' },
         { icon: Package, label: 'Products', path: '/products' },
-        { icon: Calendar, label: 'Seasonal', path: '/products/seasonal' },
+        { icon: Calendar, label: 'Seasonal Items', path: '/products/seasonal' },
         { icon: ShoppingCart, label: 'Orders', path: '/orders' },
         { icon: Bike, label: 'Riders', path: '/riders' },
         { icon: UserCog, label: 'Managers', path: '/managers' },
-        { icon: Truck, label: 'Delivery Tracking', path: '/deliveries' },
+        { icon: Truck, label: 'Deliveries', path: '/deliveries' },
         { icon: Wallet, label: 'Payouts', path: '/payouts' },
         { icon: Users, label: 'Customers', path: '/customers' },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
-        { icon: ShoppingCart, label: 'Cart Analytics', path: '/cart-analytics' },
-        { icon: Shield, label: 'Staff & Users', path: '/users' },
-        { icon: History, label: 'Activity Logs', path: '/activity-logs' },
+        { icon: ShoppingCart, label: 'Cart Insights', path: '/cart-analytics' },
+        { icon: Shield, label: 'All Accounts', path: '/users' },
+        { icon: History, label: 'System Logs', path: '/activity-logs' },
         { icon: Settings, label: 'Settings', path: '/settings' },
         { icon: User, label: 'My Profile', path: '/profile' },
     ];
@@ -54,59 +54,64 @@ export default function Layout() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex">
+        <div className="min-h-screen bg-gray-50/50 flex selection:bg-emerald-600 selection:text-white font-sans text-gray-900">
             {/* Sidebar */}
-            <aside className="w-64 bg-white border-r border-gray-200 fixed h-screen flex flex-col">
-                {/* Logo */}
-                <div className="p-6 border-b border-gray-200">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg">
+            <aside className="w-80 bg-white border-r border-gray-100 my-5 ml-5 rounded-[2.5rem] shadow-2xl shadow-gray-200/50 flex flex-col h-[calc(100vh-40px)] sticky top-5 overflow-hidden z-20">
+                {/* Logo Area */}
+                <div className="p-8 border-b border-gray-50 bg-white">
+                    <div className="flex items-center gap-5">
+                        <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
                             <Coffee className="w-7 h-7 text-white" />
                         </div>
                         <div>
-                            <h1 className="font-bold text-xl bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                            <h1 className="font-black text-2xl text-gray-900 tracking-tighter uppercase leading-none">
                                 TeasNTrees
                             </h1>
-                            <p className="text-xs text-gray-500 font-medium">Admin Panel</p>
+                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em] mt-1.5 ml-0.5">Admin Portal</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Navigation */}
-                <nav className="p-4 flex-1 overflow-y-auto">
-                    {navItems.map((item) => (
-                        <Link
-                            key={item.path}
-                            to={item.path}
-                            className={`
-                flex items-center gap-3 px-4 py-3 rounded-xl transition-all mb-1
-                ${isActive(item.path)
-                                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg shadow-green-200'
-                                    : 'text-gray-700 hover:bg-gray-100 hover:text-green-600'
-                                }
-              `}
-                        >
-                            <item.icon className="w-5 h-5" />
-                            <span className="font-medium">{item.label}</span>
-                        </Link>
-                    ))}
+                <nav className="p-6 flex-1 overflow-y-auto space-y-2 no-scrollbar">
+                    {navItems.map((item) => {
+                        const active = isActive(item.path);
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={`
+                                    flex items-center gap-4 px-6 py-4 rounded-2xl transition-all group duration-300
+                                    ${active
+                                        ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-200 scale-[1.02]'
+                                        : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 hover:pl-7'
+                                    }
+                                `}
+                            >
+                                <item.icon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${active ? 'text-white' : 'text-gray-400 group-hover:text-emerald-600'}`} />
+                                <span className="font-black uppercase text-[10px] tracking-[0.2em]">{item.label}</span>
+                            </Link>
+                        );
+                    })}
                 </nav>
 
                 {/* Logout Button */}
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-6 border-t border-gray-50 bg-gray-50/30">
                     <button
                         onClick={handleLogout}
-                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600 transition-all w-full group"
+                        className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-red-50 text-red-500 transition-all hover:bg-red-600 hover:text-white group w-full hover:shadow-lg hover:shadow-red-200"
                     >
-                        <LogOut className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                        <span className="font-medium">Logout</span>
+                        <LogOut className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                        <span className="font-black uppercase text-[10px] tracking-[0.2em]">Logout Session</span>
                     </button>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className="ml-64 flex-1 p-8">
-                <Outlet />
+            <main className="flex-1 p-10 overflow-x-hidden overflow-y-auto h-screen scroll-smooth">
+                <div className="max-w-[1600px] mx-auto pb-10">
+                    <Outlet />
+                </div>
             </main>
         </div>
     );

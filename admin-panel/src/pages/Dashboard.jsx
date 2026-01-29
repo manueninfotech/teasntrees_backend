@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import {
@@ -8,273 +8,190 @@ import {
     Package,
     Bike,
     DollarSign,
-    Clock
+    Clock,
+    ArrowRight,
+    RefreshCw
 } from 'lucide-react';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import { useSocket } from '../context/SocketContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+const ListSkeleton = () => (
+    <div className="space-y-4 animate-pulse">
+        {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-16 bg-gray-50 rounded-2xl"></div>
+        ))}
+    </div>
+);
 
 export default function Dashboard() {
-    const [stats, setStats] = useState(null);
-    const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
     const { socket } = useSocket();
-    const fetchTimeoutRef = useRef(null);
-    const isSocketActive = useRef(false); // BLOCK FETCH DURING SOCKET
+    const queryClient = useQueryClient();
 
-    const debounceFetch = () => {
-        if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-        fetchTimeoutRef.current = setTimeout(() => {
-            if (!isSocketActive.current) {
-                fetchStats(true);
-            }
-        }, 8000); // 8s delay
-    };
-
-    useEffect(() => {
-        console.log('🔌 Socket status:', socket ? 'CONNECTED' : 'NO SOCKET');
-
-        if (socket) {
-            socket.on('connect', () => console.log('✅ SOCKET CONNECTED'));
-            socket.on('disconnect', () => console.log('❌ SOCKET DISCONNECTED'));
+    const { data: stats, isLoading: loading, isFetching, refetch } = useQuery({
+        queryKey: ['dashboard-stats'],
+        queryFn: async () => {
+            const response = await api.get('/admin/dashboard/stats');
+            return response.data.data;
         }
-    }, [socket]);
+    });
+
+    const isSyncing = isFetching;
 
     useEffect(() => {
         if (!socket) return;
-
-        // **INSTANT UPDATES - BLOCK FETCH**
-        const handleUserRegistered = (data) => {
-            console.log('🎉 USER REGISTERED:', data);
-            isSocketActive.current = true;
-            const isCustomer = !data?.role || data.role.toLowerCase().includes('customer');
-            if (isCustomer) {
-                setStats(prev => {
-                    console.log('👆 BEFORE:', prev?.totalCustomers);
-                    const newCount = (prev?.totalCustomers || 3) + 1;
-                    console.log('➕ NEW COUNT:', newCount);
-                    return {
-                        ...prev,
-                        totalCustomers: newCount
-                    };
-                });
-            }
-            setTimeout(() => { isSocketActive.current = false; }, 10000);
-        };
-
-        const handleUserDeleted = (data) => {
-            console.log('🎉 USER DELETED:', data);
-            isSocketActive.current = true;
-            const isCustomer = !data?.role || data.role.toLowerCase().includes('customer');
-            if (isCustomer) {
-                setStats(prev => {
-                    console.log('👆 BEFORE:', prev?.totalCustomers);
-                    const newCount = Math.max((prev?.totalCustomers || 3) - 1, 0);
-                    console.log('➖ NEW COUNT:', newCount);
-                    return {
-                        ...prev,
-                        totalCustomers: newCount
-                    };
-                });
-            }
-            setTimeout(() => { isSocketActive.current = false; }, 10000);
-        };
-
-        const handleProductCreated = () => {
-            console.log('🎉 PRODUCT CREATED');
-            isSocketActive.current = true;
-            setStats(prev => ({
-                ...prev,
-                totalProducts: (prev?.totalProducts || 240) + 1
-            }));
-            setTimeout(() => { isSocketActive.current = false; }, 10000);
-        };
-
-        const handleProductDeleted = () => {
-            console.log('🎉 PRODUCT DELETED');
-            isSocketActive.current = true;
-            setStats(prev => ({
-                ...prev,
-                totalProducts: Math.max((prev?.totalProducts || 240) - 1, 0)
-            }));
-            setTimeout(() => { isSocketActive.current = false; }, 10000);
-        };
-
-        socket.on('user:registered', handleUserRegistered);
-        socket.on('user:deleted', handleUserDeleted);
-        socket.on('product:created', handleProductCreated);
-        socket.on('product:deleted', handleProductDeleted);
-
-        socket.on('order:new', (data) => {
-            console.log('🛒 NEW ORDER');
-            setStats(prev => ({
-                ...prev,
-                totalOrders: (prev?.totalOrders || 0) + 1,
-                todayOrders: (prev?.todayOrders || 0) + 1,
-                pendingOrders: (prev?.pendingOrders || 0) + 1,
-                totalRevenue: (prev?.totalRevenue || 0) + (data.total || 0),
-                todayRevenue: (prev?.todayRevenue || 0) + (data.total || 0),
-                recentOrders: [{
-                    _id: data.orderId,
-                    orderNumber: data.orderNumber,
-                    total: data.total || 0,
-                    status: 'pending',
-                    customerId: { name: data.customerName || 'Customer' },
-                    items: []
-                }, ...(prev?.recentOrders || [])].slice(0, 5)
-            }));
-            debounceFetch();
-        });
-
-        socket.on('order:status-updated', () => debounceFetch());
-        socket.on('delivery:status-updated', () => debounceFetch());
-        socket.on('product:updated', () => debounceFetch());
-
+        const handleUpdate = () => { queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }); };
+        socket.on('user:registered', handleUpdate);
+        socket.on('user:deleted', handleUpdate);
+        socket.on('product:created', handleUpdate);
+        socket.on('product:deleted', handleUpdate);
+        socket.on('order:new', handleUpdate);
+        socket.on('order:status-updated', handleUpdate);
+        socket.on('delivery:status-updated', handleUpdate);
+        socket.on('product:updated', handleUpdate);
         return () => {
-            socket.off('user:registered', handleUserRegistered);
-            socket.off('user:deleted', handleUserDeleted);
-            socket.off('product:created', handleProductCreated);
-            socket.off('product:deleted', handleProductDeleted);
-            socket.off('order:new');
-            socket.off('order:status-updated');
-            socket.off('delivery:status-updated');
-            socket.off('product:updated');
-            if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+            socket.off('user:registered', handleUpdate);
+            socket.off('user:deleted', handleUpdate);
+            socket.off('product:created', handleUpdate);
+            socket.off('product:deleted', handleUpdate);
+            socket.off('order:new', handleUpdate);
+            socket.off('order:status-updated', handleUpdate);
+            socket.off('delivery:status-updated', handleUpdate);
+            socket.off('product:updated', handleUpdate);
         };
-    }, [socket]);
-
-    useEffect(() => {
-        fetchStats();
-        const interval = setInterval(() => {
-            if (!isSocketActive.current) {
-                fetchStats(true);
-            }
-        }, 60000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const fetchStats = async (isBackground = false) => {
-        if (!isBackground) setLoading(true);
-        if (isSocketActive.current) {
-            console.log('⏳ Socket active - skipping fetch');
-            if (!isBackground) setLoading(false);
-            return;
-        }
-        try {
-            const response = await api.get('/admin/dashboard/stats');
-            console.log('📊 Server stats:', response.data.data);
-            setStats(response.data.data);
-        } catch (error) {
-            console.error('❌ Fetch failed:', error);
-        } finally {
-            if (!isBackground) setLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-        );
-    }
+    }, [socket, queryClient]);
 
     const statCards = [
-        { title: 'Total Revenue', value: `₹${(stats?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, color: 'green', subtitle: `₹${stats?.todayRevenue || 0} today`, path: '/orders' },
-        { title: 'Total Orders', value: stats?.totalOrders || 0, icon: ShoppingCart, color: 'blue', subtitle: `${stats?.todayOrders || 0} today`, path: '/orders' },
-        { title: 'Active Customers', value: stats?.totalCustomers || 0, icon: Users, color: 'purple', subtitle: 'Registered users', path: '/customers' },
-        { title: 'Products', value: stats?.totalProducts || 0, icon: Package, color: 'orange', subtitle: 'In catalog', path: '/products' },
-        { title: 'Active Riders', value: `${stats?.activeRiders || 0}/${stats?.totalRiders || 0}`, icon: Bike, color: 'teal', subtitle: 'Online now', path: '/riders' },
-        { title: 'Pending Orders', value: stats?.pendingOrders || 0, icon: Clock, color: 'red', subtitle: 'Need attention', path: '/orders?status=pending' }
+        { title: 'Total Revenue', value: `₹${(stats?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, theme: 'green', desc: `₹${stats?.todayRevenue || 0} today`, path: '/orders' },
+        { title: 'Orders', value: stats?.totalOrders || 0, icon: ShoppingCart, theme: 'blue', desc: `${stats?.todayOrders || 0} new today`, path: '/orders' },
+        { title: 'Customers', value: stats?.totalCustomers || 0, icon: Users, theme: 'purple', desc: 'Registered accounts', path: '/customers' },
+        { title: 'Products', value: stats?.totalProducts || 0, icon: Package, theme: 'orange', desc: 'Total items', path: '/products' },
+        { title: 'Delivery Riders', value: `${stats?.activeRiders || 0}/${stats?.totalRiders || 0}`, icon: Bike, theme: 'teal', desc: 'Online / Total', path: '/riders' },
+        { title: 'Awaiting Action', value: stats?.pendingOrders || 0, icon: Clock, theme: 'red', desc: 'Pending orders', path: '/orders?status=pending' }
     ];
 
-    const colorClasses = {
-        green: 'from-green-500 to-emerald-500', blue: 'from-blue-500 to-cyan-500',
-        purple: 'from-purple-500 to-pink-500', orange: 'from-orange-500 to-amber-500',
-        teal: 'from-teal-500 to-cyan-500', red: 'from-red-500 to-rose-500'
-    };
-
     return (
-        <div className="space-y-6 p-6 max-w-7xl mx-auto">
+        <div className="space-y-8 max-w-7xl mx-auto">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                    <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
+                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Dashboard</h1>
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Overview of your business</p>
                 </div>
-                <div className="text-sm text-gray-500">Last updated: {new Date().toLocaleTimeString()}</div>
+                <button
+                    onClick={() => refetch()}
+                    disabled={isSyncing}
+                    className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                >
+                    <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
+                </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                 {statCards.map((stat, index) => (
-                    <div key={index} onClick={() => navigate(stat.path)} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all cursor-pointer active:scale-95 group">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-gray-600 mb-1">{stat.title}</p>
-                                <h3 className="text-3xl font-bold text-gray-900 mb-2 group-hover:text-green-600 transition-colors">{stat.value}</h3>
-                                <p className="text-sm text-gray-500">{stat.subtitle}</p>
-                            </div>
-                            <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${colorClasses[stat.color]} flex items-center justify-center shadow-lg`}>
-                                <stat.icon className="w-7 h-7 text-white" />
-                            </div>
-                        </div>
-                    </div>
+                    <StatCard key={index} {...stat} loading={loading && !stats} onClick={() => navigate(stat.path)} />
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
-                        <button onClick={() => navigate('/orders')} className="text-sm text-green-600 hover:text-green-700 font-medium">View All</button>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 flex flex-col min-h-[500px]">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-xl font-black uppercase text-gray-900 tracking-tight">Recent Activity</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Latest incoming orders</p>
+                        </div>
+                        <button onClick={() => navigate('/orders')} className="p-3 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all"><ArrowRight className="w-5 h-5" /></button>
                     </div>
-                    <div className="space-y-3">
-                        {stats?.recentOrders?.length > 0 ? (
-                            stats.recentOrders.map((order) => (
-                                <div key={order._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate('/orders')}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                            <ShoppingCart className="w-5 h-5 text-green-600" />
+                    {loading && !stats ? (
+                        <ListSkeleton />
+                    ) : (
+                        <div className="space-y-4 flex-1">
+                            {stats?.recentOrders?.length > 0 ? (
+                                stats.recentOrders.map((order) => (
+                                    <div key={order._id} onClick={() => navigate('/orders')} className="flex items-center justify-between p-5 bg-gray-50/50 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100 transition-all cursor-pointer border border-transparent hover:border-gray-100 group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                                <ShoppingCart className="w-6 h-6 text-indigo-600" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-black text-gray-900 uppercase text-sm">#{order.orderNumber}</p>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{order.customerId?.name || 'Customer'} • ₹{order.total}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-medium text-gray-900">#{order.orderNumber}</p>
-                                            <p className="text-sm text-gray-500">{order.customerId?.name || 'Customer'} • {order.items?.length || 0} items • ₹{order.total}</p>
-                                        </div>
+                                        <OrderStatusBadge status={order.status} />
                                     </div>
-                                    <OrderStatusBadge status={order.status} />
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-center text-gray-500 py-8">No recent orders</p>
-                        )}
-                    </div>
+                                ))
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-gray-300 font-black uppercase tracking-widest opacity-20"><ShoppingCart className="w-16 h-16 mb-4" /> No recent orders</div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-gray-900">Top Products</h2>
-                        <button onClick={() => navigate('/products')} className="text-sm text-green-600 hover:text-green-700 font-medium">View All</button>
+                <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 flex flex-col min-h-[500px]">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-xl font-black uppercase text-gray-900 tracking-tight">Best Sellers</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Top performing products</p>
+                        </div>
+                        <button onClick={() => navigate('/products')} className="p-3 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all"><TrendingUp className="w-5 h-5" /></button>
                     </div>
-                    <div className="space-y-3">
-                        {stats?.topProducts?.length > 0 ? (
-                            stats.topProducts.map((product) => (
-                                <div key={product._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors" onClick={() => navigate(`/products/${product._id}`)}>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                                            <Package className="w-5 h-5 text-orange-600" />
+                    {loading && !stats ? (
+                        <ListSkeleton />
+                    ) : (
+                        <div className="space-y-4 flex-1">
+                            {stats?.topProducts?.length > 0 ? (
+                                stats.topProducts.map((product) => (
+                                    <div key={product._id} onClick={() => navigate('/products')} className="flex items-center justify-between p-5 bg-gray-50/50 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100 transition-all cursor-pointer border border-transparent hover:border-gray-100 group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
+                                                <Package className="w-6 h-6 text-orange-500" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-black text-gray-900 uppercase text-sm truncate">{product.name}</p>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{product.orderCount || 0} Successful sales</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-medium text-gray-900">{product.name}</p>
-                                            <p className="text-sm text-gray-500">{product.orderCount || 0} sold</p>
-                                        </div>
+                                        <div className="p-2 bg-green-50 text-green-600 rounded-xl"><TrendingUp className="w-4 h-4" /></div>
                                     </div>
-                                    <TrendingUp className="w-5 h-5 text-green-600" />
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-center text-gray-500 py-8">No products data</p>
-                        )}
-                    </div>
+                                ))
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-gray-300 font-black uppercase tracking-widest opacity-20"><Package className="w-16 h-16 mb-4" /> No product data</div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
     );
 }
+
+const StatCard = ({ title, value, icon: Icon, theme, desc, loading, onClick }) => {
+    const themes = {
+        blue: 'from-blue-600 to-indigo-700 shadow-blue-100 text-blue-600 bg-blue-50',
+        green: 'from-emerald-500 to-green-600 shadow-green-100 text-green-600 bg-green-50',
+        purple: 'from-purple-600 to-indigo-700 shadow-purple-100 text-purple-600 bg-purple-50',
+        orange: 'from-orange-500 to-amber-600 shadow-orange-100 text-orange-600 bg-orange-50',
+        teal: 'from-teal-500 to-cyan-600 shadow-teal-100 text-teal-600 bg-teal-50',
+        red: 'from-rose-500 to-red-600 shadow-red-100 text-red-600 bg-red-50'
+    };
+    const style = themes[theme] || themes.blue;
+    const [gradientFrom, gradientTo, shadow, textColor, bgColor] = style.split(' ');
+    return (
+        <div onClick={onClick} className="relative overflow-hidden bg-white p-8 rounded-[3rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all cursor-pointer group active:scale-95">
+            <div className="relative flex items-center justify-between">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none">{title}</p>
+                    <h3 className={`text-4xl font-black text-gray-900 tracking-tighter ${loading ? 'animate-pulse opacity-50' : ''}`}>{value}</h3>
+                    <div className={`flex items-center gap-1 py-1 px-3 ${bgColor} rounded-full w-fit`}>
+                        <ArrowRight className={`w-3 h-3 ${textColor}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-tight ${textColor}`}>{desc}</span>
+                    </div>
+                </div>
+                <div className={`p-5 rounded-[1.5rem] bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-xl ${shadow} transform group-hover:rotate-12 group-hover:scale-110 transition-all`}>
+                    <Icon className="w-8 h-8" />
+                </div>
+            </div>
+        </div>
+    );
+};

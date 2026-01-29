@@ -13,32 +13,32 @@ const Settings = () => {
 
     return (
         <div className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-                <SettingsIcon className="w-8 h-8 text-green-600" />
+            <div className="flex items-center gap-4 mb-10">
+                <SettingsIcon className="w-10 h-10 text-black p-2 bg-gray-100 rounded-2xl" />
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
-                    <p className="text-sm text-gray-500">Manage store configuration and delivery zones</p>
+                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tight">System Settings</h1>
+                    <p className="text-gray-500 mt-1 font-bold">Configure platform rules and service zones</p>
                 </div>
             </div>
 
             {/* Tabs */}
-            <div className="border-b border-gray-200 mb-6">
-                <div className="flex gap-8">
+            <div className="border-b border-gray-100 mb-10">
+                <div className="flex gap-12">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`pb-4 px-2 flex items-center gap-2 transition-colors relative ${activeTab === tab.id
-                                        ? 'text-green-600 font-medium'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                className={`pb-5 px-1 flex items-center gap-3 transition-all relative text-xs font-black uppercase tracking-[0.2em] ${activeTab === tab.id
+                                    ? 'text-black'
+                                    : 'text-gray-400 hover:text-gray-600'
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />
                                 {tab.label}
                                 {activeTab === tab.id && (
-                                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-green-600 rounded-t-full" />
+                                    <div className="absolute bottom-0 left-0 w-full h-1 bg-black rounded-full" />
                                 )}
                             </button>
                         );

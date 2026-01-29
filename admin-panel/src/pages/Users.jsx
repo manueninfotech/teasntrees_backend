@@ -117,16 +117,16 @@ const UsersPage = () => {
             {/* Header & Stats */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Staff & Users</h1>
-                    <p className="text-gray-500 mt-1">Manage all accounts across the platform</p>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">All Accounts</h1>
+                    <p className="text-gray-500 mt-1">View and manage all users, riders, and staff</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <StatCard label="Total Users" value={stats.totalUsers} icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard label="Total Accounts" value={stats.totalUsers} icon={Users} color="text-indigo-600" bg="bg-indigo-50" />
                 <StatCard label="Customers" value={stats.customers} icon={User} color="text-green-600" bg="bg-green-50" />
                 <StatCard label="Riders" value={stats.riders} icon={Bike} color="text-orange-600" bg="bg-orange-50" />
-                <StatCard label="Staff" value={stats.admins + stats.managers} icon={Shield} color="text-purple-600" bg="bg-purple-50" />
+                <StatCard label="Admin & Managers" value={stats.admins + stats.managers} icon={Shield} color="text-purple-600" bg="bg-purple-50" />
             </div>
 
             {/* Filters */}
@@ -171,7 +171,7 @@ const UsersPage = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {users.map((user) => (
                             <UserCard
                                 key={user._id}

@@ -164,21 +164,21 @@ const ActivityLogs = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold text-gray-900">Activity Logs</h1>
+                        <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">System Logs</h1>
                         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter border ${isConnected ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-100 text-red-700 border-red-200'
                             }`}>
                             {isConnected ? 'Live' : 'Offline'}
                         </span>
                     </div>
-                    <p className="text-gray-500 mt-1">Audit trail of all administrative actions</p>
+                    <p className="text-gray-500 mt-1">Record of all administrative actions</p>
                 </div>
                 <div className="flex gap-3">
                     <button
                         onClick={() => { fetchLogs(); fetchStats(); }}
-                        className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm"
+                        disabled={loading}
+                        className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
                     >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
                     </button>
                     <button
                         onClick={handleExport}
@@ -191,13 +191,13 @@ const ActivityLogs = () => {
             </div>
 
             {/* Stats Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                 <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl">
                         <Terminal className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Actions</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Logs</p>
                         <p className="text-2xl font-black text-gray-900">{stats?.totalLogs || 0}</p>
                     </div>
                 </div>
@@ -206,7 +206,7 @@ const ActivityLogs = () => {
                         <Calendar className="w-6 h-6" />
                     </div>
                     <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Today's Activity</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Logs Today</p>
                         <p className="text-2xl font-black text-gray-900">{stats?.todayLogs || 0}</p>
                     </div>
                 </div>
@@ -215,8 +215,8 @@ const ActivityLogs = () => {
                         <User className="w-6 h-6" />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Most Active Admin</p>
-                        <p className="text-base font-bold text-gray-900 truncate">{stats?.topAdmins?.[0]?.admin?.name || 'N/A'}</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Top Admin</p>
+                        <p className="text-base font-bold text-gray-900 truncate">{stats?.topAdmins?.[0]?.admin?.name || '---'}</p>
                     </div>
                 </div>
             </div>
@@ -225,9 +225,9 @@ const ActivityLogs = () => {
             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                     <Filter className="w-4 h-4 text-indigo-500" />
-                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Advanced Filters</h3>
+                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Search Filters</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                         <label className="text-xs font-bold text-gray-500 ml-1">Action Type</label>
                         <select
@@ -254,7 +254,7 @@ const ActivityLogs = () => {
                             onChange={handleFilterChange}
                             className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:bg-white focus:border-indigo-400 transition-all font-medium"
                         >
-                            <option value="">All Resources</option>
+                            <option value="">All Sections</option>
                             <option value="user">User</option>
                             <option value="product">Product</option>
                             <option value="category">Category</option>
@@ -365,8 +365,8 @@ const ActivityLogs = () => {
                         <div className="p-4 bg-gray-50 rounded-full w-fit mx-auto mb-4">
                             <History className="w-10 h-10 text-gray-300" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-700">No activity logs found</h3>
-                        <p className="text-sm text-gray-400 mt-1">Try expanding your search parameters or date range</p>
+                        <h3 className="text-lg font-bold text-gray-700">No logs found</h3>
+                        <p className="text-sm text-gray-400 mt-1">Try changing your search filters</p>
                     </div>
                 )}
 

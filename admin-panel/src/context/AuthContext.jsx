@@ -10,21 +10,20 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [user, setUser] = useState(() => {
+        const token = localStorage.getItem('adminToken');
+        return token ? { token } : null;
+    });
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('adminToken');
         if (token) {
-            // Verify token is valid
-            api.get('/admin/dashboard/stats')
-                .then(() => setUser({ token }))
-                .catch(() => {
-                    localStorage.removeItem('adminToken');
-                })
-                .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
+            // Background verification
+            api.get('/admin/dashboard/stats').catch(() => {
+                localStorage.removeItem('adminToken');
+                setUser(null);
+            });
         }
     }, []);
 

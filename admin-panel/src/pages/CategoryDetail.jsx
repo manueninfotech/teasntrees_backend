@@ -90,23 +90,23 @@ export default function CategoryDetail() {
                         <ArrowLeft className="w-6 h-6 text-gray-600" />
                     </button>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Category Details</h1>
-                        <p className="text-gray-600 mt-1">View and manage category information</p>
+                        <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Category Details</h1>
+                        <p className="text-gray-500 mt-1 font-bold">Manage group info and associated items</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={() => setShowModal(true)}
-                        className="btn-secondary flex items-center gap-2"
+                        className="px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase hover:bg-gray-900 transition-all flex items-center gap-2 shadow-lg"
                     >
-                        <Edit className="w-5 h-5" />
-                        Edit
+                        <Edit className="w-4 h-4" />
+                        Edit Group
                     </button>
                     <button
                         onClick={deleteCategory}
-                        className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors flex items-center gap-2"
+                        className="px-6 py-3 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all flex items-center gap-2"
                     >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4" />
                         Delete
                     </button>
                 </div>
@@ -122,28 +122,28 @@ export default function CategoryDetail() {
             {/* Category Info Card */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Main Info */}
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6 space-y-6">
+                <div className="lg:col-span-2 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 space-y-8">
                     {/* Icon */}
-                    <div className="flex items-center gap-4">
-                        <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-xl flex items-center justify-center">
-                            <span className="text-5xl">{category.icon || '📦'}</span>
+                    <div className="flex items-center gap-6">
+                        <div className="w-24 h-24 bg-gray-50 rounded-3xl flex items-center justify-center text-6xl shadow-inner border border-gray-100">
+                            {category.icon || '📦'}
                         </div>
                         <div>
-                            <p className="text-sm text-gray-600">Category Icon</p>
-                            <p className="text-lg font-semibold text-gray-900">{category.icon || 'No icon'}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Group Icon</p>
+                            <p className="text-sm font-black text-gray-900 uppercase">Custom Badge</p>
                         </div>
                     </div>
 
                     {/* Name */}
                     <div>
-                        <label className="text-sm font-medium text-gray-600">Name</label>
-                        <p className="text-xl font-bold text-gray-900 mt-1">{category.name}</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-2">Category Name</p>
+                        <h3 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{category.name}</h3>
                     </div>
 
                     {/* Description */}
                     <div>
-                        <label className="text-sm font-medium text-gray-600">Description</label>
-                        <p className="text-gray-700 mt-2 leading-relaxed">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-3">Group Description</p>
+                        <p className="text-gray-500 font-bold leading-relaxed">
                             {category.description || 'No description provided'}
                         </p>
                     </div>
@@ -205,7 +205,7 @@ export default function CategoryDetail() {
                         <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                 ) : products.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
                         {products.map((product) => (
                             <div
                                 key={product._id}

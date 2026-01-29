@@ -128,145 +128,48 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
     });
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="bg-white rounded-[2.5rem] w-full max-w-4xl overflow-hidden shadow-2xl border border-white/20 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-emerald-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-[2.5rem] w-full max-w-5xl overflow-hidden shadow-2xl border border-gray-100 flex flex-col max-h-[90vh]">
                 {/* Header */}
-                <div className="p-8 border-b border-gray-100 bg-gradient-to-br from-indigo-50/50 to-white flex items-center justify-between relative overflow-hidden">
-                    <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-xl shadow-indigo-200 animate-pulse">
-                            <Truck className="w-8 h-8" />
+                <div className="p-8 border-b border-gray-50 bg-white flex items-center justify-between z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center border border-gray-100">
+                            <Truck className="w-10 h-10 text-gray-400" />
                         </div>
                         <div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Delivery Details</h2>
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border ${delivery.status === 'delivered' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100'
+                            <div className="flex items-center gap-3">
+                                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Delivery Hub</h2>
+                                <span className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${delivery.status === 'delivered' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100'
                                     }`}>
                                     {delivery.status}
                                 </span>
                             </div>
-                            <p className="text-sm text-gray-400 font-bold uppercase tracking-widest mt-0.5">Order #{delivery.orderId?.orderNumber || 'N/A'}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">LOG_ID: #{delivery.orderId?.orderNumber || 'N/A'}</p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-3 bg-white hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-2xl border border-gray-100 transition-all hover:rotate-90 z-10"
+                        className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
                     >
-                        <X className="w-5 h-5" />
+                        <X className="w-6 h-6" />
                     </button>
-
-                    {/* Decorative Blob */}
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-500/5 rounded-full blur-3xl"></div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-8 lg:px-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <div className="flex-1 overflow-y-auto p-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
 
-                        {/* Left Column: Entities */}
-                        <div className="lg:col-span-2 space-y-8">
+                        {/* Left Column: Entities & Details */}
+                        <div className="lg:col-span-8 space-y-10">
 
-                            {/* Entity Cards Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {/* Customer Info */}
-                                <div className="p-6 bg-gray-50/50 rounded-3xl border border-gray-100 space-y-4 hover:shadow-lg hover:shadow-indigo-50/20 transition-all group">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <User className="w-3 h-3" /> Customer
-                                        </h3>
-                                        <div className="p-2 bg-white rounded-xl shadow-sm border border-gray-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                            <Phone className="w-3.5 h-3.5" />
-                                        </div>
+                            {/* Live Tracking Map */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 px-2">
+                                    <div className="p-2 bg-gray-50 rounded-lg">
+                                        <Navigation2 className="w-4 h-4 text-gray-400" />
                                     </div>
-                                    <div>
-                                        <p className="text-lg font-black text-gray-900 truncate">{delivery.customerId?.name || 'Unknown Customer'}</p>
-                                        <p className="text-sm text-gray-500 font-medium mt-1">{delivery.customerId?.mobile || 'No Mobile'}</p>
-                                    </div>
-                                    <div className="pt-3 border-t border-gray-100">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase mb-2">Delivery Address</p>
-                                        <p className="text-xs text-gray-600 font-bold leading-relaxed">{delivery.customerId?.address || delivery.deliveryLocation?.address || 'Address Not Available'}</p>
-                                    </div>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Live Spatial Vector</h3>
                                 </div>
-
-                                {/* Rider Info */}
-                                <div className="p-6 bg-white rounded-3xl border border-gray-100 shadow-sm space-y-4 hover:border-indigo-100 transition-all group">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <Bike className="w-3 h-3" /> Rider
-                                        </h3>
-                                        <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                            <ShieldCheck className="w-3.5 h-3.5" />
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <p className="text-lg font-black text-gray-900 truncate">{delivery.riderId?.name || 'Searching...'}</p>
-                                        <p className="text-sm text-gray-500 font-medium mt-1">{delivery.riderId?.mobile || 'Rider Not Assigned'}</p>
-                                    </div>
-                                    <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase mb-1">Rider Earnings</p>
-                                            <p className="text-sm font-black text-indigo-600">₹{delivery.totalEarning || 0}</p>
-                                        </div>
-                                        <button className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:underline">View History</button>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Order Summary */}
-                            <div className="p-8 bg-indigo-50/30 rounded-[2.5rem] border border-indigo-100/50 space-y-6">
-                                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <Package className="w-3.5 h-3.5" /> Order Summary
-                                </h3>
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border border-indigo-100 shadow-md">
-                                            <IndianRupee className="w-6 h-6 text-indigo-600" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xl font-black text-gray-900">₹{delivery.orderId?.total}</p>
-                                            <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-0.5">Total Amount</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-black text-gray-900 uppercase">Cash on Delivery</p>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Payment Method</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Column: Timeline */}
-                        <div className="space-y-6">
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2 flex items-center gap-2">
-                                <Clock className="w-3 h-3" /> Delivery Timeline
-                            </h3>
-                            <div className="relative space-y-8 pl-8 ml-2">
-                                {/* Timeline Line */}
-                                <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-100"></div>
-
-                                {timeline.map((event, index) => (
-                                    <div key={index} className="relative group">
-                                        {/* Timeline Dot */}
-                                        <div className={`absolute -left-[27px] top-0.5 w-5 h-5 rounded-full border-4 border-white shadow-sm flex items-center justify-center z-10 ${index === timeline.length - 1 ? 'bg-indigo-600 ring-4 ring-indigo-50 scale-125' : 'bg-gray-200'
-                                            }`}>
-                                            {index === timeline.length - 1 && <div className="w-1 h-1 bg-white rounded-full"></div>}
-                                        </div>
-
-                                        <div className="flex flex-col gap-1">
-                                            <p className={`text-sm font-black uppercase tracking-tight ${index === timeline.length - 1 ? 'text-gray-900 font-black' : 'text-gray-400'
-                                                }`}>
-                                                {event.label}
-                                            </p>
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">
-                                                {event.time ? new Date(event.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Pending'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Location Context */}
-                            <div className="pt-6 border-t border-gray-100">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Live Tracking Map</p>
-                                <div className="h-64 bg-gray-100 rounded-3xl overflow-hidden border border-gray-100 shadow-inner relative z-0">
+                                <div className="h-80 bg-gray-50 rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-inner relative z-0">
                                     <MapContainer
                                         center={[16.3090716, 80.4308257]}
                                         zoom={14}
@@ -278,8 +181,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                         {/* Store Marker */}
                                         <Marker position={[16.3090716, 80.4308257]} icon={storeIcon}>
                                             <Popup>
-                                                <div className="text-xs font-bold text-gray-900 uppercase">Teas N Trees Outlet</div>
-                                                <div className="text-[10px] text-gray-500 mt-0.5">Order Pickup point</div>
+                                                <div className="text-[10px] font-black text-gray-900 uppercase">Teas N Trees Outlet</div>
                                             </Popup>
                                         </Marker>
 
@@ -290,8 +192,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                                 icon={customerIcon}
                                             >
                                                 <Popup>
-                                                    <div className="text-xs font-bold text-gray-900 uppercase">Delivery Destination</div>
-                                                    <div className="text-[10px] text-gray-500 mt-0.5 truncate max-w-[150px]">{delivery.customerId?.name || 'Customer'}</div>
+                                                    <div className="text-[10px] font-black text-gray-900 uppercase">Destination Node</div>
                                                 </Popup>
                                             </Marker>
                                         )}
@@ -301,8 +202,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                             <>
                                                 <Marker position={riderPos} icon={riderIcon}>
                                                     <Popup>
-                                                        <div className="text-xs font-bold text-gray-900 uppercase">Rider is Live</div>
-                                                        <div className="text-[10px] text-indigo-600 mt-0.5 font-bold mb-1">MOVING TO DESTINATION</div>
+                                                        <div className="text-[10px] font-black text-gray-900 uppercase text-indigo-600">Active Personnel</div>
                                                     </Popup>
                                                 </Marker>
                                                 <MapUpdater center={riderPos} />
@@ -317,24 +217,148 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                                     isValidCoord(riderPos) ? riderPos : [16.3090716, 80.4308257],
                                                     [delivery.deliveryLocation.coordinates[1], delivery.deliveryLocation.coordinates[0]]
                                                 ]}
-                                                color="indigo"
+                                                color="#000"
                                                 weight={3}
-                                                dashArray="10, 10"
+                                                dashArray="8, 12"
                                             />
                                         )}
                                     </MapContainer>
 
                                     {!riderPos && (
-                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center gap-3">
-                                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-gray-300 shadow-sm animate-pulse">
-                                                <MapPin className="w-5 h-5" />
+                                        <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-10 flex flex-col items-center justify-center gap-4">
+                                            <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center text-gray-400 shadow-xl">
+                                                <Navigation className="w-8 h-8 animate-bounce" />
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-xs font-black text-gray-500 uppercase">Awaiting GPS Sync</p>
-                                                <p className="text-[10px] text-gray-400 font-bold mt-0.5">Rider location not available yet</p>
+                                                <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Awaiting GPS Handshake</p>
+                                                <p className="text-[8px] text-gray-400 font-black uppercase mt-1 tracking-widest">Searching for active signal...</p>
                                             </div>
                                         </div>
                                     )}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Customer Info */}
+                                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                            <User className="w-4 h-4" /> Recipient Meta
+                                        </h3>
+                                        <div className="p-3 bg-gray-50 rounded-xl text-gray-400">
+                                            <Phone className="w-4 h-4" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Subject Name</p>
+                                        <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.customerId?.name || 'GENERIC_USER'}</p>
+                                    </div>
+                                    <div className="pt-6 border-t border-gray-50">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Spatial Coordinate</p>
+                                        <p className="text-[11px] text-gray-900 font-black leading-relaxed uppercase italic">{delivery.customerId?.address || delivery.deliveryLocation?.address || 'COORDS_MISSING'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Rider Info */}
+                                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                            <Bike className="w-4 h-4" /> Personnel Meta
+                                        </h3>
+                                        <div className="p-3 bg-emerald-600 text-white rounded-xl">
+                                            <ShieldCheck className="w-4 h-4" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Resource Name</p>
+                                        <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.riderId?.name || 'ASSIGNMENT_PENDING'}</p>
+                                    </div>
+                                    <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Net Allocation</p>
+                                            <p className="text-xl font-black text-gray-900 tracking-tight">₹{delivery.totalEarning || 0}</p>
+                                        </div>
+                                        <div className="p-2 bg-gray-50 rounded-lg text-[8px] font-black text-gray-400 uppercase tracking-widest">R_UNIT_04</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Order Summary */}
+                            <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-50 space-y-6">
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <Package className="w-4 h-4" /> Cargo Analytics
+                                </h3>
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-20 h-20 bg-white rounded-[2rem] flex items-center justify-center border border-gray-100 shadow-sm">
+                                            <IndianRupee className="w-8 h-8 text-gray-900" />
+                                        </div>
+                                        <div>
+                                            <p className="text-3xl font-black text-gray-900 tracking-tight">₹{delivery.orderId?.total}</p>
+                                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">Total Payload Value</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-black text-gray-900 uppercase tracking-widest">CASH_ON_DELIVERY</p>
+                                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">Protocol Type</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Column: Timeline */}
+                        <div className="lg:col-span-4 space-y-8">
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3 px-2">
+                                    <div className="p-2 bg-gray-50 rounded-lg">
+                                        <Clock className="w-4 h-4 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Temporal Logs</h3>
+                                </div>
+                                <div className="bg-white border border-gray-100 rounded-[2.5rem] p-10 relative overflow-hidden">
+                                    {/* Timeline Line */}
+                                    <div className="absolute left-[59px] top-12 bottom-12 w-1 bg-gray-50"></div>
+
+                                    <div className="space-y-10 relative">
+                                        {timeline.map((event, index) => (
+                                            <div key={index} className="flex gap-6 items-start relative group">
+                                                <div className="bg-white z-10 mt-1">
+                                                    <div className={`w-8 h-8 rounded-xl border-4 border-white flex items-center justify-center shadow-sm transition-all ${index === timeline.length - 1 ? 'bg-emerald-600 ring-8 ring-emerald-50 scale-110' : 'bg-gray-100'
+                                                        }`}>
+                                                        {index === timeline.length - 1 && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-1.5 pt-1">
+                                                    <p className={`text-[10px] font-black uppercase tracking-widest ${index === timeline.length - 1 ? 'text-gray-900' : 'text-gray-300'
+                                                        }`}>
+                                                        {event.label}
+                                                    </p>
+                                                    <p className={`text-[8px] font-black uppercase tracking-widest ${index === timeline.length - 1 ? 'text-gray-400' : 'text-gray-200'}`}>
+                                                        {event.time ? new Date(event.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'PENDING_SIG'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Efficiency Info */}
+                            <div className="bg-emerald-950 rounded-[2.5rem] p-10 space-y-6 shadow-2xl shadow-emerald-200/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/10 rounded-lg">
+                                        <Clock className="w-4 h-4 text-white" />
+                                    </div>
+                                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Optimization Meta</p>
+                                </div>
+                                <div>
+                                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Time Elapsed</p>
+                                    <p className="text-4xl font-black text-white tracking-tight">42<span className="text-sm font-black text-white/40 ml-2 uppercase">Mins</span></p>
+                                </div>
+                                <div className="pt-6 border-t border-white/10 space-y-1">
+                                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Protocol Efficiency</p>
+                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">NORMAL_OPERATIONS</p>
                                 </div>
                             </div>
                         </div>
@@ -342,24 +366,13 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                 </div>
 
                 {/* Footer */}
-                <div className="p-8 border-t border-gray-50 bg-gray-50/30 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white border border-gray-200 rounded-xl flex items-center justify-center text-gray-400">
-                            <Clock className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Time</p>
-                            <p className="text-sm font-black text-gray-900">42 mins</p>
-                        </div>
-                    </div>
-                    <div className="flex-1 flex justify-end">
-                        <button
-                            onClick={onClose}
-                            className="px-12 py-4 bg-black text-white rounded-2xl text-sm font-bold hover:opacity-90 transition-all uppercase tracking-widest shadow-lg active:scale-95"
-                        >
-                            Close Details
-                        </button>
-                    </div>
+                <div className="p-8 bg-gray-50/50 border-t border-gray-50">
+                    <button
+                        onClick={onClose}
+                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
+                    >
+                        Terminate View
+                    </button>
                 </div>
             </div>
         </div >

@@ -28,108 +28,113 @@ const LogDetailsModal = ({ log, isOpen, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
-
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden relative z-10 flex flex-col animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-emerald-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100 flex flex-col relative z-10">
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-indigo-600 rounded-lg text-white shadow-md shadow-indigo-100">
-                            <Terminal className="w-5 h-5" />
+                <div className="p-8 border-b border-gray-50 flex items-center justify-between bg-white z-10">
+                    <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 bg-gray-50 rounded-[2rem] flex items-center justify-center border border-gray-100 shadow-sm">
+                            <Terminal className="w-10 h-10 text-gray-900" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Activity Log Details</h2>
-                            <p className="text-xs text-gray-500 font-medium tracking-wide uppercase mt-0.5">Log ID: {log._id}</p>
+                            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Log Archive</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Event ID: {log._id}</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-400 hover:text-gray-600">
+                    <button
+                        onClick={onClose}
+                        className="p-4 bg-gray-50 text-gray-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
+                    >
                         <X className="w-6 h-6" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                <div className="p-10 overflow-y-auto flex-1 space-y-10">
                     {/* Basic Info Grid */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                <User className="w-3.5 h-3.5" /> Admin
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="p-6 rounded-[2rem] border border-gray-100 bg-white shadow-sm space-y-3">
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <User className="w-3.5 h-3.5" /> Personnel Unit
                             </p>
-                            <p className="font-bold text-gray-900">{log.admin?.name || 'Unknown'}</p>
-                            <p className="text-xs text-gray-500 truncate">{log.admin?.email}</p>
+                            <div>
+                                <p className="font-black text-gray-900 uppercase text-xs tracking-tight">{log.admin?.name || 'GENERIC_UNIT'}</p>
+                                <p className="text-[10px] text-gray-400 font-black tracking-tight mt-1">{log.admin?.email}</p>
+                            </div>
                         </div>
-                        <div className="p-4 rounded-xl border border-gray-100 bg-white shadow-sm">
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                                <Calendar className="w-3.5 h-3.5" /> Timestamp
+                        <div className="p-6 rounded-[2rem] border border-gray-100 bg-white shadow-sm space-y-3">
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                                <Calendar className="w-3.5 h-3.5" /> Epoch Time
                             </p>
-                            <p className="font-bold text-gray-900">{formatDate(log.createdAt)}</p>
+                            <p className="font-black text-gray-900 uppercase text-xs tracking-tight">{formatDate(log.createdAt)}</p>
                         </div>
                     </div>
 
                     {/* Action & Resource */}
-                    <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Action Type</label>
-                            <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-sm font-bold capitalize ${getActionColor(log.action)}`}>
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                            <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest px-2">Action Vector</label>
+                            <div className={`p-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border text-center ${getActionColor(log.action)}`}>
                                 {log.action}
-                            </span>
+                            </div>
                         </div>
-                        <div className="flex-1">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 block">Resource Affected</label>
-                            <span className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-gray-100 text-gray-700 rounded-full text-sm font-bold capitalize">
-                                <Shield className="w-4 h-4 text-gray-400" />
+                        <div className="space-y-3">
+                            <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest px-2">Resource Node</label>
+                            <div className="flex items-center justify-center gap-2 p-4 bg-gray-50 text-gray-900 border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest">
+                                <Shield className="w-4 h-4 text-gray-900" />
                                 {log.resource}
-                            </span>
+                            </div>
                         </div>
                     </div>
 
                     {/* Details / Payload */}
-                    <div>
-                        <div className="flex items-center justify-between mb-2">
-                            <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                                <Info className="w-3.5 h-3.5" /> Action Details (Payload)
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between px-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <Info className="w-4 h-4" /> Data Payload Buffer
                             </label>
+                            <div className="px-3 py-1 bg-gray-900 text-white text-[8px] font-black uppercase rounded-md tracking-widest">RAW_MODE</div>
                         </div>
-                        <div className="bg-gray-900 rounded-xl p-4 overflow-x-auto max-h-60 shadow-inner">
-                            <pre className="text-xs font-mono text-indigo-300">
+                        <div className="bg-gray-900 rounded-[2.5rem] p-8 overflow-x-auto max-h-80 shadow-2xl relative group">
+                            <div className="absolute top-4 right-6 text-[8px] font-black text-white/20 uppercase tracking-[0.2em]">End of Stream</div>
+                            <pre className="text-[10px] font-mono text-emerald-400 leading-relaxed scrollbar-hide">
                                 {JSON.stringify(log.details, null, 2)}
                             </pre>
                         </div>
                     </div>
 
                     {/* Technical Meta */}
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                <Globe className="w-3.5 h-3.5" /> IP Address
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-50">
+                        <div className="space-y-2">
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-2">
+                                <Globe className="w-3.5 h-3.5" /> Network Address
                             </p>
-                            <p className="text-sm font-medium text-gray-700 font-mono">{log.ipAddress || '127.0.0.1'}</p>
+                            <p className="text-[11px] font-black text-gray-900 font-mono bg-gray-50 p-4 rounded-2xl border border-gray-100">{log.ipAddress || '127.0.0.1'}</p>
                         </div>
-                        <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                                <Monitor className="w-3.5 h-3.5" /> User Agent
+                        <div className="space-y-2">
+                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 px-2">
+                                <Monitor className="w-3.5 h-3.5" /> Client Signature
                             </p>
-                            <p className="text-sm font-medium text-gray-700 truncate" title={log.userAgent}>{log.userAgent || 'Chrome / Windows'}</p>
+                            <p className="text-[11px] font-black text-gray-900 truncate bg-gray-50 p-4 rounded-2xl border border-gray-100" title={log.userAgent}>{log.userAgent || 'SECURE_TERMINAL_V1'}</p>
                         </div>
                     </div>
 
                     {/* Error Handling (If failed) */}
                     {!log.success && (
-                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl">
-                            <p className="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">Error Message</p>
-                            <p className="text-sm text-red-700 font-medium">{log.errorMessage || 'Operation failed'}</p>
+                        <div className="p-8 bg-red-50 border border-red-100 rounded-[2rem] space-y-2">
+                            <p className="text-[8px] font-black text-red-400 uppercase tracking-widest">Exception Caught</p>
+                            <p className="text-sm text-red-700 font-black uppercase italic">" {log.errorMessage || 'Unknown system failure'} "</p>
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                <div className="p-8 border-t border-gray-50 bg-gray-50/50">
                     <button
                         onClick={onClose}
-                        className="px-6 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors shadow-sm"
+                        className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                     >
-                        Close Details
+                        Terminate Stream
                     </button>
                 </div>
             </div>
