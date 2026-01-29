@@ -18,6 +18,7 @@ import reviewRoutes from './reviewRoutes.js';
 import riderRoutes from './riderRoutes.js';
 import customerRoutes from './customerRoutes.js';
 import payoutRoutes from './payoutRoutes.js';
+import managerRoutes from './managerRoutes.js';
 
 const router = express.Router();
 
@@ -41,5 +42,6 @@ router.use('/reviews', reviewRoutes);
 router.use('/riders', riderRoutes);
 router.use('/customers', customerRoutes);
 router.use('/payouts', payoutRoutes);
+router.use('/managers', managerRoutes);
 
 export default router;

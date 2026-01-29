@@ -150,10 +150,10 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                     <FileText className="w-5 h-5 text-gray-600" />
                                     <h3 className="font-semibold text-gray-900">Documents</h3>
                                 </div>
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {/* License */}
-                                    <div className="bg-white p-3 rounded-lg">
-                                        <div className="flex items-center justify-between mb-2">
+                                    <div className="bg-white p-4 rounded-lg border border-gray-100">
+                                        <div className="flex items-center justify-between mb-3">
                                             <p className="font-medium text-gray-900">Driving License</p>
                                             {isLicenseExpired && (
                                                 <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded">
@@ -161,66 +161,82 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                                             <div>
-                                                <p className="text-gray-500">License Number</p>
-                                                <p className="font-medium">{rider.licenseNumber || 'N/A'}</p>
+                                                <p className="text-gray-500 text-xs uppercase tracking-wide">License Number</p>
+                                                <p className="font-medium mt-1">{rider.licenseNumber || 'N/A'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-gray-500">Expiry Date</p>
-                                                <p className={`font-medium ${isLicenseExpired ? 'text-red-600' : ''}`}>
+                                                <p className="text-gray-500 text-xs uppercase tracking-wide">Expiry Date</p>
+                                                <p className={`font-medium mt-1 ${isLicenseExpired ? 'text-red-600' : ''}`}>
                                                     {formatDate(rider.licenseExpiryDate)}
                                                 </p>
                                             </div>
                                         </div>
-                                        {rider.licensePhoto && (
-                                            <a
-                                                href={rider.licensePhoto}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-                                            >
-                                                View Document →
-                                            </a>
+                                        {rider.licensePhoto ? (
+                                            <div className="mt-2">
+                                                <a href={rider.licensePhoto} target="_blank" rel="noopener noreferrer" className="auth-link block w-full">
+                                                    <img
+                                                        src={rider.licensePhoto}
+                                                        alt="Driving License"
+                                                        className="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-95 transition-opacity"
+                                                    />
+                                                    <p className="text-center text-xs text-gray-500 mt-2">Click to view full size</p>
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm text-gray-400 italic">No document image available</div>
                                         )}
                                     </div>
 
                                     {/* Aadhar */}
-                                    <div className="bg-white p-3 rounded-lg">
-                                        <p className="font-medium text-gray-900 mb-2">Aadhar Card</p>
-                                        <div className="text-sm">
-                                            <p className="text-gray-500">Aadhar Number</p>
-                                            <p className="font-medium">{rider.aadharNumber || 'N/A'}</p>
+                                    <div className="bg-white p-4 rounded-lg border border-gray-100">
+                                        <div className="mb-3">
+                                            <p className="font-medium text-gray-900">Aadhar Card</p>
                                         </div>
-                                        {rider.aadharPhoto && (
-                                            <a
-                                                href={rider.aadharPhoto}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-                                            >
-                                                View Document →
-                                            </a>
+                                        <div className="mb-3">
+                                            <p className="text-gray-500 text-xs uppercase tracking-wide">Aadhar Number</p>
+                                            <p className="font-medium mt-1">{rider.aadharNumber || 'N/A'}</p>
+                                        </div>
+                                        {rider.aadharPhoto ? (
+                                            <div className="mt-2">
+                                                <a href={rider.aadharPhoto} target="_blank" rel="noopener noreferrer" className="auth-link block w-full">
+                                                    <img
+                                                        src={rider.aadharPhoto}
+                                                        alt="Aadhar Card"
+                                                        className="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-95 transition-opacity"
+                                                    />
+                                                    <p className="text-center text-xs text-gray-500 mt-2">Click to view full size</p>
+                                                </a>
+                                            </div>
+                                        ) : (
+                                            <div className="text-sm text-gray-400 italic">No document image available</div>
                                         )}
                                     </div>
 
                                     {/* PAN */}
                                     {rider.panNumber && (
-                                        <div className="bg-white p-3 rounded-lg">
-                                            <p className="font-medium text-gray-900 mb-2">PAN Card</p>
-                                            <div className="text-sm">
-                                                <p className="text-gray-500">PAN Number</p>
-                                                <p className="font-medium">{rider.panNumber}</p>
+                                        <div className="bg-white p-4 rounded-lg border border-gray-100">
+                                            <div className="mb-3">
+                                                <p className="font-medium text-gray-900">PAN Card</p>
                                             </div>
-                                            {rider.panPhoto && (
-                                                <a
-                                                    href={rider.panPhoto}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-sm text-blue-600 hover:underline mt-2 inline-block"
-                                                >
-                                                    View Document →
-                                                </a>
+                                            <div className="mb-3">
+                                                <p className="text-gray-500 text-xs uppercase tracking-wide">PAN Number</p>
+                                                <p className="font-medium mt-1">{rider.panNumber}</p>
+                                            </div>
+                                            {rider.panPhoto ? (
+                                                <div className="mt-2">
+                                                    <a href={rider.panPhoto} target="_blank" rel="noopener noreferrer" className="auth-link block w-full">
+                                                        <img
+                                                            src={rider.panPhoto}
+                                                            alt="PAN Card"
+                                                            className="w-full h-48 object-cover rounded-lg border border-gray-200 hover:opacity-95 transition-opacity"
+                                                        />
+                                                        <p className="text-center text-xs text-gray-500 mt-2">Click to view full size</p>
+                                                    </a>
+                                                </div>
+                                            ) : (
+                                                <div className="text-sm text-gray-400 italic">No document image available</div>
                                             )}
                                         </div>
                                     )}

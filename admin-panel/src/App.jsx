@@ -20,6 +20,7 @@ import ActivityLogs from './pages/ActivityLogs.jsx';
 import CartAnalytics from './pages/CartAnalytics.jsx';
 import Deliveries from './pages/Deliveries.jsx';
 import Payouts from './pages/Payouts.jsx';
+import Managers from './pages/Managers.jsx';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -67,6 +68,7 @@ function App() {
               <Route path="cart-analytics" element={<CartAnalytics />} />
               <Route path="deliveries" element={<Deliveries />} />
               <Route path="payouts" element={<Payouts />} />
+              <Route path="managers" element={<Managers />} />
             </Route>
           </Routes>
         </BrowserRouter>

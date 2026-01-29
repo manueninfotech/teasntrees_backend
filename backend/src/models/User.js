@@ -80,6 +80,13 @@ const userSchema = new mongoose.Schema({
     fcmToken: {
         type: String,
         default: null
+    },
+
+    // For Riders: Linked Manager
+    managerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // Can ref Manager (which is a User)
+        default: null
     }
 
 }, {

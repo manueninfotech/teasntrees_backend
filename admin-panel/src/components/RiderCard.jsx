@@ -1,4 +1,4 @@
-import { Bike, Star, Phone, MapPin, Trash2, Power } from 'lucide-react';
+import { Bike, Star, Phone, MapPin, Trash2, Power, Eye } from 'lucide-react';
 import RiderStatusBadge from './RiderStatusBadge';
 
 export default function RiderCard({ rider, onViewDetails, onApprove, onReject, onToggleStatus, onDelete, isPending }) {
@@ -71,19 +71,27 @@ export default function RiderCard({ rider, onViewDetails, onApprove, onReject, o
             {/* Actions */}
             <div className="p-4 bg-gray-50 border-t border-gray-200">
                 {isPending ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                         <button
-                            onClick={() => onApprove(rider)}
-                            className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                            onClick={() => onViewDetails(rider)}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors"
                         >
-                            Approve
+                            <Eye className="w-4 h-4" /> View Details
                         </button>
-                        <button
-                            onClick={() => onReject(rider)}
-                            className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
-                        >
-                            Reject
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => onApprove(rider)}
+                                className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+                            >
+                                Approve
+                            </button>
+                            <button
+                                onClick={() => onReject(rider)}
+                                className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+                            >
+                                Reject
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <div className="flex gap-2">

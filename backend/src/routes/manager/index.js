@@ -1,0 +1,21 @@
+import express from 'express';
+import authRoutes from './authRoutes.js';
+import dashboardRoutes from './dashboardRoutes.js';
+import orderRoutes from './orderRoutes.js';
+import productRoutes from './productRoutes.js';
+import riderRoutes from './riderRoutes.js';
+import customerRoutes from './customerRoutes.js';
+
+const router = express.Router();
+
+// Auth routes (public + protected inside)
+router.use('/auth', authRoutes);
+
+// Protected routes (middleware applied in sub-routes)
+router.use('/dashboard', dashboardRoutes);
+router.use('/orders', orderRoutes);
+router.use('/riders', riderRoutes);
+router.use('/products', productRoutes);
+router.use('/customers', customerRoutes);
+
+export default router;

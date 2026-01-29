@@ -1,0 +1,74 @@
+// Manager Dashboard Controller
+import Order from '../../models/Order.js';
+import Product from '../../models/Product.js';
+import Rider from '../../models/Rider.js';
+
+export const getDashboardStats = async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // 1. Orders Today & Sales
+        const todayOrders = await Order.find({
+            createdAt: { $gte: today }
+        });
+
+        const totalOrdersToday = todayOrders.length;
+        const totalSalesToday = todayOrders.reduce((sum, order) => sum + (order.total || 0), 0); // Use .total not .totalAmount if schema says total
+
+        // 2. Pending Orders (global or assignable?)
+        // Managers manage orders, so seeing all pending is good.
+        const pendingOrders = await Order.countDocuments({
+            status: 'pending'
+        });
+
+        // 3. Active Riders (Online/Active)
+        const activeRiders = await Rider.countDocuments({
+            isApproved: true,
+            isActive: true
+        });
+
+        const onlineRiders = await Rider.countDocuments({
+            isOnline: true
+        });
+
+        // 4. Delayed Deliveries (e.g. status not delivered AND created > 1 hour ago? or estimatedDeliveryTime passed?)
+        // Let's assume delayed if status is in-progress and estimatedDeliveryTime < now
+        const delayedOrders = await Order.countDocuments({
+            status: { $in: ['out_for_delivery', 'preparing', 'in_transit'] },
+            estimatedDeliveryTime: { $lt: new Date() }
+        });
+
+        // 5. Low Stock Products
+        const lowStockProducts = await Product.countDocuments({
+            isAvailable: false
+        });
+
+        res.status(200).json({
+            success: true,
+            data: {
+                overview: {
+                    ordersToday: totalOrdersToday,
+                    salesToday: totalSalesToday,
+                    pendingOrders,
+                    delayedOrders
+                },
+                riders: {
+                    active: activeRiders,
+                    online: onlineRiders
+                },
+                inventory: {
+                    lowStock: lowStockProducts
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Manager Dashboard Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching dashboard stats',
+            error: error.message
+        });
+    }
+};
