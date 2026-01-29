@@ -42,6 +42,11 @@ const orderSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
+    // Manager who oversaw this order
+    handledBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
     riderEarning: Number,
     status: {
         type: String,
@@ -74,7 +79,12 @@ const orderSchema = new mongoose.Schema({
     confirmedAt: Date,
     outForDeliveryAt: Date,
     deliveredAt: Date,
-    cancelReason: String
+    cancelReason: String,
+    timeline: [{
+        status: String,
+        timestamp: { type: Date, default: Date.now },
+        description: String
+    }]
 }, {
     timestamps: true
 });
