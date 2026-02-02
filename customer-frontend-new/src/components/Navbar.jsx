@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import Logo from '../assets/logoteasntrees-removebg-preview.png';
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -26,24 +27,11 @@ const Navbar = () => {
             <div className="container mx-auto px-4 lg:px-8 h-20 flex items-center justify-between">
                 {/* Logo Section */}
                 <Link to="/" className="flex items-center gap-2 group">
-                    <div className="relative">
-                        <Coffee className="w-8 h-8 text-cafe-emerald group-hover:text-cafe-teal transition-colors duration-300" />
-                        <motion.div
-                            className="absolute -top-1 -right-1"
-                            animate={{ y: [-2, 2, -2] }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                            <div className="w-2 h-2 bg-cafe-orange rounded-full opacity-60 blur-[1px]" />
-                        </motion.div>
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-cafe-emerald to-cafe-teal">
-                            Teas N Trees
-                        </span>
-                        <span className="text-[10px] text-muted-foreground tracking-wider uppercase">
-                            Premium Cafe
-                        </span>
-                    </div>
+                    <img
+                        src={Logo}
+                        alt="Teas N Trees"
+                        className="h-14 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+                    />
                 </Link>
 
                 {/* Desktop Search - 1024px+ */}
