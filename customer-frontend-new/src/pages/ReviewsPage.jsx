@@ -34,22 +34,40 @@ const reviews = [
     }
 ];
 
+import { reviewService } from '../services/reviewService';
+import toast from 'react-hot-toast';
+
 const ReviewsPage = () => {
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [name, setName] = useState('');
     const [comment, setComment] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (rating === 0) return;
 
-        // Simulate API call
-        setTimeout(() => {
+        setIsSubmitting(true);
+        try {
+            await reviewService.createReview({
+                rating,
+                comment
+            });
             setIsSubmitted(true);
-            // Reset after showing success message for a while if needed, or keep it.
-        }, 1000);
+            toast.success("Review submitted successfully!");
+        } catch (error) {
+            console.error("Review failed", error);
+            // Check if it's 401 (not logged in)
+            if (error.response?.status === 401) {
+                toast.error("Please login to submit a review");
+            } else {
+                toast.error(error.response?.data?.message || "Failed to submit review");
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -202,18 +220,6 @@ const ReviewsPage = () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-700">Full Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none"
-                                        placeholder="e.g. John Doe"
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
                                     <label className="text-sm font-medium text-slate-700">Review</label>
                                     <textarea
                                         required
@@ -227,10 +233,14 @@ const ReviewsPage = () => {
 
                                 <button
                                     type="submit"
-                                    disabled={rating === 0}
+                                    disabled={rating === 0 || isSubmitting}
                                     className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                 >
-                                    <Send className="w-5 h-5" /> Submit Review
+                                    {isSubmitting ? (
+                                        <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Submitting...</>
+                                    ) : (
+                                        <><Send className="w-5 h-5" /> Submit Review</>
+                                    )}
                                 </button>
                             </motion.form>
                         )}

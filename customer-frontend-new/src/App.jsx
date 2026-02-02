@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
+import { SocketProvider } from './context/SocketContext';
+import SocketListener from './components/SocketListener';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
 import MenuPage from './pages/MenuPage';
@@ -22,32 +24,35 @@ const CartPage = () => <div className="pt-32 text-center text-4xl font-bold text
 function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <WishlistProvider>
-          <Router>
-            <div className="relative min-h-screen font-sans antialiased text-slate-800">
-              <Navbar />
-              <CartDrawer />
-              <main>
-                <Routes>
-                  <Route path="/" element={<HomePage />} />
-                  <Route path="/menu" element={<MenuPage />} />
-                  <Route path="/cart" element={<CartPage />} />
-                  <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/wishlist" element={<WishlistPage />} />
-                  <Route path="/checkout" element={<CheckoutPage />} />
-                  <Route path="/track-order/:orderId" element={<OrderTrackingPage />} />
-                  <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/gallery" element={<GalleryPage />} />
-                  <Route path="/reviews" element={<ReviewsPage />} />
-                  <Route path="/contact" element={<ContactPage />} />
-                </Routes>
-              </main>
-            </div>
-          </Router>
-        </WishlistProvider>
-      </CartProvider>
+      <SocketProvider>
+        <CartProvider>
+          <WishlistProvider>
+            <Router>
+              <SocketListener />
+              <div className="relative min-h-screen font-sans antialiased text-slate-800">
+                <Navbar />
+                <CartDrawer />
+                <main>
+                  <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/menu" element={<MenuPage />} />
+                    <Route path="/cart" element={<CartPage />} />
+                    <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/wishlist" element={<WishlistPage />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
+                    <Route path="/track-order/:orderId" element={<OrderTrackingPage />} />
+                    <Route path="/order-success/:orderId" element={<OrderSuccessPage />} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/gallery" element={<GalleryPage />} />
+                    <Route path="/reviews" element={<ReviewsPage />} />
+                    <Route path="/contact" element={<ContactPage />} />
+                  </Routes>
+                </main>
+              </div>
+            </Router>
+          </WishlistProvider>
+        </CartProvider>
+      </SocketProvider>
     </AuthProvider>
   );
 }

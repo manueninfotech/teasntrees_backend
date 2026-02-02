@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, Clock, MapPin, CheckCircle, Loader2, UserCheck, CreditCard, StickyNote, Bike, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Package, Clock, MapPin, CheckCircle, Loader2, UserCheck, CreditCard, StickyNote, Bike, ShieldCheck, FileText, XCircle } from 'lucide-react';
 import { orderService } from '../services/orderService';
+import { useSocket } from '../context/SocketContext';
 import clsx from 'clsx';
+import toast from 'react-hot-toast';
 
 const steps = [
     { status: 'placed', label: 'Order Placed', icon: Package },
@@ -17,25 +19,90 @@ const steps = [
 const OrderTrackingPage = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
+    const { socket } = useSocket();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const fetchOrder = useCallback(async () => {
+        try {
+            const data = await orderService.getOrderById(orderId);
+            setOrder(data);
+        } catch (err) {
+            console.error("Failed to fetch order", err);
+            setError('Failed to load order details');
+        } finally {
+            setLoading(false);
+        }
+    }, [orderId]);
 
     useEffect(() => {
-        const fetchOrder = async () => {
-            try {
-                const data = await orderService.getOrderById(orderId);
-                setOrder(data);
-            } catch (err) {
-                console.error("Failed to fetch order", err);
-                setError('Failed to load order details');
-            } finally {
-                setLoading(false);
+        if (orderId) fetchOrder();
+    }, [orderId, fetchOrder]);
+
+    // Socket Listener for Real-time Updates
+    useEffect(() => {
+        if (!socket || !orderId) return;
+
+        const handleUpdate = (data) => {
+            if (data.orderId === orderId) {
+                console.log('socket update received:', data);
+                toast.success(`Order updated: ${data.status.replace('_', ' ')}`);
+                fetchOrder(); // Refresh full data
             }
         };
 
-        if (orderId) fetchOrder();
-    }, [orderId]);
+        socket.on('order:status-updated', handleUpdate);
+        socket.on('delivery:status-updated', handleUpdate);
+        socket.on('delivery:assigned', handleUpdate);
+        socket.on('order:rider-assigned', handleUpdate);
+
+        return () => {
+            socket.off('order:status-updated', handleUpdate);
+            socket.off('delivery:status-updated', handleUpdate);
+            socket.off('delivery:assigned', handleUpdate);
+            socket.off('order:rider-assigned', handleUpdate);
+        };
+    }, [socket, orderId, fetchOrder]);
+
+    const handleDownloadInvoice = async () => {
+        setIsDownloading(true);
+        try {
+            const blob = await orderService.downloadInvoice(orderId);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Invoice-${order.orderNumber}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success("Invoice downloaded!");
+        } catch (error) {
+            console.error("Download failed", error);
+            toast.error("Failed to download invoice");
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    const handleCancelOrder = async () => {
+        if (!window.confirm("Are you sure you want to cancel this order? This action cannot be undone.")) return;
+
+        setIsCancelling(true);
+        try {
+            await orderService.cancelOrder(orderId);
+            toast.success("Order cancelled successfully");
+            fetchOrder();
+        } catch (error) {
+            console.error("Cancellation failed", error);
+            toast.error(error.response?.data?.message || "Failed to cancel order");
+        } finally {
+            setIsCancelling(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -90,13 +157,37 @@ const OrderTrackingPage = () => {
         <div className="min-h-screen pt-24 pb-12 px-4 bg-slate-50">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
-                <div className="flex items-center gap-4 mb-8">
-                    <button onClick={() => navigate(-1)} className="p-2 hover:bg-white rounded-full transition-colors">
-                        <ArrowLeft className="w-6 h-6 text-slate-600" />
-                    </button>
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800">Track Order</h1>
-                        <p className="text-sm text-slate-500">Order ID: #{order.orderNumber || order._id?.slice(-6).toUpperCase()}</p>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => navigate(-1)} className="p-2 hover:bg-white rounded-full transition-colors">
+                            <ArrowLeft className="w-6 h-6 text-slate-600" />
+                        </button>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">Track Order</h1>
+                            <p className="text-sm text-slate-500">Order ID: #{order.orderNumber || order._id?.slice(-6).toUpperCase()}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleDownloadInvoice}
+                            disabled={isDownloading}
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors text-sm font-medium"
+                        >
+                            <FileText className="w-4 h-4" />
+                            {isDownloading ? 'Downloading...' : 'Invoice'}
+                        </button>
+
+                        {['pending', 'placed'].includes(order.status) && (
+                            <button
+                                onClick={handleCancelOrder}
+                                disabled={isCancelling}
+                                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-xl hover:bg-red-100 transition-colors text-sm font-medium"
+                            >
+                                <XCircle className="w-4 h-4" />
+                                {isCancelling ? 'Cancelling...' : 'Cancel Order'}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -104,13 +195,27 @@ const OrderTrackingPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-slate-500 mb-1">Estimated Delivery</p>
-                            <h2 className="text-2xl font-bold text-slate-800">
-                                {estimatedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </h2>
+                            {order.status === 'delivered' ? (
+                                <>
+                                    <p className="text-sm text-slate-500 mb-1">Delivered At</p>
+                                    <h2 className="text-2xl font-bold text-slate-800">
+                                        {new Date(order.deliveredAt || order.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </h2>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-sm text-slate-500 mb-1">Estimated Delivery</p>
+                                    <h2 className="text-2xl font-bold text-slate-800">
+                                        {estimatedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </h2>
+                                </>
+                            )}
                         </div>
-                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
-                            <Clock className="w-6 h-6" />
+                        <div className={clsx(
+                            "w-12 h-12 rounded-full flex items-center justify-center",
+                            order.status === 'delivered' ? "bg-emerald-100 text-emerald-600" : "bg-emerald-100 text-emerald-600"
+                        )}>
+                            {order.status === 'delivered' ? <CheckCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
                         </div>
                     </div>
 
@@ -184,7 +289,7 @@ const OrderTrackingPage = () => {
                                             </p>
                                             {isCurrent && (
                                                 <p className="text-sm text-emerald-600 font-medium">
-                                                    {index < 3 ? 'Processing...' : 'On the way'}
+                                                    {index === 5 ? 'Successfully Delivered' : (index < 3 ? 'Processing...' : 'On the way')}
                                                 </p>
                                             )}
                                         </div>

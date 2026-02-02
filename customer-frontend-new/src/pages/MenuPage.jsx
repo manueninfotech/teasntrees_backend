@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSocket } from '../context/SocketContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom'; // URL Sync
@@ -35,10 +36,6 @@ const MenuPage = () => {
     useEffect(() => {
         if (debouncedSearch) {
             setSearchParams({ search: debouncedSearch });
-            // Optionally reset category if searching? Or filter within category?
-            // Usually global search implies "All Categories", but filter within category is also valid.
-            // For simplicity/UX, if searching, user might expect results from anywhere unless specified.
-            // Let's keep category filter + search text valid together (e.g. "Green Tea" in "Tea" category).
         } else {
             searchParams.delete('search');
             setSearchParams(searchParams);
@@ -75,6 +72,38 @@ const MenuPage = () => {
             search: debouncedSearch
         }),
     });
+
+    // Real-time Product Updates
+    const { socket } = useSocket();
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleProductUpdate = (data) => {
+            console.log('[Menu] Product update received:', data);
+            // Invalidate all product queries to strictly refresh the grid
+            queryClient.invalidateQueries({ queryKey: ['products'] });
+
+            // If we had category counts, we'd invalidate categories too
+            if (data.type === 'category' || data.category) {
+                queryClient.invalidateQueries({ queryKey: ['categories'] });
+            }
+        };
+
+        const events = [
+            'product:created',
+            'product:updated',
+            'product:deleted',
+            'category:updated' // In case category name changes
+        ];
+
+        events.forEach(event => socket.on(event, handleProductUpdate));
+
+        return () => {
+            events.forEach(event => socket.off(event, handleProductUpdate));
+        };
+    }, [socket, queryClient]);
 
     const displayProducts = products || [];
 

@@ -75,12 +75,17 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        setUser(null);
-        // Optional: Call logout endpoint if needed
+    const logout = async () => {
+        try {
+            await api.post('/customer/auth/logout');
+        } catch (error) {
+            console.error("Logout API failed", error);
+        } finally {
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            setUser(null);
+        }
     };
 
     return (
