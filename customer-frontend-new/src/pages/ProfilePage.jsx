@@ -1,14 +1,23 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2, Percent, Star } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2, Percent, Star, RotateCcw, FileText, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import { userService } from '../services/userService';
-import { Plus } from 'lucide-react';
+import { orderService } from '../services/orderService';
+import { reviewService } from '../services/reviewService';
+
 
 const ProfilePage = () => {
+    const navigate = useNavigate();
+    const { socket } = useSocket();
     const { user, isAuthenticated, logout, sendOtp, verifyOtp, completeProfile } = useAuth();
+    const { setIsCartOpen, addToCart } = useCart();
 
     // Auth State
     const [loginStep, setLoginStep] = useState('mobile'); // mobile, otp, details
@@ -23,6 +32,7 @@ const ProfilePage = () => {
     const [profileData, setProfileData] = useState(user); // Initial from auth, then refreshed
     const [orders, setOrders] = useState([]);
     const [addresses, setAddresses] = useState([]);
+    const [reviews, setReviews] = useState([]);
     const [loadingData, setLoadingData] = useState(false);
 
     // Address Modal State
@@ -33,7 +43,7 @@ const ProfilePage = () => {
     const [savingAddress, setSavingAddress] = useState(false);
 
     // Profile Edit State
-    const [isEditing, setIsEditing] = useState(false);
+    const [showEditProfileModal, setShowEditProfileModal] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', email: '', mobile: '' });
 
@@ -104,7 +114,18 @@ const ProfilePage = () => {
             } else if (activeTab === 'profile') {
                 // Optionally refresh profile
                 const data = await userService.getProfile();
+                console.log('[FRONTEND DEBUG] Profile data received:', data);
+                console.log('[FRONTEND DEBUG] Notification prefs:', data?.notificationPreferences);
                 setProfileData(data);
+            } else if (activeTab === 'settings') {
+                // Settings tab needs profile data with notificationPreferences
+                const data = await userService.getProfile();
+                console.log('[SETTINGS LOAD] Profile data received:', data);
+                console.log('[SETTINGS LOAD] Notification prefs:', data?.notificationPreferences);
+                setProfileData(data);
+            } else if (activeTab === 'reviews') {
+                const data = await reviewService.getMyReviews();
+                setReviews(data || []);
             }
         } catch (err) {
             console.error("Failed to load dashboard data", err);
@@ -112,6 +133,43 @@ const ProfilePage = () => {
             setLoadingData(false);
         }
     };
+
+    // Keep activeTab in a ref for socket listener to access current value without re-binding
+    const activeTabRef = React.useRef(activeTab);
+    useEffect(() => {
+        activeTabRef.current = activeTab;
+    }, [activeTab]);
+
+    // Socket Listener for Real-time Updates (Orders)
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleOrderUpdate = (data) => {
+            console.log('[Profile] Order update received:', data);
+
+            // Allow refresh if we are on 'orders' tab OR 'profile' (dashboard summary might need it later)
+            // For now, restrict to 'orders' to save bandwidth, but using Ref ensures we catch it if we just switched.
+            if (activeTabRef.current === 'orders') {
+                console.log('[Profile] Refreshing orders list with timestamp...');
+                userService.getOrders({ _t: Date.now() })
+                    .then(data => {
+                        console.log('[Profile] Orders refreshed:', data?.length);
+                        setOrders(data || []);
+                    })
+                    .catch(e => console.error("Socket refresh failed", e));
+            }
+        };
+
+        socket.on('order:status-updated', handleOrderUpdate);
+        socket.on('order:created', handleOrderUpdate);
+        socket.on('delivery:status-updated', handleOrderUpdate);
+
+        return () => {
+            socket.off('order:status-updated', handleOrderUpdate);
+            socket.off('order:created', handleOrderUpdate);
+            socket.off('delivery:status-updated', handleOrderUpdate);
+        };
+    }, [socket]);
 
     const [editingAddressId, setEditingAddressId] = useState(null);
 
@@ -209,7 +267,7 @@ const ProfilePage = () => {
         try {
             const payload = {
                 label: newAddress.tag,
-                addressLine: `${newAddress.flatNo}, ${newAddress.street}, ${newAddress.area}, ${newAddress.city} - ${newAddress.pincode}`,
+                addressLine: `${newAddress.flatNo}, ${newAddress.street}, ${newAddress.area}, ${newAddress.city} - ${newAddress.pincode} `,
                 flatNo: newAddress.flatNo,
                 street: newAddress.street,
                 area: newAddress.area,
@@ -302,10 +360,101 @@ const ProfilePage = () => {
                 email: editForm.email
             });
             setProfileData(updatedUser);
-            setIsEditing(false);
+            setProfileData(updatedUser);
+            setShowEditProfileModal(false);
         } catch (err) {
             console.error("Failed to update profile", err);
             alert("Failed to update profile");
+        }
+    };
+
+    const handleReorder = async (orderId) => {
+        const toastId = toast.loading("Adding items to cart...");
+        try {
+            // Fetch full order to get product details (price, etc which might not be in dashboard list)
+            const fullOrder = await orderService.getOrderById(orderId);
+
+            if (!fullOrder || !fullOrder.items) {
+                throw new Error("Order details not found");
+            }
+
+            fullOrder.items.forEach(item => {
+                if (item.product) {
+                    const product = item.product;
+                    const sizeOption = item.customization ? { size: item.customization, price: item.price } : null;
+
+                    // Add the quantity specified in the order
+                    for (let i = 0; i < item.quantity; i++) {
+                        addToCart(product, sizeOption);
+                    }
+                }
+            });
+
+            toast.success("Items added to cart!", { id: toastId });
+            setIsCartOpen(true);
+        } catch (error) {
+            console.error("Reorder failed", error);
+            toast.error("Failed to reorder items", { id: toastId });
+        }
+    };
+
+    const handleDownloadInvoice = async (orderId, orderNumber) => {
+        const toastId = toast.loading("Downloading invoice...");
+        try {
+            const blob = await orderService.downloadInvoice(orderId);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `Invoice - ${orderNumber}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success("Invoice downloaded!", { id: toastId });
+        } catch (error) {
+            console.error("Download failed", error);
+            toast.error("Failed to download invoice", { id: toastId });
+        }
+    };
+
+    // --- REVIEW LOGIC ---
+    const [showReviewModal, setShowReviewModal] = useState(false);
+    const [activeReviewOrderId, setActiveReviewOrderId] = useState(null);
+    const [reviewForm, setReviewForm] = useState({ foodRating: 5, riderRating: 5, comment: '' });
+    const [submittingReview, setSubmittingReview] = useState(false);
+
+    const handleOpenReview = (orderId) => {
+        setActiveReviewOrderId(orderId);
+        setReviewForm({ foodRating: 5, riderRating: 5, comment: '' });
+        setShowReviewModal(true);
+    };
+
+    const handleSubmitReview = async (e) => {
+        e.preventDefault();
+        setSubmittingReview(true);
+        try {
+            const payload = {
+                orderId: activeReviewOrderId,
+                foodRating: reviewForm.foodRating,
+                riderRating: reviewForm.riderRating,
+                review: reviewForm.comment
+            };
+
+            await reviewService.createReview(payload);
+            toast.success("Thank you for your feedback!");
+            setShowReviewModal(false);
+            setActiveReviewOrderId(null);
+
+            // Refresh reviews list if on reviews tab
+            if (activeTab === 'reviews') {
+                loadDashboardData();
+            }
+        } catch (error) {
+            console.error("Review failed", error);
+            const msg = error.response?.data?.message || "Failed to submit review";
+            toast.error(msg);
+        } finally {
+            setSubmittingReview(false);
         }
     };
 
@@ -466,6 +615,7 @@ const ProfilePage = () => {
         { id: 'profile', label: 'My Profile', icon: User },
         { id: 'orders', label: 'Orders', icon: Package },
         { id: 'addresses', label: 'Addresses', icon: MapPin },
+        { id: 'reviews', label: 'My Reviews', icon: Star },
         { id: 'settings', label: 'Settings', icon: Settings },
     ];
 
@@ -510,54 +660,18 @@ const ProfilePage = () => {
                     </div>
 
                     <div className="text-center md:text-left flex-1 min-w-0">
-                        {isEditing ? (
-                            <div className="space-y-3 max-w-sm">
-                                <input
-                                    value={editForm.name}
-                                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:border-cafe-emerald"
-                                    placeholder="Full Name"
-                                />
-                                <input
-                                    value={editForm.email}
-                                    onChange={e => setEditForm({ ...editForm, email: e.target.value })}
-                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:border-cafe-emerald"
-                                    placeholder="Email Address"
-                                />
-                            </div>
-                        ) : (
-                            <>
-                                <h1 className="text-2xl font-bold text-slate-800">{profileData?.name || 'User'}</h1>
-                                <p className="text-slate-500">{profileData?.email}</p>
-                                <p className="text-slate-400 text-sm mt-1">{profileData?.mobile}</p>
-                            </>
-                        )}
+                        <h1 className="text-2xl font-bold text-slate-800">{profileData?.name || 'User'}</h1>
+                        <p className="text-slate-500">{profileData?.email}</p>
+                        <p className="text-slate-400 text-sm mt-1">{profileData?.mobile}</p>
                     </div>
 
                     <div className="flex flex-col gap-2 z-10 w-full md:w-auto">
-                        {isEditing ? (
-                            <div className="flex gap-2 w-full">
-                                <button
-                                    onClick={handleSaveProfile}
-                                    className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-cafe-emerald text-white rounded-xl font-medium hover:bg-cafe-teal transition-colors shadow-lg shadow-cafe-emerald/20"
-                                >
-                                    <Save className="w-4 h-4" /> Save
-                                </button>
-                                <button
-                                    onClick={() => setIsEditing(false)}
-                                    className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition-colors"
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setIsEditing(true)}
-                                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors"
-                            >
-                                <Edit2 className="w-4 h-4" /> Edit Profile
-                            </button>
-                        )}
+                        <button
+                            onClick={() => setShowEditProfileModal(true)}
+                            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors"
+                        >
+                            <Edit2 className="w-4 h-4" /> Edit Profile
+                        </button>
 
                         <button
                             onClick={logout}
@@ -651,17 +765,44 @@ const ProfilePage = () => {
                                                             <div className="font-bold text-slate-900">₹{order.total}</div>
                                                             <span className={cn(
                                                                 "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
-                                                                order.orderStatus === 'completed' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                                                                order.status === 'delivered' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                                                             )}>
-                                                                {order.orderStatus}
+                                                                {order.status}
                                                             </span>
-                                                            <Link
-                                                                to={`/track-order/${order._id}`}
-                                                                className="px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded-xl hover:bg-slate-700 transition-colors"
-                                                            >
-                                                                Track
-                                                            </Link>
+
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => handleDownloadInvoice(order._id, order.orderNumber || 'Order')}
+                                                                    className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors"
+                                                                    title="Download Invoice"
+                                                                >
+                                                                    <FileText className="w-4 h-4" />
+                                                                </button>
+
+                                                                <button
+                                                                    onClick={() => handleReorder(order._id)}
+                                                                    className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors"
+                                                                    title="Reorder"
+                                                                >
+                                                                    <RotateCcw className="w-4 h-4" />
+                                                                </button>
+
+                                                                <Link
+                                                                    to={`/track-order/${order._id}`}
+                                                                    className="px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded-xl hover:bg-slate-700 transition-colors"
+                                                                >
+                                                                    Track
+                                                                </Link>
+                                                            </div>
                                                         </div>
+                                                        {order.status === 'delivered' && (
+                                                            <button
+                                                                onClick={() => handleOpenReview(order._id)}
+                                                                className="w-full mt-4 py-2 bg-slate-50 text-slate-600 rounded-xl font-medium hover:bg-emerald-50 hover:text-emerald-600 transition-colors flex items-center justify-center gap-2"
+                                                            >
+                                                                <Star className="w-4 h-4" /> Rate your experience
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -719,6 +860,170 @@ const ProfilePage = () => {
                                                 </button>
                                             </div>
                                         )}
+
+                                        {activeTab === 'reviews' && (
+                                            <div className="space-y-4">
+                                                {!Array.isArray(reviews) || reviews.length === 0 ? (
+                                                    <div className="text-center py-12 text-slate-400">No reviews found.</div>
+                                                ) : reviews.map(review => {
+                                                    // Debug log
+                                                    console.log('Rendering Review:', review);
+                                                    const displayName = review.productId
+                                                        ? review.productId.name
+                                                        : `Order #${review.orderId?.orderNumber || (typeof review.orderId === 'string' ? review.orderId : 'Unknown')}`;
+
+                                                    return (
+                                                        <div key={review._id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                                            <div className="flex items-start justify-between mb-4">
+                                                                <div>
+                                                                    <h3 className="font-bold text-slate-800 text-lg">
+                                                                        {displayName}
+                                                                    </h3>
+
+                                                                    <div className="flex flex-col gap-1 mt-2">
+                                                                        {/* Food Rating */}
+                                                                        {review.foodRating && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-xs font-bold text-slate-500 uppercase w-16">Food</span>
+                                                                                <div className="flex items-center gap-0.5">
+                                                                                    {[...Array(5)].map((_, i) => (
+                                                                                        <Star
+                                                                                            key={`food-${i}`}
+                                                                                            className={cn(
+                                                                                                "w-3.5 h-3.5",
+                                                                                                i < review.foodRating ? "fill-amber-400 text-amber-400" : "text-slate-200"
+                                                                                            )}
+                                                                                        />
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Rider Rating */}
+                                                                        {review.riderRating && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-xs font-bold text-slate-500 uppercase w-16">Delivery</span>
+                                                                                <div className="flex items-center gap-0.5">
+                                                                                    {[...Array(5)].map((_, i) => (
+                                                                                        <Star
+                                                                                            key={`rider-${i}`}
+                                                                                            className={cn(
+                                                                                                "w-3.5 h-3.5",
+                                                                                                i < review.riderRating ? "fill-emerald-400 text-emerald-400" : "text-slate-200"
+                                                                                            )}
+                                                                                        />
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Fallback for legacy generic rating */}
+                                                                        {!review.foodRating && !review.riderRating && review.rating && (
+                                                                            <div className="flex items-center gap-1">
+                                                                                {[...Array(5)].map((_, i) => (
+                                                                                    <Star
+                                                                                        key={i}
+                                                                                        className={cn(
+                                                                                            "w-4 h-4",
+                                                                                            i < review.rating ? "fill-amber-400 text-amber-400" : "text-slate-200"
+                                                                                        )}
+                                                                                    />
+                                                                                ))}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-xs text-slate-400 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                                                                    {new Date(review.createdAt).toLocaleDateString()}
+                                                                </span>
+                                                            </div>
+                                                            {review.review && (
+                                                                <p className="text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl text-sm italic">
+                                                                    "{review.review}"
+                                                                </p>
+                                                            )}
+                                                            {/* Fallback for comment field name change if any */}
+                                                            {review.comment && !review.review && (
+                                                                <p className="text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl text-sm italic">
+                                                                    "{review.comment}"
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+
+                                        {/* Edit Profile Modal */}
+                                        <AnimatePresence>
+                                            {showEditProfileModal && (
+                                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                                                    <motion.div
+                                                        initial={{ opacity: 0, scale: 0.9 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        exit={{ opacity: 0, scale: 0.9 }}
+                                                        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+                                                    >
+                                                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                                            <h3 className="text-xl font-bold text-slate-800">Edit Profile</h3>
+                                                            <button onClick={() => setShowEditProfileModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                                                <X className="w-5 h-5 text-slate-400" />
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="p-6 space-y-4">
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-slate-500 uppercase">Full Name</label>
+                                                                <div className="relative">
+                                                                    <User className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editForm.name}
+                                                                        onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                                                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 font-medium"
+                                                                        placeholder="Your Name"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-slate-500 uppercase">Email Address</label>
+                                                                <div className="relative">
+                                                                    <Mail className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                                                                    <input
+                                                                        type="email"
+                                                                        value={editForm.email}
+                                                                        onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                                                                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 font-medium"
+                                                                        placeholder="your.email@example.com"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <label className="text-xs font-bold text-slate-500 uppercase">Mobile Number</label>
+                                                                <div className="relative opacity-60">
+                                                                    <Phone className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+                                                                    <input
+                                                                        type="text"
+                                                                        value={editForm.mobile}
+                                                                        readOnly
+                                                                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-100 border-none font-medium cursor-not-allowed"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <button
+                                                                onClick={handleSaveProfile}
+                                                                className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all flex items-center justify-center gap-2 mt-4"
+                                                            >
+                                                                <Save className="w-4 h-4" /> Save Changes
+                                                            </button>
+                                                        </div>
+                                                    </motion.div>
+                                                </div>
+                                            )}
+                                        </AnimatePresence>
 
                                         {/* Address Modal */}
                                         <AnimatePresence>
@@ -844,6 +1149,8 @@ const ProfilePage = () => {
                                         {activeTab === 'settings' && (
                                             <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                                                 <h2 className="text-xl font-bold text-slate-800 mb-6">Preferences</h2>
+                                                {console.log('[SETTINGS TAB] profileData:', profileData)}
+                                                {console.log('[SETTINGS TAB] notificationPreferences:', profileData?.notificationPreferences)}
 
                                                 <div className="space-y-6">
                                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
@@ -951,6 +1258,98 @@ const ProfilePage = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Review Modal */}
+            <AnimatePresence>
+                {showReviewModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-3xl w-full max-w-md overflow-hidden relative"
+                        >
+                            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                <h3 className="text-xl font-bold text-slate-800">Rate your experience</h3>
+                                <button
+                                    onClick={() => setShowReviewModal(false)}
+                                    className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"
+                                >
+                                    <X className="w-5 h-5 text-slate-500" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleSubmitReview} className="p-6 space-y-6">
+                                {/* Food Rating */}
+                                <div className="flex flex-col items-center gap-4">
+                                    <p className="text-slate-500 text-sm font-bold">Food Quality</p>
+                                    <div className="flex gap-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={`food-${star}`}
+                                                type="button"
+                                                onClick={() => setReviewForm({ ...reviewForm, foodRating: star })}
+                                                className="focus:outline-none transition-transform hover:scale-110"
+                                            >
+                                                <Star
+                                                    className={cn(
+                                                        "w-8 h-8 transition-colors",
+                                                        star <= reviewForm.foodRating
+                                                            ? "fill-amber-400 text-amber-400"
+                                                            : "text-slate-200"
+                                                    )}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Rider Rating */}
+                                <div className="flex flex-col items-center gap-4 border-t border-slate-100 pt-6">
+                                    <p className="text-slate-500 text-sm font-bold">Delivery Experience</p>
+                                    <div className="flex gap-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={`rider-${star}`}
+                                                type="button"
+                                                onClick={() => setReviewForm({ ...reviewForm, riderRating: star })}
+                                                className="focus:outline-none transition-transform hover:scale-110"
+                                            >
+                                                <Star
+                                                    className={cn(
+                                                        "w-8 h-8 transition-colors",
+                                                        star <= reviewForm.riderRating
+                                                            ? "fill-emerald-400 text-emerald-400"
+                                                            : "text-slate-200"
+                                                    )}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 pt-2">
+                                    <label className="text-sm font-bold text-slate-700">Comments (Optional)</label>
+                                    <textarea
+                                        value={reviewForm.comment}
+                                        onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                                        placeholder="Tell us what you liked..."
+                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 min-h-[100px] resize-none"
+                                    />
+                                </div>
+
+                                <button
+                                    disabled={submittingReview}
+                                    type="submit"
+                                    className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all"
+                                >
+                                    {submittingReview ? 'Submitting...' : 'Submit Review'}
+                                </button>
+                            </form>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

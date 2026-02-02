@@ -1,10 +1,31 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, Package, ArrowRight, Home } from 'lucide-react';
+import { orderService } from '../services/orderService';
+import { CheckCircle, Package, ArrowRight, Home, Loader2 } from 'lucide-react';
 
 const OrderSuccessPage = () => {
     const { orderId } = useParams();
+    const [order, setOrder] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchOrder = async () => {
+            if (!orderId) return;
+
+            try {
+                const data = await orderService.getOrderById(orderId);
+                setOrder(data);
+            } catch (error) {
+                console.error("Failed to fetch order details:", error);
+                // Fallback: We just show the ID from URL if fetch fails
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchOrder();
+    }, [orderId]);
 
     return (
         <div className="min-h-screen bg-cafe-emerald flex items-center justify-center p-4">
@@ -24,7 +45,14 @@ const OrderSuccessPage = () => {
                 <h1 className="text-3xl font-bold text-slate-800 mb-2">Order Placed! 🥳</h1>
                 <p className="text-slate-500 mb-8">
                     Processing your delicious order. <br />
-                    Order ID: <span className="font-mono font-bold text-slate-700">#{orderId?.slice(-6).toUpperCase()}</span>
+                    Order ID:
+                    <span className="font-mono font-bold text-slate-700 ml-2">
+                        {loading ? (
+                            <span className="inline-block w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin align-middle" />
+                        ) : (
+                            `#${order?.orderNumber || orderId?.slice(-6).toUpperCase()}`
+                        )}
+                    </span>
                 </p>
 
                 <div className="space-y-4">
