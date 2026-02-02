@@ -195,6 +195,30 @@ const ContactPage = () => {
                         )}
                     </motion.div>
                 </div>
+
+                {/* Map Section */}
+                <div className="mt-16">
+                    <h2 className="text-3xl font-bold text-slate-800 mb-8 text-center">Find Us</h2>
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="bg-white p-4 rounded-3xl shadow-lg border border-slate-100 overflow-hidden"
+                    >
+                        <div className="w-full h-[500px] rounded-2xl overflow-hidden relative">
+                            <iframe
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3829.271512537432!2d80.4309655!3d16.309065399999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a4a75d5803c1ad5%3A0x575d7ce7d4586540!2sTEAS%20N%20TREES!5e0!3m2!1sen!2sin!4v1758987737969!5m2!1sen!2sin"
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                allowFullScreen=""
+                                loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
+                                className="w-full h-full"
+                            ></iframe>
+                        </div>
+                    </motion.div>
+                </div>
             </div>
         </div>
     );
