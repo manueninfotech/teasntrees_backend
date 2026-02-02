@@ -124,8 +124,14 @@ const updateProfile = async (req, res) => {
                     message: 'Notification preferences must be an object'
                 });
             }
+
+            // Fix: Mongoose subdocument spread might fail. Convert to object first if needed, 
+            // or better yet, since we are doing Object.assign later, we need to be careful not to overwrite with incomplete object.
+            // Safest way for partial update of nested object in Mongoose via Object.assign is to merge manually.
+            const currentPrefs = user.notificationPreferences ? user.notificationPreferences.toObject() : {};
+
             updates.notificationPreferences = {
-                ...user.notificationPreferences, // keep existing
+                ...currentPrefs, // keep existing
                 ...notificationPreferences       // overwrite new
             };
         }
@@ -143,6 +149,8 @@ const updateProfile = async (req, res) => {
             });
         }
 
+        console.log('[DEBUG] updateProfile applying updates:', updates);
+
         // Update user
         Object.assign(user, updates);
 
@@ -152,6 +160,7 @@ const updateProfile = async (req, res) => {
         }
 
         await user.save();
+        console.log('[DEBUG] updateProfile saved user:', user.notificationPreferences);
 
         return res.status(200).json({
             success: true,
