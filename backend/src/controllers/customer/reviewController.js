@@ -11,89 +11,74 @@ export const createReview = async (req, res) => {
     try {
         const customerId = req.user.userId;
         const { orderId, foodRating, riderRating, review, images } = req.body;
+
+        console.log('Creating Review Payload:', { customerId, orderId, foodRating, riderRating });
+
         // verify order belongs to customer and is delivered
+        // verify order belongs to customer
         const order = await Order.findOne({
             _id: orderId,
-            customerId,
-            status: 'delivered'
+            customerId
         });
+
         if (!order) {
             return res.status(404).json({
                 success: false,
-                message: 'Order not found or not delivered yet'
+                message: 'Order not found'
             });
         }
+
+        if (order.status !== 'delivered') {
+            return res.status(400).json({
+                success: false,
+                message: 'Order is not delivered yet'
+            });
+        }
+
         // check if review already exists
         const existingReview = await Review.findOne({ orderId });
         if (existingReview) {
-            // NEW: Check if the existing review itself is incomplete/corrupted
-            if (!existingReview.foodRating || !existingReview.riderRating) {
-                console.log('EXISTING REVIEW IS CORRUPT. OVERWRITING WITH NEW DATA...');
+            // Update existing review
+            existingReview.foodRating = foodRating;
+            existingReview.riderRating = riderRating;
+            existingReview.review = review;
+            if (images) existingReview.images = images;
 
-                existingReview.foodRating = foodRating;
-                existingReview.riderRating = riderRating;
-                existingReview.review = review;
-                if (images) existingReview.images = images;
-
-                // DATA FIX: Ensure required fields are present (Schema Validation Fix)
-                if (!existingReview.riderId && order.riderId) existingReview.riderId = order.riderId;
-                if (!existingReview.productId && order.items && order.items.length > 0) {
-                    existingReview.productId = order.items[0].product;
-                }
-
-                // Reset approval status on update/fix
-                existingReview.isApproved = false;
-
-                await existingReview.save();
-
-                // Now heal the order
-                order.foodRating = foodRating;
-                order.riderRating = riderRating;
-                order.review = review;
-                await order.save();
-
-                console.log('CORRUPTION FIXED. SAVED NEW RATINGS.');
-
-                return res.status(200).json({
-                    success: true,
-                    message: 'Review updated successfully',
-                    data: existingReview
-                });
+            // Fix missing fields if needed
+            if (!existingReview.riderId && order.riderId) existingReview.riderId = order.riderId;
+            if (!existingReview.productId && order.items && order.items.length > 0) {
+                existingReview.productId = order.items[0].product;
             }
 
-            console.log('DUPLICATE REVIEW FOUND - STARTING SELF-HEAL CHECK for Order:', orderId);
+            existingReview.isApproved = false; // Reset approval checking
+            await existingReview.save();
 
-            // Self-healing: Ensure order has the ratings even if previously failed
-            if (!order.foodRating || !order.riderRating) {
-                console.log('ORDER MISSING RATINGS -> HEALING NOW...');
-                order.foodRating = existingReview.foodRating;
-                order.riderRating = existingReview.riderRating;
-                order.review = existingReview.review;
-                await order.save();
-                logger.info('Self-healed order ratings from existing review', { orderId });
-                console.log('HEALING COMPLETE');
-            } else {
-                console.log('ORDER ALREADY HAS RATINGS. No healing needed.');
-            }
+            // Sync with Order
+            order.foodRating = foodRating;
+            order.riderRating = riderRating;
+            order.review = review;
+            await order.save();
 
             return res.status(200).json({
                 success: true,
-                message: 'Review already submitted (Auto-Healed)',
+                message: 'Review updated successfully',
                 data: existingReview
             });
         }
-        // create review
+
+        // create new review
         const newReview = await Review.create({
             orderId,
             customerId,
-            riderId: order.riderId,
-            productId: (order.items && order.items.length > 0) ? order.items[0].product : null, // REQUIRED by Schema
+            riderId: order.riderId || null,
+            productId: (order.items && order.items.length > 0) ? order.items[0].product : null,
             foodRating,
             riderRating,
             review,
             images: images || [],
-            isApproved: false // Explicitly ensure pending
+            isApproved: false
         });
+
         // update order with ratings
         order.foodRating = foodRating;
         order.riderRating = riderRating;
@@ -287,8 +272,22 @@ export const getProductReviews = async (req, res) => {
 // Get customer's reviews
 export const getMyReviews = async (req, res) => {
     try {
-        const customerId = req.user.userId;
+        const customerId = new mongoose.Types.ObjectId(req.user.userId);
         const { page = 1, limit = 10 } = req.query;
+
+        console.log('---------------- DEBUG REVIEW FETCH ----------------');
+        console.log('Target Customer ID:', customerId.toString());
+
+        // Check total DB count
+        const allReviewsCount = await Review.countDocuments({});
+        console.log('Total Reviews in DB (ALL USERS):', allReviewsCount);
+
+        // Check if this user has any reviews ignoring population
+        const userRawReviews = await Review.find({ customerId });
+        console.log(`Found ${userRawReviews.length} raw reviews for this user.`);
+        if (userRawReviews.length > 0) {
+            console.log('Sample User Review:', JSON.stringify(userRawReviews[0], null, 2));
+        }
 
         const skip = (page - 1) * limit;
 
@@ -299,6 +298,7 @@ export const getMyReviews = async (req, res) => {
             .limit(parseInt(limit))
             .skip(skip);
 
+        console.log('Populated Reviews length:', reviews.length);
         const total = await Review.countDocuments({ customerId });
 
         res.json({
