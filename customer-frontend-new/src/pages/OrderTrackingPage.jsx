@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Package, Clock, MapPin, CheckCircle, Loader2, UserCheck, CreditCard, StickyNote } from 'lucide-react';
+import { ArrowLeft, Package, Clock, MapPin, CheckCircle, Loader2, UserCheck, CreditCard, StickyNote, Bike, ShieldCheck } from 'lucide-react';
 import { orderService } from '../services/orderService';
 import clsx from 'clsx';
 
@@ -11,7 +10,7 @@ const steps = [
     { status: 'confirmed', label: 'Confirmed', icon: CheckCircle },
     { status: 'preparing', label: 'Preparing', icon: Clock },
     { status: 'assigned', label: 'Rider Assigned', icon: UserCheck },
-    { status: 'out_for_delivery', label: 'Out for Delivery', icon: MapPin },
+    { status: 'out_for_delivery', label: 'Out for Delivery', icon: Bike },
     { status: 'delivered', label: 'Delivered', icon: CheckCircle }
 ];
 
@@ -59,23 +58,33 @@ const OrderTrackingPage = () => {
     const getStepIndex = (status) => {
         switch (status) {
             case 'pending': return 0;
-            case 'placed': return 0; // consistent
+            case 'placed': return 0;
             case 'confirmed': return 1;
             case 'accepted': return 1;
             case 'preparing': return 2;
-            case 'ready': return 2; // Ready is typically end of preparing
+            case 'ready': return 2;
             case 'assigned': return 3;
             case 'picked_up': return 4;
             case 'out-for-delivery': return 4;
             case 'in_transit': return 4;
-            case 'out_for_delivery': return 4; // handle underscore/hyphen if inconsistent
+            case 'out_for_delivery': return 4;
             case 'delivered': return 5;
             default: return 0;
         }
     };
 
-    // Check if order exists before running logic
     const activeIndex = order ? getStepIndex(order.status) : 0;
+
+    // Calculate Estimated Time
+    // Priority: 1. Delivery Model Estimate, 2. Order Model Estimate, 3. Default (Created + 45m)
+    const estimatedTime = order.delivery?.estimatedTime
+        ? new Date(Date.now() + order.delivery.estimatedTime * 60000)
+        : order.estimatedDeliveryTime
+            ? new Date(order.estimatedDeliveryTime)
+            : new Date(new Date(order.createdAt).getTime() + 45 * 60000);
+
+    // Get OTP from Delivery Model (exposed by backend only when active)
+    const deliveryOtp = order.delivery?.deliveryOtp;
 
     return (
         <div className="min-h-screen pt-24 pb-12 px-4 bg-slate-50">
@@ -91,6 +100,51 @@ const OrderTrackingPage = () => {
                     </div>
                 </div>
 
+                {/* Estimated Time & OTP Card */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between">
+                        <div>
+                            <p className="text-sm text-slate-500 mb-1">Estimated Delivery</p>
+                            <h2 className="text-2xl font-bold text-slate-800">
+                                {estimatedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </h2>
+                        </div>
+                        <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
+                            <Clock className="w-6 h-6" />
+                        </div>
+                    </div>
+
+                    {/* Show OTP Card only if OTP is available (Production Ready Safe-guard) */}
+                    {deliveryOtp ? (
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between relative overflow-hidden">
+                            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-orange-50 to-transparent pointer-events-none" />
+                            <div>
+                                <p className="text-sm text-slate-500 mb-1">Delivery OTP</p>
+                                <h2 className="text-3xl font-mono font-bold text-cafe-orange tracking-widest">
+                                    {deliveryOtp}
+                                </h2>
+                                <p className="text-xs text-orange-600/80 mt-1">Share with rider upon delivery</p>
+                            </div>
+                            <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 z-10">
+                                <ShieldCheck className="w-6 h-6" />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 flex items-center justify-between opacity-60">
+                            <div>
+                                <p className="text-sm text-slate-500 mb-1">Delivery OTP</p>
+                                <h2 className="text-xl font-bold text-slate-400">
+                                    -- -- -- --
+                                </h2>
+                                <p className="text-xs text-slate-400 mt-1">Available when out for delivery</p>
+                            </div>
+                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
+                                <ShieldCheck className="w-6 h-6" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Timeline Card */}
                 <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 mb-6">
                     <div className="relative">
@@ -102,7 +156,9 @@ const OrderTrackingPage = () => {
                             {steps.map((step, index) => {
                                 const isCompleted = index <= activeIndex;
                                 const isCurrent = index === activeIndex;
-                                const Icon = step.icon;
+                                // If it's the current step, we show the 'Vehicle' (Bike) moving to this point
+                                // Otherwise we show the static checkpoint icon
+                                const Icon = isCurrent ? Bike : step.icon;
 
                                 return (
                                     <motion.div
@@ -113,18 +169,23 @@ const OrderTrackingPage = () => {
                                         className="flex items-center gap-6 relative"
                                     >
                                         <div className={clsx(
-                                            "w-12 h-12 rounded-full flex items-center justify-center border-4 z-10 transition-colors bg-white",
-                                            isCompleted ? "border-emerald-500 text-emerald-600" : "border-slate-200 text-slate-300",
-                                            isCurrent && "ring-4 ring-emerald-100"
+                                            "w-12 h-12 rounded-full flex items-center justify-center border-4 z-10 transition-colors",
+                                            isCurrent
+                                                ? "bg-cafe-orange border-cafe-orange text-white shadow-lg shadow-orange-200 scale-110"
+                                                : isCompleted
+                                                    ? "bg-white border-emerald-500 text-emerald-600"
+                                                    : "bg-white border-slate-200 text-slate-300"
                                         )}>
-                                            <Icon className="w-5 h-5" />
+                                            <Icon className={clsx("w-5 h-5", isCurrent && "animate-pulse")} />
                                         </div>
                                         <div>
                                             <p className={clsx("font-bold text-lg", isCompleted ? "text-slate-800" : "text-slate-400")}>
                                                 {step.label}
                                             </p>
                                             {isCurrent && (
-                                                <p className="text-sm text-emerald-600 font-medium">Current Status</p>
+                                                <p className="text-sm text-emerald-600 font-medium">
+                                                    {index < 3 ? 'Processing...' : 'On the way'}
+                                                </p>
                                             )}
                                         </div>
                                     </motion.div>
