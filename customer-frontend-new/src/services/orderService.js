@@ -13,9 +13,29 @@ export const orderService = {
         return response.data.data;
     },
 
-    // Get my orders (already in userService but good to have here too if needed specific filtering)
+    // Get my orders
     getMyOrders: async (params) => {
         const response = await api.get('/customer/orders/my-orders', { params });
         return response.data.data;
+    },
+
+    // Cancel Order
+    cancelOrder: async (orderId) => {
+        const response = await api.delete(`/customer/orders/${orderId}/cancel`);
+        return response.data;
+    },
+
+    // Reorder
+    reorder: async (orderId) => {
+        const response = await api.post(`/customer/orders/${orderId}/reorder`);
+        return response.data;
+    },
+
+    // Download Invoice
+    downloadInvoice: async (orderId) => {
+        const response = await api.get(`/customer/orders/${orderId}/invoice`, {
+            responseType: 'blob' // Important for handling binary data
+        });
+        return response.data;
     }
 };
