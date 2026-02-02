@@ -13,6 +13,13 @@ const customerSchema = new mongoose.Schema({
             required: true,
             trim: true
         },
+        // Structured Fields for Editing
+        flatNo: { type: String, trim: true },
+        street: { type: String, trim: true },
+        area: { type: String, trim: true },
+        city: { type: String, trim: true },
+        pincode: { type: String, trim: true },
+
         location: {
             type: {
                 type: String,

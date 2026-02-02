@@ -4,6 +4,7 @@
 
 import User from '../../models/User.js';
 import { isValidEmail, sanitizeString } from '../../utils/validators.js';
+import { geocodingService } from '../../services/geocodingService.js';
 
 // Get current user profile
 const getProfile = async (req, res) => {
@@ -99,6 +100,20 @@ const updateProfile = async (req, res) => {
                 });
             }
             updates.address = sanitizedAddress;
+
+            // Attempt to geocode new address
+            try {
+                const coords = await geocodingService.getCoordinates(sanitizedAddress);
+                if (coords) {
+                    updates.location = {
+                        type: 'Point',
+                        coordinates: [coords.lng, coords.lat]
+                    };
+                }
+            } catch (error) {
+                console.warn('Geocoding failed during profile update:', error);
+                // Continue without updating location
+            }
         }
 
         if (notificationPreferences !== undefined) {
