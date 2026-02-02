@@ -28,6 +28,7 @@ const getProfile = async (req, res) => {
                     email: user.email,
                     address: user.address,
                     location: user.location,
+                    profileImage: user.profileImage,
                     // Include customer specific fields if available
                     notificationPreferences: user.notificationPreferences || undefined,
                     role: user.role,
@@ -51,7 +52,7 @@ const getProfile = async (req, res) => {
 // Update user profile
 const updateProfile = async (req, res) => {
     try {
-        const { name, email, address, notificationPreferences } = req.body;
+        const { name, email, address, notificationPreferences, profileImage } = req.body;
         const userId = req.user.userId;
 
         // Find user
@@ -114,6 +115,11 @@ const updateProfile = async (req, res) => {
             };
         }
 
+        if (profileImage !== undefined) {
+            // Basic validation - check if string (URL)
+            updates.profileImage = profileImage;
+        }
+
         // Check if there are any updates
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({
@@ -145,6 +151,7 @@ const updateProfile = async (req, res) => {
                     email: user.email,
                     address: user.address,
                     location: user.location,
+                    profileImage: user.profileImage,
                     // Include customer specific fields if available
                     notificationPreferences: user.notificationPreferences || undefined,
                     role: user.role,
