@@ -7,9 +7,18 @@ export const userService = {
         return response.data.data.user;
     },
 
-    updateProfile: async (data) => {
-        const response = await api.put('/customer/profile', data);
-        return response.data.data;
+    async updateProfile(updates) {
+        const response = await api.put('/customer/profile', updates);
+        return response.data.data.user;
+    },
+
+    async uploadImage(formData) {
+        const response = await api.post('/customer/upload/image', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data.data; // Expected { url, publicId, ... }
     },
 
     // Orders

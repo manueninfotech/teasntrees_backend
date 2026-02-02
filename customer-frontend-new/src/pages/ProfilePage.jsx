@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone } from 'lucide-react';
+import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { userService } from '../services/userService';
@@ -31,6 +31,11 @@ const ProfilePage = () => {
         tag: 'Home', flatNo: '', street: '', area: '', city: '', pincode: ''
     });
     const [savingAddress, setSavingAddress] = useState(false);
+
+    // Profile Edit State
+    const [isEditing, setIsEditing] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [editForm, setEditForm] = useState({ name: '', email: '', mobile: '' });
 
     // --- AUTH LOGIC ---
     const handleSendOtp = async (e) => {
@@ -151,6 +156,56 @@ const ProfilePage = () => {
                 ...prev,
                 notificationPreferences: currentPrefs
             }));
+        }
+    };
+
+    // --- PROFILE EDIT LOGIC ---
+    useEffect(() => {
+        if (profileData) {
+            setEditForm({
+                name: profileData.name || '',
+                email: profileData.email || '',
+                mobile: profileData.mobile || '' // mobile usually read-only but keeping in form
+            });
+        }
+    }, [profileData]);
+
+    const handleImageUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        setUploadingImage(true);
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            // Upload to backend (which uploads to Cloudinary)
+            const result = await userService.uploadImage(formData);
+
+            if (result.url) {
+                // Now save the profile with this new image URL
+                const updatedUser = await userService.updateProfile({ profileImage: result.url });
+                setProfileData(updatedUser);
+            }
+        } catch (err) {
+            console.error("Failed to upload image", err);
+            alert("Failed to upload image");
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    const handleSaveProfile = async () => {
+        try {
+            const updatedUser = await userService.updateProfile({
+                name: editForm.name,
+                email: editForm.email
+            });
+            setProfileData(updatedUser);
+            setIsEditing(false);
+        } catch (err) {
+            console.error("Failed to update profile", err);
+            alert("Failed to update profile");
         }
     };
 
@@ -319,27 +374,98 @@ const ProfilePage = () => {
             <div className="container mx-auto px-4 lg:px-8">
 
                 {/* Header Card */}
-                <div className="bg-white rounded-3xl p-8 mb-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-6 relative overflow-hidden">
+                <div className="bg-white rounded-3xl p-8 mb-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-6 relative overflow-visible">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cafe-emerald/10 to-transparent rounded-bl-full pointer-events-none" />
 
                     <div className="relative group cursor-pointer">
-                        <div className="w-24 h-24 rounded-full bg-slate-100 border-4 border-white shadow-lg flex items-center justify-center overflow-hidden">
-                            <User className="w-10 h-10 text-slate-300" />
-                        </div>
+                        <input
+                            type="file"
+                            id="profile-upload"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            disabled={uploadingImage}
+                        />
+                        <label htmlFor="profile-upload" className="block relative">
+                            <div className="w-24 h-24 rounded-full bg-slate-100 border-4 border-white shadow-lg flex items-center justify-center overflow-hidden relative">
+                                {profileData?.profileImage ? (
+                                    <img src={profileData.profileImage} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User className="w-10 h-10 text-slate-300" />
+                                )}
+
+                                {/* Overlay */}
+                                <div className={cn(
+                                    "absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity",
+                                    uploadingImage ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                )}>
+                                    {uploadingImage ? (
+                                        <Loader2 className="w-6 h-6 text-white animate-spin" />
+                                    ) : (
+                                        <Camera className="w-6 h-6 text-white" />
+                                    )}
+                                </div>
+                            </div>
+                        </label>
                     </div>
 
-                    <div className="text-center md:text-left flex-1">
-                        <h1 className="text-2xl font-bold text-slate-800">{profileData?.name || 'User'}</h1>
-                        <p className="text-slate-500">{profileData?.email}</p>
-                        <p className="text-slate-400 text-sm mt-1">{profileData?.mobile}</p>
+                    <div className="text-center md:text-left flex-1 min-w-0">
+                        {isEditing ? (
+                            <div className="space-y-3 max-w-sm">
+                                <input
+                                    value={editForm.name}
+                                    onChange={e => setEditForm({ ...editForm, name: e.target.value })}
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-800 focus:outline-none focus:border-cafe-emerald"
+                                    placeholder="Full Name"
+                                />
+                                <input
+                                    value={editForm.email}
+                                    onChange={e => setEditForm({ ...editForm, email: e.target.value })}
+                                    className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-600 focus:outline-none focus:border-cafe-emerald"
+                                    placeholder="Email Address"
+                                />
+                            </div>
+                        ) : (
+                            <>
+                                <h1 className="text-2xl font-bold text-slate-800">{profileData?.name || 'User'}</h1>
+                                <p className="text-slate-500">{profileData?.email}</p>
+                                <p className="text-slate-400 text-sm mt-1">{profileData?.mobile}</p>
+                            </>
+                        )}
                     </div>
 
-                    <button
-                        onClick={logout}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors"
-                    >
-                        <LogOut className="w-4 h-4" /> <span className="hidden md:inline">Logout</span>
-                    </button>
+                    <div className="flex flex-col gap-2 z-10 w-full md:w-auto">
+                        {isEditing ? (
+                            <div className="flex gap-2 w-full">
+                                <button
+                                    onClick={handleSaveProfile}
+                                    className="flex-1 flex items-center justify-center gap-2 px-5 py-2.5 bg-cafe-emerald text-white rounded-xl font-medium hover:bg-cafe-teal transition-colors shadow-lg shadow-cafe-emerald/20"
+                                >
+                                    <Save className="w-4 h-4" /> Save
+                                </button>
+                                <button
+                                    onClick={() => setIsEditing(false)}
+                                    className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors"
+                            >
+                                <Edit2 className="w-4 h-4" /> Edit Profile
+                            </button>
+                        )}
+
+                        <button
+                            onClick={logout}
+                            className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors"
+                        >
+                            <LogOut className="w-4 h-4" /> Logout
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8">
