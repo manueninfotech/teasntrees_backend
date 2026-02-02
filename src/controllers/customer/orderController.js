@@ -273,11 +273,14 @@ export const getOrderById = async (req, res) => {
 
         const orderData = order.toObject();
         if (delivery) {
+            // Production Logic: Only expose OTP when rider has picked up the order
+            const showOtp = ['picked_up', 'out-for-delivery', 'in_transit', 'arrived'].includes(delivery.status);
+
             orderData.delivery = {
                 status: delivery.status,
                 deliveryNumber: delivery.deliveryNumber,
                 estimatedTime: delivery.estimatedTime,
-                deliveryOtp: (order.status !== 'delivered' && order.status !== 'cancelled') ? delivery.deliveryOtp : null,
+                deliveryOtp: showOtp ? delivery.deliveryOtp : null,
                 rider: delivery.riderId
             };
         }
