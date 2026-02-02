@@ -3,6 +3,7 @@
 // Role: 'customer' only
 
 import User from '../../models/User.js';
+import Customer from '../../models/Customer.js'; // Import Customer to ensure discriminator registration
 import { isValidEmail, sanitizeString } from '../../utils/validators.js';
 import { geocodingService } from '../../services/geocodingService.js';
 
@@ -10,7 +11,13 @@ import { geocodingService } from '../../services/geocodingService.js';
 const getProfile = async (req, res) => {
     try {
         // User ID is attached by auth middleware
-        const user = await User.findById(req.user.userId).select('-__v');
+        // Explicitly query as Customer to ensure all fields (like notificationPreferences) are available
+        let user = await Customer.findById(req.user.userId).select('-__v');
+
+        // Fallback: If not found as Customer (e.g. kind mismatch), try generic User
+        if (!user) {
+            user = await User.findById(req.user.userId).select('-__v');
+        }
 
         if (!user) {
             return res.status(404).json({
@@ -18,6 +25,11 @@ const getProfile = async (req, res) => {
                 message: 'User not found'
             });
         }
+
+        // Debug
+        console.log('[DEBUG] getProfile User Kind:', user.kind);
+        console.log('[DEBUG] getProfile Prefs:', user.get('notificationPreferences'));
+        console.log('[DEBUG] getProfile Prefs Direct:', user.notificationPreferences);
 
         return res.status(200).json({
             success: true,
@@ -30,8 +42,8 @@ const getProfile = async (req, res) => {
                     address: user.address,
                     location: user.location,
                     profileImage: user.profileImage,
-                    // Include customer specific fields if available
-                    notificationPreferences: user.notificationPreferences || undefined,
+                    // safe access to notificationPreferences using .get() or direct access
+                    notificationPreferences: user.get ? user.get('notificationPreferences') : user.notificationPreferences,
                     role: user.role,
                     isProfileComplete: user.isProfileComplete,
                     isActive: user.isActive,
