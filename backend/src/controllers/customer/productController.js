@@ -14,7 +14,34 @@ export const getAllProducts = async (req, res) => {
 
         // Filter by category
         if (category) {
-            query.category = category;
+            const mongoose = await import('mongoose');
+            if (mongoose.default.Types.ObjectId.isValid(category)) {
+                query.category = category;
+            } else {
+                // If not an ID, try to find by name
+                const categoryDoc = await Category.findOne({
+                    name: { $regex: new RegExp(`^${category}$`, 'i') }
+                });
+
+                if (categoryDoc) {
+                    query.category = categoryDoc._id;
+                } else {
+                    // Category name provided but not found -> return empty results
+                    // We set a non-existent ID or just force empty return
+                    return res.json({
+                        success: true,
+                        data: {
+                            products: [],
+                            pagination: {
+                                currentPage: parseInt(page),
+                                totalPages: 0,
+                                totalProducts: 0,
+                                limit: parseInt(limit)
+                            }
+                        }
+                    });
+                }
+            }
         }
 
         // Search by name or description
