@@ -9,7 +9,7 @@ import { geocodingService } from '../../services/geocodingService.js';
 // Add a new address
 const addAddress = async (req, res) => {
     try {
-        const { label, addressLine, location, isDefault } = req.body;
+        const { label, addressLine, location, isDefault, flatNo, street, area, city, pincode } = req.body;
         const userId = req.user.userId;
 
         // Custom validation
@@ -32,6 +32,11 @@ const addAddress = async (req, res) => {
         const newAddress = {
             label: sanitizeString(label),
             addressLine: sanitizeString(addressLine),
+            flatNo: flatNo || '',
+            street: street || '',
+            area: area || '',
+            city: city || '',
+            pincode: pincode || '',
             location: location || { type: 'Point', coordinates: [0, 0] },
             isDefault: isDefault || false
         };
@@ -106,7 +111,7 @@ const getAddresses = async (req, res) => {
 const updateAddress = async (req, res) => {
     try {
         const { addressId } = req.params;
-        const { label, addressLine, location, isDefault } = req.body;
+        const { label, addressLine, location, isDefault, flatNo, street, area, city, pincode } = req.body;
         const userId = req.user.userId;
 
         const customer = await Customer.findById(userId);
@@ -122,6 +127,12 @@ const updateAddress = async (req, res) => {
         if (label) address.label = sanitizeString(label);
         if (addressLine) address.addressLine = sanitizeString(addressLine);
         if (location) address.location = location;
+
+        if (flatNo !== undefined) address.flatNo = flatNo;
+        if (street !== undefined) address.street = street;
+        if (area !== undefined) address.area = area;
+        if (city !== undefined) address.city = city;
+        if (pincode !== undefined) address.pincode = pincode;
 
         // --- NEW: Try to geocode if address was updated and location is missing or default ---
         if (addressLine || (!address.location.coordinates || (address.location.coordinates[0] === 0 && address.location.coordinates[1] === 0))) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2 } from 'lucide-react';
+import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { userService } from '../services/userService';
@@ -113,25 +113,113 @@ const ProfilePage = () => {
         }
     };
 
+    const [editingAddressId, setEditingAddressId] = useState(null);
+
+    const handleAddAddressClick = () => {
+        setEditingAddressId(null);
+        setNewAddress({ tag: 'Home', flatNo: '', street: '', area: '', city: '', pincode: '' });
+        setShowAddressModal(true);
+    };
+
+    const handleEditAddress = (addr) => {
+        setEditingAddressId(addr._id);
+
+        if (addr.flatNo || addr.street || addr.area) {
+            // If structured data exists from backend (newly saved addresses)
+            setNewAddress({
+                tag: addr.label || 'Home',
+                flatNo: addr.flatNo || '',
+                street: addr.street || '',
+                area: addr.area || '',
+                city: addr.city || '',
+                pincode: addr.pincode || ''
+            });
+        } else {
+            // Fallback: Try to parse addressLine for old addresses
+            // Expected Format: "FlatNo, Street, Area, City - Pincode"
+            const parts = addr.addressLine ? addr.addressLine.split(', ') : [];
+            let parsed = {
+                tag: addr.label || 'Home',
+                flatNo: '',
+                street: '',
+                area: '',
+                city: '',
+                pincode: ''
+            };
+
+            if (parts.length >= 1) parsed.flatNo = parts[0];
+            if (parts.length >= 2) parsed.street = parts[1];
+            if (parts.length >= 3) {
+                // Check if the last part has " - "
+                const lastPart = parts[parts.length - 1];
+                const secondLast = parts[parts.length - 2];
+
+                if (lastPart.includes(' - ')) {
+                    const [c, p] = lastPart.split(' - ');
+                    parsed.city = c;
+                    parsed.pincode = p;
+                    // If there were 3 parts: Flat, Street, City-Pin => Area is missing?
+                    // If there were 4 parts: Flat, Street, Area, City-Pin
+                    if (parts.length === 3) {
+                        // Maybe Flat, Street, City-Pin
+                        parsed.area = '';
+                    } else if (parts.length >= 4) {
+                        parsed.area = secondLast;
+                    }
+                } else {
+                    // Just try best effort
+                    parsed.area = parts[2];
+                }
+            }
+
+            // If parsing failed to get valid components, it might be safer to let user fill it again 
+            // but populating first field is better than nothing.
+            setNewAddress(parsed);
+        }
+
+        setShowAddressModal(true);
+    };
+
+    const handleDeleteAddress = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this address?")) return;
+        try {
+            await userService.deleteAddress(id);
+            const data = await userService.getAddresses();
+            setAddresses(data || []);
+        } catch (err) {
+            console.error("Failed to delete address", err);
+        }
+    };
+
     const handleSaveAddress = async (e) => {
         e.preventDefault();
         setSavingAddress(true);
         try {
-            // Concatenate full address string for simple display if needed, but backend stores fields
             const payload = {
                 label: newAddress.tag,
                 addressLine: `${newAddress.flatNo}, ${newAddress.street}, ${newAddress.area}, ${newAddress.city} - ${newAddress.pincode}`,
-                isDefault: addresses.length === 0 // Make default if it's the first one
+                flatNo: newAddress.flatNo,
+                street: newAddress.street,
+                area: newAddress.area,
+                city: newAddress.city,
+                pincode: newAddress.pincode,
+                isDefault: addresses.length === 0
             };
-            await userService.addAddress(payload);
+
+            if (editingAddressId) {
+                await userService.updateAddress(editingAddressId, payload);
+            } else {
+                await userService.addAddress(payload);
+            }
+
             setShowAddressModal(false);
+            setEditingAddressId(null);
             setNewAddress({ tag: 'Home', flatNo: '', street: '', area: '', city: '', pincode: '' });
-            // Refresh addresses
+
             const data = await userService.getAddresses();
             setAddresses(data || []);
         } catch (err) {
             console.error("Failed to save address", err);
-            // You might want to show a toast here
         } finally {
             setSavingAddress(false);
         }
@@ -570,16 +658,33 @@ const ProfilePage = () => {
                                         {activeTab === 'addresses' && (
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 {addresses.map(addr => (
-                                                    <div key={addr._id} className="bg-white rounded-2xl p-6 shadow-sm border-2 border-transparent hover:border-cafe-emerald transition-all">
+                                                    <div key={addr._id} className="bg-white rounded-2xl p-6 shadow-sm border-2 border-transparent hover:border-cafe-emerald transition-all relative group">
+                                                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <button
+                                                                onClick={() => handleEditAddress(addr)}
+                                                                className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-cafe-emerald hover:text-white transition-colors"
+                                                            >
+                                                                <Edit2 className="w-4 h-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDeleteAddress(addr._id)}
+                                                                className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                         <h3 className="font-bold text-slate-800 mb-2">{addr.label || addr.tag || 'Home'}</h3>
                                                         <p className="text-sm text-slate-500 leading-relaxed mb-4">
                                                             {addr.addressLine}
                                                         </p>
+                                                        {addr.isDefault && (
+                                                            <span className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-md">Default</span>
+                                                        )}
                                                     </div>
                                                 ))}
 
                                                 <button
-                                                    onClick={() => setShowAddressModal(true)}
+                                                    onClick={handleAddAddressClick}
                                                     className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400 hover:border-cafe-emerald hover:text-cafe-emerald hover:bg-cafe-emerald/5 transition-all group min-h-[160px]"
                                                 >
                                                     <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-white flex items-center justify-center mb-3 transition-colors">
@@ -601,7 +706,9 @@ const ProfilePage = () => {
                                                         className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
                                                     >
                                                         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                                                            <h3 className="text-xl font-bold text-slate-800">Add New Address</h3>
+                                                            <h3 className="text-xl font-bold text-slate-800">
+                                                                {editingAddressId ? 'Edit Address' : 'Add New Address'}
+                                                            </h3>
                                                             <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                                                 <X className="w-5 h-5 text-slate-400" />
                                                             </button>

@@ -43,6 +43,16 @@ export const userService = {
         return response.data;
     },
 
+    updateAddress: async (id, addressData) => {
+        const response = await api.put(`/customer/address/${id}`, addressData);
+        return response.data.data;
+    },
+
+    deleteAddress: async (id) => {
+        const response = await api.delete(`/customer/address/${id}`);
+        return response.data.data;
+    },
+
     // Wishlist
     getWishlist: async () => {
         const response = await api.get('/customer/wishlist');

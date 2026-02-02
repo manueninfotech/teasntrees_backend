@@ -12,6 +12,7 @@ import { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } 
 import otpConfig from '../../config/otp.js';
 import logger from '../../config/logger.js';
 import { statsService } from '../../services/statsService.js';
+import { geocodingService } from '../../services/geocodingService.js';
 import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 
 // Send OTP to mobile number
@@ -358,6 +359,22 @@ const completeProfile = async (req, res) => {
             isProfileComplete: true
         };
 
+        // Geocode the address
+        if (sanitizedData.address) {
+            try {
+                const coords = await geocodingService.getCoordinates(sanitizedData.address);
+                if (coords) {
+                    sanitizedData.location = {
+                        type: 'Point',
+                        coordinates: [coords.lng, coords.lat]
+                    };
+                }
+            } catch (geoError) {
+                console.warn('Geocoding failed during profile completion:', geoError);
+                // Continue without location, don't block registration
+            }
+        }
+
         // Check if user already exists
         let user = await User.findOne({ mobile });
 
@@ -366,6 +383,11 @@ const completeProfile = async (req, res) => {
             user.name = sanitizedData.name;
             user.email = sanitizedData.email;
             user.address = sanitizedData.address;
+
+            if (sanitizedData.location) {
+                user.location = sanitizedData.location;
+            }
+
             // Only set role if user doesn't have one
             if (!user.role) {
                 user.role = sanitizedData.role;
