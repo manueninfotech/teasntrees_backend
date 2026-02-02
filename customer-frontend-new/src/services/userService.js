@@ -41,5 +41,21 @@ export const userService = {
     reverseGeocode: async (lat, lng) => {
         const response = await api.get(`/customer/address/reverse-geocode?lat=${lat}&lng=${lng}`);
         return response.data;
+    },
+
+    // Wishlist
+    getWishlist: async () => {
+        const response = await api.get('/customer/wishlist');
+        return response.data.data;
+    },
+
+    addToWishlist: async (productId) => {
+        const response = await api.post('/customer/wishlist/add', { productId });
+        return response.data.data;
+    },
+
+    removeFromWishlist: async (productId) => {
+        const response = await api.delete(`/customer/wishlist/${productId}`);
+        return response.data.data;
     }
 };

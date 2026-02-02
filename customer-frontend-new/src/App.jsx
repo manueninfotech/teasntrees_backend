@@ -21,9 +21,9 @@ const CartPage = () => <div className="pt-32 text-center text-4xl font-bold text
 
 function App() {
   return (
-    <CartProvider>
-      <WishlistProvider>
-        <AuthProvider>
+    <AuthProvider>
+      <CartProvider>
+        <WishlistProvider>
           <Router>
             <div className="relative min-h-screen font-sans antialiased text-slate-800">
               <Navbar />
@@ -46,9 +46,9 @@ function App() {
               </main>
             </div>
           </Router>
-        </AuthProvider>
-      </WishlistProvider>
-    </CartProvider>
+        </WishlistProvider>
+      </CartProvider>
+    </AuthProvider>
   );
 }
 
