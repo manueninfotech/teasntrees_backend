@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2 } from 'lucide-react';
+import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2, Percent } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { userService } from '../services/userService';
@@ -856,17 +856,52 @@ const ProfilePage = () => {
                                                         </button>
                                                     </div>
 
-                                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl opacity-50 cursor-not-allowed">
+                                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                                                         <div className="flex items-center gap-4">
                                                             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                                                                 <Bell className="w-5 h-5" />
                                                             </div>
                                                             <div>
                                                                 <h3 className="font-bold text-slate-800">Push Notifications</h3>
-                                                                <p className="text-xs text-slate-500">Coming soon to mobile app</p>
+                                                                <p className="text-xs text-slate-500">Receive app alerts & delivery updates</p>
                                                             </div>
                                                         </div>
-                                                        <div className="w-12 h-6 rounded-full bg-slate-200" />
+                                                        <button
+                                                            onClick={() => toggleNotification('push')}
+                                                            className={cn(
+                                                                "relative w-12 h-6 rounded-full transition-colors",
+                                                                profileData?.notificationPreferences?.push ? "bg-cafe-emerald" : "bg-slate-300"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
+                                                                profileData?.notificationPreferences?.push ? "translate-x-6" : "translate-x-0"
+                                                            )} />
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                                                                <Percent className="w-5 h-5" />
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="font-bold text-slate-800">Offers & Promotions</h3>
+                                                                <p className="text-xs text-slate-500">Get notified about sales & coupons</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => toggleNotification('offers')}
+                                                            className={cn(
+                                                                "relative w-12 h-6 rounded-full transition-colors",
+                                                                profileData?.notificationPreferences?.offers ? "bg-cafe-emerald" : "bg-slate-300"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
+                                                                profileData?.notificationPreferences?.offers ? "translate-x-6" : "translate-x-0"
+                                                            )} />
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
