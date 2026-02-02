@@ -53,6 +53,11 @@ export const userService = {
         return response.data.data;
     },
 
+    setDefaultAddress: async (id) => {
+        const response = await api.put(`/customer/address/${id}/default`);
+        return response.data.data;
+    },
+
     // Wishlist
     getWishlist: async () => {
         const response = await api.get('/customer/wishlist');

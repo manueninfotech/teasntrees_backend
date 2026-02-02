@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2, Percent } from 'lucide-react';
+import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2, Percent, Star } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth } from '../context/AuthContext';
 import { userService } from '../services/userService';
@@ -132,7 +132,8 @@ const ProfilePage = () => {
                 street: addr.street || '',
                 area: addr.area || '',
                 city: addr.city || '',
-                pincode: addr.pincode || ''
+                pincode: addr.pincode || '',
+                isDefault: addr.isDefault || false
             });
         } else {
             // Fallback: Try to parse addressLine for old addresses
@@ -144,7 +145,8 @@ const ProfilePage = () => {
                 street: '',
                 area: '',
                 city: '',
-                pincode: ''
+                pincode: '',
+                isDefault: addr.isDefault || false
             };
 
             if (parts.length >= 1) parsed.flatNo = parts[0];
@@ -180,6 +182,16 @@ const ProfilePage = () => {
         setShowAddressModal(true);
     };
 
+    const handleSetDefaultAddress = async (id) => {
+        try {
+            await userService.setDefaultAddress(id);
+            const data = await userService.getAddresses();
+            setAddresses(data || []);
+        } catch (err) {
+            console.error("Failed to set default address", err);
+        }
+    };
+
     const handleDeleteAddress = async (id) => {
         if (!window.confirm("Are you sure you want to delete this address?")) return;
         try {
@@ -203,7 +215,7 @@ const ProfilePage = () => {
                 area: newAddress.area,
                 city: newAddress.city,
                 pincode: newAddress.pincode,
-                isDefault: addresses.length === 0
+                isDefault: newAddress.isDefault || addresses.length === 0
             };
 
             if (editingAddressId) {
@@ -660,6 +672,15 @@ const ProfilePage = () => {
                                                 {addresses.map(addr => (
                                                     <div key={addr._id} className="bg-white rounded-2xl p-6 shadow-sm border-2 border-transparent hover:border-cafe-emerald transition-all relative group">
                                                         <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            {!addr.isDefault && (
+                                                                <button
+                                                                    onClick={() => handleSetDefaultAddress(addr._id)}
+                                                                    className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-amber-100 hover:text-amber-600 transition-colors"
+                                                                    title="Set as Default"
+                                                                >
+                                                                    <Star className="w-4 h-4" />
+                                                                </button>
+                                                            )}
                                                             <button
                                                                 onClick={() => handleEditAddress(addr)}
                                                                 className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-cafe-emerald hover:text-white transition-colors"
@@ -673,13 +694,17 @@ const ProfilePage = () => {
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
                                                         </div>
-                                                        <h3 className="font-bold text-slate-800 mb-2">{addr.label || addr.tag || 'Home'}</h3>
+                                                        <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                                                            {addr.label || addr.tag || 'Home'}
+                                                            {addr.isDefault && (
+                                                                <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase rounded-full">
+                                                                    <Star className="w-3 h-3 fill-current" /> Default
+                                                                </span>
+                                                            )}
+                                                        </h3>
                                                         <p className="text-sm text-slate-500 leading-relaxed mb-4">
                                                             {addr.addressLine}
                                                         </p>
-                                                        {addr.isDefault && (
-                                                            <span className="inline-block px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-md">Default</span>
-                                                        )}
                                                     </div>
                                                 ))}
 
@@ -788,6 +813,19 @@ const ProfilePage = () => {
                                                                         required
                                                                     />
                                                                 </div>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-3 pt-2">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    id="isDefault"
+                                                                    checked={newAddress.isDefault}
+                                                                    onChange={e => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
+                                                                    className="w-5 h-5 rounded border-slate-300 text-cafe-emerald focus:ring-cafe-emerald"
+                                                                />
+                                                                <label htmlFor="isDefault" className="text-sm font-medium text-slate-700 cursor-pointer">
+                                                                    Set as Default Address
+                                                                </label>
                                                             </div>
 
                                                             <button
