@@ -31,14 +31,30 @@ class GeocodingService {
             // 1. Try exact address
             let result = await fetchCoords(cleanAddress);
 
-            // 2. Fallback: If failed, try removing specific details (like Door Numbers, Flat Names)
-            // We split by comma and remove the first part iteratively
+            // 2. Progressive Fallback: Remove specific details from start (Door No, Landmark)
             if (!result && cleanAddress.includes(',')) {
-                const parts = cleanAddress.split(',');
-                if (parts.length > 1) {
-                    const fallbackAddress = parts.slice(1).join(',').trim();
-                    console.log(`[Geocoding] Fallback attempt: ${fallbackAddress}`);
+                let parts = cleanAddress.split(',').map(p => p.trim());
+
+                // Try removing up to 2 parts from the start
+                for (let i = 1; i < parts.length && i <= 2; i++) {
+                    if (result) break;
+                    const fallbackAddress = parts.slice(i).join(', ');
+                    if (fallbackAddress.length < 5) break;
+
+                    console.log(`[Geocoding] Fallback attempt ${i}: ${fallbackAddress}`);
                     result = await fetchCoords(fallbackAddress);
+                }
+
+                // 3. Ultra Fallback: Try just the last part (usually City/Pincode)
+                if (!result && parts.length > 1) {
+                    const lastPart = parts[parts.length - 1];
+                    const secondLast = parts.length > 2 ? parts[parts.length - 2] : '';
+                    if (lastPart.match(/\d{6}/)) { // Contains pincode
+                        // Try City + Pincode
+                        const cityPincode = `${secondLast}, ${lastPart}`;
+                        console.log(`[Geocoding] Pincode Fallback: ${cityPincode}`);
+                        result = await fetchCoords(cityPincode);
+                    }
                 }
             }
 
