@@ -22,8 +22,8 @@ export const userService = {
     },
 
     // Orders
-    getOrders: async () => {
-        const response = await api.get('/customer/orders/my-orders');
+    getOrders: async (params = {}) => {
+        const response = await api.get('/customer/orders/my-orders', { params });
         return response.data.data.orders;
     },
 
