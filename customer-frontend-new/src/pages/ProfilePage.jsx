@@ -109,7 +109,7 @@ const ProfilePage = () => {
         setLoadingData(true);
         try {
             if (activeTab === 'orders') {
-                const data = await userService.getOrders();
+                const data = await userService.getOrders({ limit: 100 });
                 setOrders(data || []);
             } else if (activeTab === 'addresses') {
                 const data = await userService.getAddresses();
@@ -148,7 +148,7 @@ const ProfilePage = () => {
 
             // Refresh orders if on orders tab
             if (activeTabRef.current === 'orders') {
-                userService.getOrders({ _t: Date.now() })
+                userService.getOrders({ _t: Date.now(), limit: 100 })
                     .then(data => {
                         setOrders(data || []);
                     })
