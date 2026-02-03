@@ -6,6 +6,9 @@ import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
 import OrdersPage from './pages/OrdersPage';
 import RidersPage from './pages/RidersPage';
+import DeliveriesPage from './pages/DeliveriesPage';
+import CustomersPage from './pages/CustomersPage';
+import ProductsPage from './pages/ProductsPage'; // Import // Import // Import
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -31,8 +34,9 @@ const AppRoutes = () => {
         <Route index element={<DashboardHome />} />
         <Route path="orders" element={<OrdersPage />} />
         <Route path="riders" element={<RidersPage />} />
-        <Route path="products" element={<div className="text-gray-900 p-8">Products Page</div>} />
-        <Route path="customers" element={<div className="text-gray-900 p-8">Customers Page</div>} />
+        <Route path="deliveries" element={<DeliveriesPage />} />
+        <Route path="customers" element={<CustomersPage />} />
+        <Route path="products" element={<ProductsPage />} />
       </Route>
     </Routes>
   );

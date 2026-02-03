@@ -84,3 +84,28 @@ export const toggleProductAvailability = async (req, res) => {
         });
     }
 };
+
+// Update Product
+export const updateProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+
+        const product = await Product.findByIdAndUpdate(id, updates, { new: true });
+
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found' });
+        }
+
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'product',
+            resourceId: product._id,
+            details: { name: product.name, updates }
+        });
+
+        res.status(200).json({ success: true, message: 'Product updated', data: product });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error updating product', error: error.message });
+    }
+};

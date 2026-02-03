@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, ShoppingBag, Truck, Users, BarChart2, Menu, Bell } from 'lucide-react';
+import { Home, ShoppingBag, Truck, Users, BarChart2, Menu, Bell, Navigation } from 'lucide-react'; // Added Navigation
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -7,8 +7,9 @@ const NAV_ITEMS = [
     { icon: Home, label: 'Overview', path: '/' },
     { icon: ShoppingBag, label: 'Orders', path: '/orders' },
     { icon: Truck, label: 'Riders', path: '/riders' },
+    { icon: Navigation, label: 'Deliveries', path: '/deliveries' }, // Added
     { icon: Users, label: 'Customers', path: '/customers' },
-    { icon: BarChart2, label: 'Analytics', path: '/analytics' },
+    { icon: ShoppingBag, label: 'Products', path: '/products' }, // Changed
 ];
 
 const DesktopSidebar = () => (
