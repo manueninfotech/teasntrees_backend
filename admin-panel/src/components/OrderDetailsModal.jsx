@@ -139,7 +139,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                 <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-gray-50 p-8 flex items-center justify-between z-10">
                     <div>
                         <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Order Details</h2>
-                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mt-1 italic">Order Reference #{order.orderNumber}</p>
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mt-1 italic">Order #{order.orderNumber}</p>
                     </div>
                     <button
                         onClick={onClose}
@@ -153,7 +153,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                     {/* Status and Actions */}
                     <div className="flex items-center justify-between p-6 bg-gray-50/50 rounded-[2rem] border border-gray-50">
                         <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Status:</span>
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Status:</span>
                             <OrderStatusBadge status={order.status} />
                         </div>
                         <div className="flex gap-3">
@@ -163,13 +163,13 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                         onClick={() => setShowStatusUpdate(true)}
                                         className="px-6 py-3 bg-white border border-gray-100 text-gray-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
                                     >
-                                        Update Flow
+                                        Update Status
                                     </button>
                                     <button
                                         onClick={() => setShowCancelModal(true)}
                                         className="px-6 py-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all"
                                     >
-                                        Void Order
+                                        Cancel Order
                                     </button>
                                 </>
                             )}
@@ -183,7 +183,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 <div className="p-2 bg-emerald-50 rounded-lg">
                                     <User className="w-4 h-4 text-emerald-600" />
                                 </div>
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Customer Account</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Customer Info</h3>
                             </div>
                             <div className="bg-white border border-gray-100 rounded-[2rem] p-6 space-y-4 shadow-sm hover:border-emerald-100 transition-colors">
                                 <div className="grid grid-cols-2 gap-6">
@@ -192,12 +192,12 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                         <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{order.customerId?.name || 'N/A'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Mobile Contact</p>
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Phone Number</p>
                                         <p className="font-black text-gray-900 text-sm tracking-tight">{order.customerId?.mobile || 'N/A'}</p>
                                     </div>
                                     {order.customerId?.email && (
                                         <div className="col-span-2">
-                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Email Address</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Email</p>
                                             <p className="font-black text-gray-900 text-sm tracking-tight lowercase">{order.customerId.email}</p>
                                         </div>
                                     )}
@@ -211,16 +211,16 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 <div className="p-2 bg-emerald-50 rounded-lg">
                                     <MapPin className="w-4 h-4 text-emerald-600" />
                                 </div>
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Drop Location</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Delivery Address</h3>
                             </div>
                             <div className="bg-white border border-gray-100 rounded-[2rem] p-6 space-y-4 shadow-sm hover:border-emerald-100 transition-colors">
                                 <p className="font-black text-gray-900 text-sm tracking-tight leading-relaxed">{order.deliveryAddress?.address || 'N/A'}</p>
                                 <div className="text-[8px] font-black text-gray-400 tracking-widest mt-2 uppercase">
-                                    COORD GATE: {order.deliveryAddress?.location?.coordinates?.join(', ') || 'NOT_CAPTURED'}
+                                    GPS: {order.deliveryAddress?.location?.coordinates?.join(', ') || 'Not Available'}
                                 </div>
                                 {order.specialInstructions && (
                                     <div className="mt-4 p-4 bg-orange-50/50 border border-orange-100 rounded-2xl">
-                                        <p className="text-[8px] font-black text-orange-600 uppercase tracking-widest mb-1">Driver Memo:</p>
+                                        <p className="text-[8px] font-black text-orange-600 uppercase tracking-widest mb-1">Special Instructions:</p>
                                         <p className="text-sm font-black text-orange-800 leading-snug">{order.specialInstructions}</p>
                                     </div>
                                 )}
@@ -234,7 +234,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                             <div className="p-2 bg-emerald-50 rounded-lg">
                                 <Package className="w-4 h-4 text-emerald-600" />
                             </div>
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Selected Items</h3>
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Order Items</h3>
                         </div>
                         <div className="bg-white border border-gray-100 rounded-[2.5rem] overflow-hidden shadow-sm hover:border-emerald-100 transition-colors">
                             <div className="divide-y divide-gray-50">
@@ -253,11 +253,11 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                                 <p className="text-[10px] font-bold text-gray-400 mt-1">{item.customization}</p>
                                             )}
                                             <div className="mt-2 inline-flex items-center px-2 py-1 bg-gray-50 rounded-md text-[8px] font-black uppercase tracking-widest text-gray-400">
-                                                Units: {item.quantity}
+                                                Qty: {item.quantity}
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Item Val</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Price</p>
                                             <p className="text-lg font-black text-gray-900">₹{item.price * item.quantity}</p>
                                         </div>
                                     </div>
@@ -273,34 +273,34 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 <div className="p-2 bg-emerald-50 rounded-lg">
                                     <DollarSign className="w-4 h-4 text-emerald-600" />
                                 </div>
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Treasury Check</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Payment Details</h3>
                             </div>
                             <div className="bg-white border border-gray-100 rounded-[2rem] p-8 space-y-4 shadow-sm hover:border-emerald-100 transition-colors">
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Base Amount</span>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subtotal</span>
                                         <span className="font-black text-gray-900">₹{order.subtotal}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Fleet Tax</span>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Delivery Fee</span>
                                         <span className="font-black text-gray-900">₹{order.deliveryCharge || 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center pb-4 border-b border-gray-50">
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">State Levy</span>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tax</span>
                                         <span className="font-black text-gray-900">₹{order.tax || 0}</span>
                                     </div>
                                     <div className="flex justify-between items-center pt-2">
-                                        <span className="text-sm font-black text-gray-900 uppercase tracking-tight">Net Payable</span>
+                                        <span className="text-sm font-black text-gray-900 uppercase tracking-tight">Total Amount</span>
                                         <span className="text-2xl font-black text-emerald-600 tracking-tighter">₹{order.total}</span>
                                     </div>
                                 </div>
                                 <div className="mt-6 pt-6 border-t border-gray-50 space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Gate Method</span>
+                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Payment Method</span>
                                         <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{order.paymentMethod}</span>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Gate Status</span>
+                                        <span className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em]">Payment Status</span>
                                         <div className="flex items-center gap-3">
                                             <span className={`text-[10px] font-black uppercase tracking-widest ${order.paymentStatus === 'paid' ? 'text-emerald-600' : order.paymentStatus === 'refunded' ? 'text-red-600' : 'text-orange-600'}`}>
                                                 {order.paymentStatus}
@@ -310,7 +310,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                                     onClick={() => setShowPaymentUpdate(true)}
                                                     className="px-3 py-1 bg-gray-50 text-gray-400 rounded-lg text-[8px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all"
                                                 >
-                                                    Modify
+                                                    Update
                                                 </button>
                                             )}
                                         </div>
@@ -325,23 +325,23 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 <div className="p-2 bg-emerald-50 rounded-lg">
                                     <Bike className="w-4 h-4 text-emerald-600" />
                                 </div>
-                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Logistics Unit</h3>
+                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Delivery Rider</h3>
                             </div>
                             <div className="bg-white border border-gray-100 rounded-[2rem] p-8 space-y-6 shadow-sm hover:border-emerald-100 transition-colors">
                                 {order.riderId ? (
                                     <div className="space-y-6">
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Assigned Agent</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Rider Name</p>
                                                 <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{order.riderId?.name || 'N/A'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Agent COM</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Rider Phone</p>
                                                 <p className="font-black text-gray-900 text-sm tracking-tight">{order.riderId?.mobile || 'N/A'}</p>
                                             </div>
                                             {order.riderEarning && (
                                                 <div className="col-span-2">
-                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Agent Cut</p>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Rider Earning</p>
                                                     <p className="text-xl font-black text-emerald-900 tracking-tight">₹{order.riderEarning}</p>
                                                 </div>
                                             )}
@@ -351,19 +351,19 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                                 onClick={() => setShowRiderAssignment(true)}
                                                 className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white transition-all"
                                             >
-                                                Override Agent
+                                                Change Rider
                                             </button>
                                         )}
                                     </div>
                                 ) : (
                                     <div className="py-6 text-center space-y-4">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Unit Not Defined</p>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">No Rider Assigned</p>
                                         {order.status !== 'delivered' && order.status !== 'cancelled' && (
                                             <button
                                                 onClick={() => setShowRiderAssignment(true)}
                                                 className="w-full py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                                             >
-                                                Command Assign Agent
+                                                Assign Rider
                                             </button>
                                         )}
                                     </div>
@@ -378,29 +378,29 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                             <div className="p-2 bg-emerald-50 rounded-lg">
                                 <Calendar className="w-4 h-4 text-emerald-600" />
                             </div>
-                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Operation Timeline</h3>
+                            <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Order Timeline</h3>
                         </div>
                         <div className="bg-white border border-gray-100 rounded-[2rem] p-8 shadow-sm hover:border-emerald-100 transition-colors">
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <div className="space-y-1">
-                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Genesis</p>
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Created At</p>
                                     <p className="font-black text-gray-900 text-xs">{new Date(order.createdAt).toLocaleString()}</p>
                                 </div>
                                 {order.confirmedAt && (
                                     <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Conf Node</p>
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Confirmed At</p>
                                         <p className="font-black text-gray-900 text-xs">{new Date(order.confirmedAt).toLocaleString()}</p>
                                     </div>
                                 )}
                                 {order.outForDeliveryAt && (
                                     <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Transit Lock</p>
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Out for Delivery</p>
                                         <p className="font-black text-gray-900 text-xs">{new Date(order.outForDeliveryAt).toLocaleString()}</p>
                                     </div>
                                 )}
                                 {order.deliveredAt && (
                                     <div className="space-y-1">
-                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Final Node</p>
+                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Delivered At</p>
                                         <p className="font-black text-gray-900 text-xs">{new Date(order.deliveredAt).toLocaleString()}</p>
                                     </div>
                                 )}
@@ -413,14 +413,14 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                 {showStatusUpdate && (
                     <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                         <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-2">Update Order Flow</h3>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Transition this order to a new state node</p>
+                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-2">Update Order Status</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Change the order status</p>
                             <select
                                 value={newStatus}
                                 onChange={(e) => setNewStatus(e.target.value)}
                                 className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 mb-6 focus:bg-white"
                             >
-                                <option value="">Select Target State</option>
+                                <option value="">Select New Status</option>
                                 {statusOptions.map(status => {
                                     const isDeliveryStatus = ['assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered'].includes(status);
                                     const isDisabled = isDeliveryStatus && !order.riderId;
@@ -430,7 +430,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                             value={status}
                                             disabled={isDisabled}
                                         >
-                                            {status.toUpperCase()} {isDisabled ? '(Assign Agent First)' : ''}
+                                            {status.toUpperCase()} {isDisabled ? '(Assign Rider First)' : ''}
                                         </option>
                                     );
                                 })}
@@ -440,14 +440,14 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                     onClick={() => setShowStatusUpdate(false)}
                                     className="flex-1 px-6 py-4 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"
                                 >
-                                    Abort
+                                    Cancel
                                 </button>
                                 <button
                                     onClick={handleUpdateStatus}
                                     disabled={updating || !newStatus}
                                     className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-xl shadow-emerald-200"
                                 >
-                                    {updating ? 'Processing...' : 'Commit Change'}
+                                    {updating ? 'Updating...' : 'Update Status'}
                                 </button>
                             </div>
                         </div>
@@ -458,12 +458,12 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                 {showCancelModal && (
                     <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                         <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-gray-100">
-                            <h3 className="text-xl font-black text-red-600 uppercase tracking-tight mb-2">Void Order Entry</h3>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Provide technical justification for deletion</p>
+                            <h3 className="text-xl font-black text-red-600 uppercase tracking-tight mb-2">Cancel Order</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Please provide a reason for cancellation</p>
                             <textarea
                                 value={cancelReason}
                                 onChange={(e) => setCancelReason(e.target.value)}
-                                placeholder="Inventory mismatch, customer request, logistics failure..."
+                                placeholder="Out of stock, customer request, delivery issue..."
                                 className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-red-500/10 mb-6 min-h-[120px] resize-none focus:bg-white"
                             />
                             <div className="flex gap-3">
@@ -478,7 +478,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                     disabled={updating}
                                     className="flex-1 px-6 py-4 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 transition-all shadow-xl shadow-red-100"
                                 >
-                                    {updating ? 'Voiding...' : 'Confirm Void'}
+                                    {updating ? 'Cancelling...' : 'Confirm Cancel'}
                                 </button>
                             </div>
                         </div>
@@ -489,17 +489,17 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                 {showPaymentUpdate && (
                     <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                         <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl border border-gray-100">
-                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-2">Treasury Adjustment</h3>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Adjust the financial state of this entry</p>
+                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-2">Update Payment Status</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Change the payment status</p>
                             <select
                                 value={newPaymentStatus}
                                 onChange={(e) => setNewPaymentStatus(e.target.value)}
                                 className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 mb-6 focus:bg-white"
                             >
-                                <option value="">Select Financial State</option>
-                                <option value="pending">PENDING_APPROVAL</option>
-                                <option value="paid">SETTLED_SUCCESS</option>
-                                <option value="refunded">REFUND_ISSUED</option>
+                                <option value="">Select Payment Status</option>
+                                <option value="pending">PENDING</option>
+                                <option value="paid">PAID</option>
+                                <option value="refunded">REFUNDED</option>
                             </select>
                             <div className="flex gap-3">
                                 <button
@@ -513,7 +513,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                     disabled={updating || !newPaymentStatus}
                                     className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-xl shadow-emerald-200"
                                 >
-                                    {updating ? 'Syncing...' : 'Commit Treasury'}
+                                    {updating ? 'Updating...' : 'Update Payment'}
                                 </button>
                             </div>
                         </div>
@@ -524,8 +524,8 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                 {showRiderAssignment && (
                     <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
                         <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-lg shadow-2xl border border-gray-100">
-                            <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight mb-2">Logistics Dispatch</h3>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Deploy an operational unit to this order node</p>
+                            <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight mb-2">Assign Rider</h3>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Assign a delivery rider to this order</p>
 
                             {/* Auto Assignment Button */}
                             {(() => {
@@ -545,12 +545,12 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                                 } disabled:opacity-50`}
                                         >
                                             <Bike className="w-5 h-5" />
-                                            {updating ? 'Deploying...' : 'Matrix Auto-Dispatch Unit'}
+                                            {updating ? 'Assigning...' : 'Auto Assign Rider'}
                                         </button>
                                         {!hasCoordinates && (
                                             <div className="px-4 py-3 bg-red-50 rounded-xl border border-red-100 mb-6">
                                                 <p className="text-[8px] font-black text-red-600 uppercase tracking-widest text-center italic">
-                                                    COORD_ERROR: GPS_STRATA_MISSING. AUTO_DEPLOY_OFFLINE.
+                                                    GPS coordinates missing. Auto-assign unavailable.
                                                 </p>
                                             </div>
                                         )}
@@ -575,7 +575,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 disabled={riders.length === 0}
                             >
                                 <option value="">
-                                    {riders.length === 0 ? 'NO_UNITS_ONLINE' : 'SELECT_AGENT_UNIT'}
+                                    {riders.length === 0 ? 'No Riders Online' : 'Select a Rider'}
                                 </option>
                                 {riders.map(rider => (
                                     <option key={rider._id} value={rider._id}>
@@ -586,7 +586,7 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
 
                             {riders.length === 0 && (
                                 <p className="text-[8px] font-black text-orange-600 uppercase tracking-widest mb-8 text-center mt-2">
-                                    WARN: ZERO_UNITS_IN_LOCAL_GRID. WAITING_FOR_SYNC.
+                                    No riders are currently online
                                 </p>
                             )}
 
@@ -598,14 +598,14 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                     }}
                                     className="flex-1 px-6 py-4 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all"
                                 >
-                                    Abort Operation
+                                    Cancel
                                 </button>
                                 <button
                                     onClick={handleManualAssignment}
                                     disabled={updating || !selectedRider}
                                     className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-xl shadow-emerald-200"
                                 >
-                                    {updating ? 'Assigning...' : 'Deploy Unit'}
+                                    {updating ? 'Assigning...' : 'Assign Rider'}
                                 </button>
                             </div>
                         </div>
