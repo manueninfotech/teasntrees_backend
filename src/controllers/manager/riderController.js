@@ -2,11 +2,6 @@ import Rider from '../../models/Rider.js';
 import activityLogService from '../../services/activityLogService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 
-// Get Riders (All or My Riders?)
-// Spec: "Manager approves riders", "Each rider belongs to one manager"
-// We'll allow fetching:
-// 1. Pending riders (for approval)
-// 2. Riders assigned to this manager
 export const getRiders = async (req, res) => {
     try {
         const { type, page = 1, limit = 10 } = req.query; // type: 'pending', 'assigned', 'all'
@@ -16,35 +11,17 @@ export const getRiders = async (req, res) => {
         if (type === 'pending') {
             query.isApproved = false;
         } else if (type === 'assigned') {
-            // "Active" tab in frontend: User wants to see ALL working riders?
-            // Or only those strictly assigned to them?
-            // User feedback "cannot see riders" implies they expect to see them.
-            // Let's relax this to show all APPROVED riders for now, 
-            // or perhaps check if we should strictly filter.
-            // If we relax it, Managers can see all riders.
             query.isApproved = true;
-            // query.managerId = req.user.userId; // user said "rider is getting assigned". 
-            // If they are strictly 1:1, this line is correct. 
-            // But if they are just "Manager of the Store" managing "All Riders", this is too strict.
-            // Let's COMMENT OUT the strict manager check for 'assigned' type to allow seeing all active riders.
         } else if (type === 'available') {
-            // Fetch all active, approved riders for order assignment
             query.isApproved = true;
             query.isActive = true;
         } else {
-            // 'all' might be restricted? Let's just return all for now or filter by what makes sense.
-            // If strict one-to-many, maybe they can only see their own?
-            // But they need to see pending global list to pick them?
-            // Or maybe Admins assign riders to Managers?
-            // Spec says "Manager approves riders". So they need to see pending list.
         }
 
         const riders = await Rider.find(query)
             .select('-password -__v')
             .sort({ createdAt: -1 });
 
-        // Enhance with busy status check (inefficient loop for now, but simple)
-        // Ideally should be an aggregation
         const ridersWithStatus = await Promise.all(riders.map(async (r) => {
             const activeOrder = await import('../../models/Order.js').then(m => m.default.exists({
                 riderId: r._id,
@@ -98,7 +75,27 @@ export const approveRider = async (req, res) => {
 };
 
 export const rejectRider = async (req, res) => {
-    // Similar to admin reject
+    try {
+        const { id } = req.params;
+        const rider = await Rider.findById(id);
+
+        if (!rider) return res.status(404).json({ success: false, message: 'Rider not found' });
+        if (rider.isApproved) return res.status(400).json({ success: false, message: 'Cannot reject an already approved rider' });
+
+        await Rider.findByIdAndDelete(id);
+
+        await activityLogService.log(req, {
+            action: 'reject',
+            resource: 'rider',
+            resourceId: id,
+            details: { name: rider.name, rejectedBy: req.user.name }
+        });
+
+        res.status(200).json({ success: true, message: 'Rider application rejected' });
+
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error rejecting rider' });
+    }
 };
 
 export const suspendRider = async (req, res) => {

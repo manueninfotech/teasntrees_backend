@@ -2,7 +2,8 @@ import express from 'express';
 import {
     getRiders,
     approveRider,
-    suspendRider
+    suspendRider,
+    rejectRider
 } from '../../controllers/manager/riderController.js';
 import { authenticate } from '../../middlewares/auth.js';
 import { checkRole } from '../../middlewares/roleCheck.js';
@@ -15,5 +16,6 @@ router.use(checkRole(['manager']));
 router.get('/', getRiders);
 router.put('/:id/approve', approveRider);
 router.put('/:id/suspend', suspendRider);
+router.delete('/:id/reject', rejectRider);
 
 export default router;
