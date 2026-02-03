@@ -7,8 +7,6 @@ export const setupSocketHandlers = (io) => {
     io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
         const { userId, role, name } = socket.user;
 
-        console.log(`Socket connected: ${name} (${userId}) - Role: ${role}`);
-
         // Join user-specific room
         socket.join(SOCKET_ROOMS.user(userId));
 
@@ -36,21 +34,17 @@ export const setupSocketHandlers = (io) => {
         socket.on('order:join', (orderId) => {
             if (orderId) {
                 socket.join(SOCKET_ROOMS.order(orderId));
-                console.log(`User ${userId} joined order room: ${orderId}`);
             }
         });
 
         socket.on('order:leave', (orderId) => {
             if (orderId) {
                 socket.leave(SOCKET_ROOMS.order(orderId));
-                console.log(`User ${userId} left order room: ${orderId}`);
             }
         });
 
         // Handle disconnect
         socket.on(SOCKET_EVENTS.DISCONNECT, () => {
-            console.log(`Socket disconnected: ${name} (${userId})`);
-
             // If rider, notify managers they went offline
             if (role === 'rider') {
                 io.to(SOCKET_ROOMS.role('manager'))
@@ -121,5 +115,4 @@ const handleRiderEvents = (socket, io) => {
  */
 const handleManagerEvents = (socket, io) => {
     // Managers might have specific events in the future
-    console.log(`Manager socket events initialized for ${socket.user.userId}`);
 };
