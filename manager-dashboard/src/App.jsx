@@ -4,6 +4,7 @@ import { SocketProvider } from './context/SocketContext';
 import DashboardLayout from './components/layout/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
+import OrdersPage from './pages/OrdersPage';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -27,7 +28,7 @@ const AppRoutes = () => {
         </ProtectedRoute>
       }>
         <Route index element={<DashboardHome />} />
-        <Route path="orders" element={<div className="text-gray-900 p-8">Orders Page</div>} />
+        <Route path="orders" element={<OrdersPage />} />
         <Route path="riders" element={<div className="text-gray-900 p-8">Riders Page</div>} />
         <Route path="products" element={<div className="text-gray-900 p-8">Products Page</div>} />
         <Route path="customers" element={<div className="text-gray-900 p-8">Customers Page</div>} />
