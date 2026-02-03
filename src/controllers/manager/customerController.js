@@ -48,7 +48,7 @@ export const getCustomerOrders = async (req, res) => {
     try {
         const { id } = req.params;
         const orders = await Order.find({ customerId: id })
-            .populate('rider', 'name')
+            .populate('riderId', 'name') // Fixed field name
             .sort({ createdAt: -1 });
 
         res.status(200).json({ success: true, data: orders });
