@@ -19,6 +19,7 @@ import {
     Truck,
     UserCog
 } from 'lucide-react';
+import logo from '../assets/logoteasntrees.png';
 
 export default function Layout() {
     const { logout } = useAuth();
@@ -59,16 +60,13 @@ export default function Layout() {
             <aside className="w-80 bg-white border-r border-gray-100 my-5 ml-5 rounded-[2.5rem] shadow-2xl shadow-gray-200/50 flex flex-col h-[calc(100vh-40px)] sticky top-5 overflow-hidden z-20">
                 {/* Logo Area */}
                 <div className="p-8 border-b border-gray-50 bg-white">
-                    <div className="flex items-center gap-5">
-                        <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-600/20">
-                            <Coffee className="w-7 h-7 text-white" />
-                        </div>
-                        <div>
-                            <h1 className="font-black text-2xl text-gray-900 tracking-tighter uppercase leading-none">
-                                TeasNTrees
-                            </h1>
-                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em] mt-1.5 ml-0.5">Admin Portal</p>
-                        </div>
+                    <div className="flex flex-col items-center gap-2">
+                        <img
+                            src={logo}
+                            alt="Teas N Trees Logo"
+                            className="h-16 w-auto object-contain"
+                        />
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em]">Admin Portal</p>
                     </div>
                 </div>
 
