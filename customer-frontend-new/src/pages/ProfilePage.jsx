@@ -3,7 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { User, Package, MapPin, Settings, LogOut, Camera, ChevronRight, Clock, CheckCircle, ArrowRight, Phone, ShieldCheck, Mail, X, Save, Bell, Smartphone, Edit2, Loader2, Trash2, Percent, Star, RotateCcw, FileText, Plus } from 'lucide-react';
+import {
+    User, Mail, MapPin, Package, Settings, Camera, Loader2,
+    Edit2, LogOut, ChevronRight, Star, AlertCircle, Plus,
+    Trash2, Save, X, RotateCcw, Truck, FileText, Calendar, ArrowRight, Phone
+} from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -745,63 +749,114 @@ const ProfilePage = () => {
                                         )}
 
                                         {activeTab === 'orders' && (
-                                            <div className="space-y-4">
+                                            <div className="space-y-6">
                                                 {orders.length === 0 ? (
-                                                    <div className="text-center py-12 text-slate-400">No orders found.</div>
+                                                    <div className="text-center py-20">
+                                                        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                            <Package className="w-10 h-10 text-slate-300" />
+                                                        </div>
+                                                        <h3 className="text-lg font-bold text-slate-800 mb-2">No orders yet</h3>
+                                                        <p className="text-slate-500 max-w-xs mx-auto">Looks like you haven't placed any orders yet. Start exploring our menu!</p>
+                                                    </div>
                                                 ) : orders.map(order => (
-                                                    <div key={order._id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center text-slate-400">
-                                                                <Package className="w-6 h-6" />
-                                                            </div>
-                                                            <div>
-                                                                <div className="font-bold text-slate-800">#{order.orderNumber || order._id.substring(order._id.length - 6).toUpperCase()}</div>
-                                                                <div className="text-xs text-slate-500">
-                                                                    {new Date(order.createdAt).toLocaleDateString()} • {order.items?.length} items
+                                                    <div key={order._id} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-lg hover:border-emerald-100 transition-all duration-300 group">
+
+                                                        {/* Header */}
+                                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-slate-50">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                                                                    <Package className="w-7 h-7" />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="flex items-center gap-3 mb-1">
+                                                                        <span className="font-bold text-lg text-slate-900">
+                                                                            #{order.orderNumber || order._id.slice(-6).toUpperCase()}
+                                                                        </span>
+                                                                        <span className={cn(
+                                                                            "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
+                                                                            order.status === 'delivered' ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                                                                                order.status === 'cancelled' ? "bg-red-50 text-red-700 border-red-100" :
+                                                                                    "bg-amber-50 text-amber-700 border-amber-100"
+                                                                        )}>
+                                                                            {order.status}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 text-sm text-slate-500 font-medium">
+                                                                        <Calendar className="w-3.5 h-3.5" />
+                                                                        {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                        <span className="w-1 h-1 rounded-full bg-slate-300" />
+                                                                        {new Date(order.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                        <div className="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                                                            <div className="font-bold text-slate-900">₹{order.total}</div>
-                                                            <span className={cn(
-                                                                "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider",
-                                                                order.status === 'delivered' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                                                            )}>
-                                                                {order.status}
-                                                            </span>
 
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex gap-2 w-full md:w-auto">
+                                                                {order.status !== 'cancelled' && (
+                                                                    <Link
+                                                                        to={`/track-order/${order._id}`}
+                                                                        className="flex-1 md:flex-none px-4 py-2 bg-slate-900 text-white text-sm font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2"
+                                                                    >
+                                                                        Track Order <ArrowRight className="w-4 h-4" />
+                                                                    </Link>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Items Preview */}
+                                                        <div className="mb-6 bg-slate-50/50 rounded-2xl p-4 space-y-3">
+                                                            {order.items?.slice(0, 3).map((item, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center text-sm">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className="w-6 h-6 rounded-lg bg-white border border-slate-100 flex items-center justify-center text-xs font-bold text-slate-700 shadow-sm">
+                                                                            {item.quantity}
+                                                                        </span>
+                                                                        <span className="text-slate-700 font-medium truncate max-w-[200px] md:max-w-xs">{item.name}</span>
+                                                                    </div>
+                                                                    <span className="text-slate-900 font-semibold">₹{(item.price * item.quantity).toFixed(2)}</span>
+                                                                </div>
+                                                            ))}
+                                                            {order.items?.length > 3 && (
+                                                                <div className="text-xs font-bold text-slate-400 pl-9 pt-1">
+                                                                    + {order.items.length - 3} more items
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Footer Actions */}
+                                                        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
+                                                            <div>
+                                                                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Amount</p>
+                                                                <p className="text-2xl font-black text-slate-800">₹{order.total?.toFixed(2)}</p>
+                                                            </div>
+
+                                                            <div className="flex items-center gap-3 w-full md:w-auto">
                                                                 <button
-                                                                    onClick={() => handleDownloadInvoice(order._id, order.orderNumber || 'Order')}
-                                                                    className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors"
-                                                                    title="Download Invoice"
+                                                                    onClick={() => handleDownloadInvoice(order._id, order.orderNumber)}
+                                                                    className="flex-1 md:flex-none py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
                                                                 >
-                                                                    <FileText className="w-4 h-4" />
+                                                                    <FileText className="w-4 h-4" /> Invoice
                                                                 </button>
 
                                                                 <button
                                                                     onClick={() => handleReorder(order._id)}
-                                                                    className="p-2 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition-colors"
-                                                                    title="Reorder"
+                                                                    className="flex-1 md:flex-none py-2.5 px-4 rounded-xl bg-emerald-50 text-emerald-600 font-bold text-sm hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
                                                                 >
-                                                                    <RotateCcw className="w-4 h-4" />
+                                                                    <RotateCcw className="w-4 h-4" /> Reorder
                                                                 </button>
-
-                                                                <Link
-                                                                    to={`/track-order/${order._id}`}
-                                                                    className="px-4 py-2 bg-slate-800 text-white text-sm font-bold rounded-xl hover:bg-slate-700 transition-colors"
-                                                                >
-                                                                    Track
-                                                                </Link>
                                                             </div>
                                                         </div>
+
+                                                        {/* Rating Nudge */}
                                                         {order.status === 'delivered' && (
-                                                            <button
-                                                                onClick={() => handleOpenReview(order._id)}
-                                                                className="w-full mt-4 py-2 bg-slate-50 text-slate-600 rounded-xl font-medium hover:bg-emerald-50 hover:text-emerald-600 transition-colors flex items-center justify-center gap-2"
-                                                            >
-                                                                <Star className="w-4 h-4" /> Rate your experience
-                                                            </button>
+                                                            <div className="mt-6 pt-4 border-t border-slate-50 md:flex md:justify-between md:items-center">
+                                                                <p className="text-sm text-slate-500 mb-3 md:mb-0">How was your experience?</p>
+                                                                <button
+                                                                    onClick={() => handleOpenReview(order._id)}
+                                                                    className="w-full md:w-auto py-2 px-6 rounded-xl bg-amber-50 text-amber-700 font-bold text-sm hover:bg-amber-100 transition-colors flex items-center justify-center gap-2"
+                                                                >
+                                                                    <Star className="w-4 h-4 fill-amber-700/20" /> Rate Order
+                                                                </button>
+                                                            </div>
                                                         )}
                                                     </div>
                                                 ))}
