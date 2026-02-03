@@ -46,10 +46,13 @@ const OrderTrackingPage = () => {
     useEffect(() => {
         if (!socket || !orderId) return;
 
+        // Join the specific order room
+        socket.emit('order:join', orderId);
+
         const handleUpdate = (data) => {
             if (data.orderId === orderId) {
                 console.log('socket update received:', data);
-                toast.success(`Order updated: ${data.status.replace('_', ' ')}`);
+                // toast.success(`Order updated: ${data.status.replace('_', ' ')}`); // Optional: don't spam toasts
                 fetchOrder(); // Refresh full data
             }
         };
@@ -60,6 +63,7 @@ const OrderTrackingPage = () => {
         socket.on('order:rider-assigned', handleUpdate);
 
         return () => {
+            socket.emit('order:leave', orderId);
             socket.off('order:status-updated', handleUpdate);
             socket.off('delivery:status-updated', handleUpdate);
             socket.off('delivery:assigned', handleUpdate);

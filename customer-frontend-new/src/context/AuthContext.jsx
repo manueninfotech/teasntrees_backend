@@ -96,7 +96,8 @@ export const AuthProvider = ({ children }) => {
             verifyOtp,
             completeProfile,
             logout,
-            isAuthenticated: !!user
+            isAuthenticated: !!user,
+            token: localStorage.getItem('token') // Expose token for SocketContext
         }}>
             {children}
         </AuthContext.Provider>

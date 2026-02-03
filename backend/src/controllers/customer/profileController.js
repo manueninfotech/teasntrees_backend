@@ -10,11 +10,8 @@ import { geocodingService } from '../../services/geocodingService.js';
 // Get current user profile
 const getProfile = async (req, res) => {
     try {
-        // User ID is attached by auth middleware
-        // Explicitly query as Customer to ensure all fields (like notificationPreferences) are available
         let user = await Customer.findById(req.user.userId).select('-__v');
 
-        // Fallback: If not found as Customer (e.g. kind mismatch), try generic User
         if (!user) {
             user = await User.findById(req.user.userId).select('-__v');
         }
@@ -25,11 +22,6 @@ const getProfile = async (req, res) => {
                 message: 'User not found'
             });
         }
-
-        // Debug
-        console.log('[DEBUG] getProfile User Kind:', user.kind);
-        console.log('[DEBUG] getProfile Prefs:', user.get('notificationPreferences'));
-        console.log('[DEBUG] getProfile Prefs Direct:', user.notificationPreferences);
 
         return res.status(200).json({
             success: true,
@@ -137,14 +129,11 @@ const updateProfile = async (req, res) => {
                 });
             }
 
-            // Fix: Mongoose subdocument spread might fail. Convert to object first if needed, 
-            // or better yet, since we are doing Object.assign later, we need to be careful not to overwrite with incomplete object.
-            // Safest way for partial update of nested object in Mongoose via Object.assign is to merge manually.
             const currentPrefs = user.notificationPreferences ? user.notificationPreferences.toObject() : {};
 
             updates.notificationPreferences = {
-                ...currentPrefs, // keep existing
-                ...notificationPreferences       // overwrite new
+                ...currentPrefs,
+                ...notificationPreferences
             };
         }
 
@@ -161,8 +150,6 @@ const updateProfile = async (req, res) => {
             });
         }
 
-        console.log('[DEBUG] updateProfile applying updates:', updates);
-
         // Update user
         Object.assign(user, updates);
 
@@ -172,7 +159,6 @@ const updateProfile = async (req, res) => {
         }
 
         await user.save();
-        console.log('[DEBUG] updateProfile saved user:', user.notificationPreferences);
 
         return res.status(200).json({
             success: true,

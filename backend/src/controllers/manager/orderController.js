@@ -88,19 +88,46 @@ export const updateOrderStatus = async (req, res) => {
 
         // Socket Notifications
         const io = req.app.get('io');
+        console.log('[Manager OrderController] ===== SOCKET EMISSION START =====');
+        console.log('[Manager OrderController] Order ID:', orderId);
+        console.log('[Manager OrderController] New Status:', status);
+        console.log('[Manager OrderController] Customer ID:', order.customerId);
+        console.log('[Manager OrderController] IO instance exists:', !!io);
+
         if (io) {
-            // Notify Customer
-            io.to(SOCKET_ROOMS.order(orderId)).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+            const orderRoom = SOCKET_ROOMS.order(orderId);
+            const userRoom = SOCKET_ROOMS.user(order.customerId);
+
+            console.log('[Manager OrderController] Order Room:', orderRoom);
+            console.log('[Manager OrderController] User Room:', userRoom);
+
+            // Notify Customer (Specific Order Room)
+            io.to(orderRoom).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
                 orderId,
                 status,
                 timeline: order.timeline
             });
+            console.log('[Manager OrderController] ✅ Emitted to order room');
+
+            // Notify Customer (User Room - for Lists/Dashboard)
+            if (order.customerId) {
+                io.to(userRoom).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+                    orderId,
+                    status,
+                    timeline: order.timeline
+                });
+                console.log('[Manager OrderController] ✅ Emitted to user room');
+            }
 
             // Notify Admin/Manager Rooms
             io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
                 orderId,
                 status
             });
+            console.log('[Manager OrderController] ✅ Emitted to admin room');
+            console.log('[Manager OrderController] ===== SOCKET EMISSION END =====');
+        } else {
+            console.error('[Manager OrderController] ❌ IO instance not found!');
         }
 
         // Log Activity

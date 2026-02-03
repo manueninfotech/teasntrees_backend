@@ -18,8 +18,6 @@ export const SocketProvider = ({ children }) => {
         let newSocket;
 
         if (isAuthenticated && token) {
-            console.log('[Socket] Initializing connection...');
-
             // Initialize Socket
             newSocket = io(BACKEND_URL, {
                 auth: { token },
@@ -31,12 +29,10 @@ export const SocketProvider = ({ children }) => {
 
             // Event Listeners
             newSocket.on('connect', () => {
-                console.log('[Socket] Connected:', newSocket.id);
                 setIsConnected(true);
             });
 
             newSocket.on('disconnect', (reason) => {
-                console.log('[Socket] Disconnected:', reason);
                 setIsConnected(false);
             });
 
@@ -47,9 +43,9 @@ export const SocketProvider = ({ children }) => {
 
             setSocket(newSocket);
         } else {
+
             // If user logs out, disconnect existing socket
             if (socket) {
-                console.log('[Socket] Logging out, closing connection.');
                 socket.disconnect();
                 setSocket(null);
                 setIsConnected(false);
@@ -59,7 +55,6 @@ export const SocketProvider = ({ children }) => {
         // Cleanup on unmount or token change
         return () => {
             if (newSocket) {
-                console.log('[Socket] Cleanup disconnecting...');
                 newSocket.disconnect();
             }
         };

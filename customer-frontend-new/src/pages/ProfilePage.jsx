@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
     User, Mail, MapPin, Package, Settings, Camera, Loader2,
     Edit2, LogOut, ChevronRight, Star, AlertCircle, Plus,
-    Trash2, Save, X, RotateCcw, Truck, FileText, Calendar, ArrowRight, Phone, Smartphone, Bell, Percent
+    Trash2, Save, X, RotateCcw, Truck, FileText, Calendar, ArrowRight, Phone, Smartphone, Bell, Percent, ShieldCheck
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSocket } from '../context/SocketContext';
@@ -117,14 +117,10 @@ const ProfilePage = () => {
             } else if (activeTab === 'profile') {
                 // Optionally refresh profile
                 const data = await userService.getProfile();
-                console.log('[FRONTEND DEBUG] Profile data received:', data);
-                console.log('[FRONTEND DEBUG] Notification prefs:', data?.notificationPreferences);
                 setProfileData(data);
             } else if (activeTab === 'settings') {
                 // Settings tab needs profile data with notificationPreferences
                 const data = await userService.getProfile();
-                console.log('[SETTINGS LOAD] Profile data received:', data);
-                console.log('[SETTINGS LOAD] Notification prefs:', data?.notificationPreferences);
                 setProfileData(data);
             } else if (activeTab === 'reviews') {
                 const data = await reviewService.getMyReviews();
@@ -150,13 +146,10 @@ const ProfilePage = () => {
         const handleOrderUpdate = (data) => {
             console.log('[Profile] Order update received:', data);
 
-            // Allow refresh if we are on 'orders' tab OR 'profile' (dashboard summary might need it later)
-            // For now, restrict to 'orders' to save bandwidth, but using Ref ensures we catch it if we just switched.
+            // Refresh orders if on orders tab
             if (activeTabRef.current === 'orders') {
-                console.log('[Profile] Refreshing orders list with timestamp...');
                 userService.getOrders({ _t: Date.now() })
                     .then(data => {
-                        console.log('[Profile] Orders refreshed:', data?.length);
                         setOrders(data || []);
                     })
                     .catch(e => console.error("Socket refresh failed", e));
