@@ -147,18 +147,7 @@ const verifyOTP = async (req, res) => {
                 });
             }
 
-            // Allow if user is manager or if user has no role yet (will be set in completeProfile)
-            // If user is admin/rider/customer, we might want to prevent login here if this portal is strictly for managers.
-            // But since user asked to "use login same as admin", we'll focus on the flow.
-            // Typically, strict role separation would reject other roles here.
-            // For now, we will proceed, and the specific permissions will be handled by role middleware on protected routes.
-            // However, verifyOTP usually just checks identity. 
-            // Wait, if an Admin tries to login here, they get a token. If they try to hit Manager routes later, roleCheck will stop them.
-            // So this is safe.
-
             if (existingUser.isProfileComplete) {
-                // If the user has a different role, maybe warn or blocking?
-                // Let's assume a user can only have one role.
                 if (existingUser.role !== 'manager' && existingUser.role) {
                     // Ideally we should block non-managers from the manager portal login
                     // But for now, let's allow login and rely on Access Control for routes
