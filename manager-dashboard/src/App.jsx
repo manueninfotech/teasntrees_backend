@@ -5,6 +5,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
 import OrdersPage from './pages/OrdersPage';
+import RidersPage from './pages/RidersPage';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -29,7 +30,7 @@ const AppRoutes = () => {
       }>
         <Route index element={<DashboardHome />} />
         <Route path="orders" element={<OrdersPage />} />
-        <Route path="riders" element={<div className="text-gray-900 p-8">Riders Page</div>} />
+        <Route path="riders" element={<RidersPage />} />
         <Route path="products" element={<div className="text-gray-900 p-8">Products Page</div>} />
         <Route path="customers" element={<div className="text-gray-900 p-8">Customers Page</div>} />
       </Route>
