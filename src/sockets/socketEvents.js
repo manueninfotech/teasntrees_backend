@@ -40,6 +40,12 @@ export const SOCKET_EVENTS = {
     RIDER_OFFLINE: 'rider:offline',
     RIDER_STATUS_UPDATED: 'rider:status-updated',
 
+    // Rider assignment events (production-ready)
+    RIDER_ASSIGNMENT_STARTED: 'rider:assignment-started',
+    RIDER_ASSIGNED: 'rider:assigned',
+    RIDER_ASSIGNMENT_FAILED: 'rider:assignment-failed',
+    RIDER_ASSIGNMENT_TIMEOUT: 'rider:assignment-timeout',
+
     // User management events
     USER_ROLE_UPDATED: 'user:role-updated',
     USER_ACTIVATED: 'user:activated',

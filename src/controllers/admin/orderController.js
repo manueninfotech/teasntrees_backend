@@ -175,7 +175,7 @@ export const updatePaymentStatus = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const validStatuses = ['pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled'];
+        const validStatuses = ['pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled', 'waiting_for_rider'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -190,7 +190,36 @@ export const updateOrderStatus = async (req, res) => {
             });
         }
 
-        // --- NEW: Validation for Delivery Statuses ---
+        // --- STATE MACHINE VALIDATION ---
+        // Define valid status transitions
+        const validTransitions = {
+            'pending': ['confirmed', 'cancelled'],
+            'confirmed': ['preparing', 'waiting_for_rider', 'cancelled'],
+            'waiting_for_rider': ['preparing', 'cancelled'], // Manual assignment by admin
+            'preparing': ['ready', 'cancelled'],
+            'ready': ['assigned', 'cancelled'], // When rider accepts
+            'assigned': ['picked_up', 'cancelled'], // Rider accepted and picked up
+            'picked_up': ['out-for-delivery', 'in_transit', 'cancelled'],
+            'out-for-delivery': ['in_transit', 'delivered', 'cancelled'],
+            'in_transit': ['delivered', 'cancelled'],
+            'delivered': [], // Terminal state
+            'cancelled': [] // Terminal state
+        };
+
+        const currentStatus = order.status;
+        const allowedNextStatuses = validTransitions[currentStatus] || [];
+
+        if (!allowedNextStatuses.includes(status) && currentStatus !== status) {
+            return res.status(400).json({
+                success: false,
+                message: `Invalid status transition from '${currentStatus}' to '${status}'. Allowed transitions: ${allowedNextStatuses.join(', ') || 'none (terminal state)'}`,
+                currentStatus,
+                requestedStatus: status,
+                allowedStatuses: allowedNextStatuses
+            });
+        }
+
+        // --- EXISTING: Validation for Delivery Statuses ---
         const deliveryStatuses = ['assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered'];
         if (deliveryStatuses.includes(status) && !order.riderId) {
             return res.status(400).json({
@@ -399,111 +428,146 @@ export const updateOrderStatus = async (req, res) => {
             io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, managerData);
         }
 
-        // --- AUTO-ASSIGNMENT LOGIC ---
+        // --- PRODUCTION-READY AUTO-ASSIGNMENT LOGIC ---
         if (status === 'confirmed') {
+            logger.info(`[Auto-Assign] Order ${order.orderNumber} confirmed, starting auto-assignment...`);
+
             try {
                 // Fixed Outlet Location (Guntur)
                 const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 };
 
                 // Get Customer Location from Order
                 const customerLoc = order.deliveryAddress?.location?.coordinates; // [lng, lat]
-                if (customerLoc) {
-                    const deliveryLocation = { lng: customerLoc[0], lat: customerLoc[1] };
 
-                    // Find Best Rider
-                    const bestRider = await riderAssignmentService.findBestRider(deliveryLocation);
+                if (!customerLoc) {
+                    logger.error(`[Auto-Assign] Order ${order.orderNumber} has no delivery location coordinates`);
+                    // Update order status to indicate issue
+                    order.status = 'waiting_for_rider';
+                    order.notes = (order.notes || '') + '\nAuto-assignment failed: No delivery coordinates';
+                    await order.save();
 
-                    if (bestRider) {
-                        // Calculate Distance for Record
-                        const distMeters = getDistance(
-                            OUTLET_LOCATION.lat, OUTLET_LOCATION.lng,
-                            deliveryLocation.lat, deliveryLocation.lng
-                        );
-
-                        // Calculate Surge
-                        const { multiplier, reason } = await surgeService.getSurgeMultiplier();
-                        const settings = await Settings.findOne() || {};
-                        const baseFee = settings.riderBaseEarning || 20;
-                        const distanceRate = settings.distanceBonusPerKm || 5;
-
-                        const distBonus = (distMeters / 1000) * distanceRate;
-                        const surgeAmount = Math.round((baseFee + distBonus) * (multiplier - 1));
-                        const totalEarning = Math.round((baseFee + distBonus) * multiplier);
-
-                        // Create Delivery Record
-                        const delivery = new Delivery({
+                    // Notify admin
+                    const io = req.app.get('io');
+                    if (io) {
+                        io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit('alert:no-delivery-location', {
                             orderId: order._id,
-                            riderId: bestRider._id,
-                            customerId: order.customerId,
-                            pickupLocation: {
-                                type: 'Point',
-                                coordinates: [OUTLET_LOCATION.lng, OUTLET_LOCATION.lat],
-                                address: 'Teas N Trees Outlet'
-                            },
-                            deliveryLocation: order.deliveryAddress.location,
-                            distance: distMeters,
-                            baseEarning: baseFee,
-                            distanceBonus: distBonus,
-                            surgeBonus: surgeAmount,
-                            rejectionReason: reason !== 'Normal' ? `Surge: ${reason}` : undefined,
-                            totalEarning: totalEarning,
-                            status: 'assigned',
-                            assignedAt: new Date(),
-                            pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
-                            deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
+                            orderNumber: order.orderNumber,
+                            message: 'Order has no delivery location'
                         });
+                    }
 
-                        await delivery.save();
+                    return res.status(200).json({
+                        success: true,
+                        message: 'Order confirmed but auto-assignment failed (no location)',
+                        data: order
+                    });
+                }
 
-                        // Notify Assigned Rider DIRECTLY
-                        const io = req.app.get('io');
-                        if (io) {
-                            io.to(SOCKET_ROOMS.user(bestRider._id.toString())).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, {
-                                deliveryId: delivery._id,
-                                orderId: order._id,
-                                earning: delivery.totalEarning,
-                                pickupAddress: 'Teas N Trees Outlet',
-                                deliveryAddress: order.deliveryAddress.address
-                            });
-                            console.log(`[Auto-Assign] Assigned Order ${order.orderNumber} to ${bestRider.name}`);
-                        }
+                const deliveryLocation = { lng: customerLoc[0], lat: customerLoc[1] };
+                logger.info(`[Auto-Assign] Delivery location: ${JSON.stringify(deliveryLocation)}`);
 
-                        // Push Notification to Rider
-                        try {
-                            await notificationService.sendPush(bestRider, {
-                                title: 'New Delivery Assigned! 🛵',
-                                body: `New order #${order.orderNumber} from Teas N Trees. Earn ₹${delivery.totalEarning}.`,
-                                data: { type: 'delivery_assigned', deliveryId: delivery._id, orderId: order._id }
-                            });
-                        } catch (pErr) {
-                            console.error('Auto-assign push failed:', pErr);
-                        }
-                    } else {
-                        console.warn(`[Auto-Assign] No online riders found for Order ${order.orderNumber}`);
-                        // Notify Admin of Failure DIRECTLY
-                        const io = req.app.get('io');
-                        if (io) {
-                            io.to(SOCKET_ROOMS.role('admin')).emit('alert:no-riders-available', {
-                                orderId: order._id,
-                                message: 'Order Confirmed but No Riders Available!'
-                            });
-                        }
+                // Calculate Distance and Earnings
+                const distMeters = getDistance(
+                    OUTLET_LOCATION.lat, OUTLET_LOCATION.lng,
+                    deliveryLocation.lat, deliveryLocation.lng
+                );
 
-                        // Push Notification to Admin (High Priority Alert)
-                        try {
-                            const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
-                            await notificationService.sendPushToMany(admins, {
-                                title: '🚨 No Riders Available!',
-                                body: `Order #${order.orderNumber} is confirmed but no online riders were found for auto-assignment.`,
-                                data: { type: 'assignment_failure', orderId: order._id }
-                            });
-                        } catch (aPushErr) {
-                            console.error('Failure alert push failed:', aPushErr);
-                        }
+                const { multiplier, reason } = await surgeService.getSurgeMultiplier();
+                const settings = await Settings.findOne() || {};
+                const baseFee = settings.riderBaseEarning || 20;
+                const distanceRate = settings.distanceBonusPerKm || 5;
+
+                const distBonus = (distMeters / 1000) * distanceRate;
+                const surgeAmount = Math.round((baseFee + distBonus) * (multiplier - 1));
+                const totalEarning = Math.round((baseFee + distBonus) * multiplier);
+
+                // Prepare delivery data
+                const deliveryData = {
+                    orderId: order._id,
+                    customerId: order.customerId,
+                    pickupLocation: {
+                        type: 'Point',
+                        coordinates: [OUTLET_LOCATION.lng, OUTLET_LOCATION.lat],
+                        address: 'Teas N Trees Outlet'
+                    },
+                    deliveryLocation: order.deliveryAddress.location,
+                    distance: distMeters,
+                    baseEarning: baseFee,
+                    distanceBonus: distBonus,
+                    surgeBonus: surgeAmount,
+                    rejectionReason: reason !== 'Normal' ? `Surge: ${reason}` : undefined,
+                    totalEarning: totalEarning,
+                    pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+                    deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
+                };
+
+                // Use retry-based assignment
+                const io = req.app.get('io');
+                const assignmentResult = await riderAssignmentService.assignRiderWithRetry(
+                    order,
+                    io,
+                    deliveryData
+                );
+
+                if (assignmentResult.success) {
+                    // Update order with assigned rider
+                    order.riderId = assignmentResult.rider._id;
+                    await order.save();
+
+                    logger.info(`[Auto-Assign] ✅ Order ${order.orderNumber} assigned to ${assignmentResult.rider.name}`);
+
+                    // Send push notification to rider
+                    try {
+                        await notificationService.sendPush(assignmentResult.rider, {
+                            title: 'New Delivery Assigned! 🛵',
+                            body: `Order #${order.orderNumber} from Teas N Trees. Earn ₹${assignmentResult.delivery.totalEarning}.`,
+                            data: {
+                                type: 'delivery_assigned',
+                                deliveryId: assignmentResult.delivery._id,
+                                orderId: order._id
+                            }
+                        });
+                    } catch (pErr) {
+                        logger.error('[Auto-Assign] Push notification failed:', pErr);
+                    }
+
+                } else {
+                    // No riders available - update order status
+                    logger.warn(`[Auto-Assign] ⚠️ No riders available for order ${order.orderNumber}`);
+                    order.status = 'waiting_for_rider';
+                    order.notes = (order.notes || '') + `\nAuto-assignment failed: ${assignmentResult.reason}`;
+                    await order.save();
+
+                    // Notify admin/managers
+                    if (io) {
+                        io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit('alert:no-riders-available', {
+                            orderId: order._id,
+                            orderNumber: order.orderNumber,
+                            message: assignmentResult.reason
+                        });
+                    }
+
+                    // Push notification to admins
+                    try {
+                        const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
+                        await notificationService.sendPushToMany(admins, {
+                            title: '🚨 No Riders Available!',
+                            body: `Order #${order.orderNumber} confirmed but no riders available. ${assignmentResult.reason}`,
+                            data: { type: 'assignment_failure', orderId: order._id }
+                        });
+                    } catch (aPushErr) {
+                        logger.error('[Auto-Assign] Admin alert push failed:', aPushErr);
                     }
                 }
+
             } catch (assignError) {
-                console.error('Auto-Assignment Failed:', assignError);
+                logger.error('[Auto-Assign] ❌ Auto-Assignment Error:', assignError);
+                logger.error('[Auto-Assign] Stack:', assignError.stack);
+
+                // Update order to waiting_for_rider on error
+                order.status = 'waiting_for_rider';
+                order.notes = (order.notes || '') + `\nAuto-assignment error: ${assignError.message}`;
+                await order.save();
             }
         }
 

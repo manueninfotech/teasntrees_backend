@@ -33,28 +33,54 @@ export const acceptDelivery = async (req, res) => {
         const { id } = req.params;
         const delivery = await Delivery.findOne({ _id: id, riderId: req.user.userId });
         if (!delivery) {
-            res.status(404).json({ success: false, message: 'Delivery not found' });
+            return res.status(404).json({ success: false, message: 'Delivery not found' });
         }
         if (delivery.status !== 'assigned') {
             return res.status(400).json({ success: false, message: 'Delivery cannot be accepted (status is not assigned)' });
         }
+
+        // ATOMIC LOCKING: Prevent race conditions if rider tries to accept multiple deliveries
+        const lockedRider = await riderAssignmentService.atomicLockRider(req.user.userId);
+
+        if (!lockedRider) {
+            logger.warn(`[AcceptDelivery] Rider ${req.user.userId} already locked by another delivery`);
+            return res.status(409).json({
+                success: false,
+                message: 'You are already assigned to another delivery. Please complete it first.'
+            });
+        }
+
+        // Update delivery status
         delivery.status = 'accepted';
         delivery.acceptedAt = new Date();
         await delivery.save();
-        // update order status
-        await Order.findByIdAndUpdate(delivery.orderId, { status: 'driver_assigned' });
-        // update rider status
-        await Rider.findByIdAndUpdate(req.user.userId, { isOnDelivery: true });
 
-        // Notify customer DIRECTLY
+        // Update order status
+        await Order.findByIdAndUpdate(delivery.orderId, { status: 'driver_assigned' });
+
+        logger.info(`[AcceptDelivery] Rider ${req.user.name} accepted delivery ${delivery._id}`);
+
+        // Notify customer and admin
         const io = req.app.get('io');
         if (io) {
-            io.to(SOCKET_ROOMS.user(delivery.customerId)).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, { // Assuming 'order:rider-assigned' maps to this or similar
+            // Notify customer
+            io.to(SOCKET_ROOMS.user(delivery.customerId.toString())).emit(SOCKET_EVENTS.DELIVERY_ACCEPTED, {
                 orderId: delivery.orderId,
+                deliveryId: delivery._id,
+                riderName: req.user.name,
+                vehicleType: lockedRider.vehicleType
+            });
+
+            // Notify admin/managers
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.DELIVERY_ACCEPTED, {
+                orderId: delivery.orderId,
+                deliveryId: delivery._id,
+                riderId: req.user.userId,
                 riderName: req.user.name
             });
         }
-        res.json({ success: true, message: 'delivery accepted', data: delivery });
+
+        res.json({ success: true, message: 'Delivery accepted successfully', data: delivery });
     } catch (error) {
         logger.error('Accept delivery error:', error);
         res.status(500).json({ success: false, message: 'Failed to accept delivery', error: error.message });
@@ -67,80 +93,82 @@ export const rejectDelivery = async (req, res) => {
         const { id } = req.params;
         const { reason } = req.body;
 
-        const delivery = await Delivery.findOne({ _id: id, riderId: req.user.userId });
+        const delivery = await Delivery.findOne({ _id: id, riderId: req.user.userId }).populate('orderId');
 
         if (!delivery || delivery.status !== 'assigned') {
             return res.status(400).json({ success: false, message: 'Invalid delivery or status' });
         }
 
-        // 1. Mark current delivery as rejected
+        // Mark current delivery as rejected
         delivery.status = 'rejected';
         delivery.rejectedAt = new Date();
-        delivery.rejectionReason = reason;
+        delivery.rejectionReason = reason || 'No reason provided';
         await delivery.save();
 
-        // 2. Find Next Best Rider
-        // We need customer location from the original delivery (it's in deliveryLocation.coordinates [lng, lat])
-        const customerLocation = {
-            lng: delivery.deliveryLocation.coordinates[0],
-            lat: delivery.deliveryLocation.coordinates[1]
+        logger.info(`[RejectDelivery] Rider ${req.user.name} rejected delivery ${delivery._id}: ${reason}`);
+
+        // Get the order
+        const order = delivery.orderId;
+
+        // Prepare delivery data for retry (reuse same data)
+        const deliveryData = {
+            orderId: delivery.orderId._id,
+            customerId: delivery.customerId,
+            pickupLocation: delivery.pickupLocation,
+            deliveryLocation: delivery.deliveryLocation,
+            distance: delivery.distance,
+            baseEarning: delivery.baseEarning,
+            distanceBonus: delivery.distanceBonus,
+            surgeBonus: delivery.surgeBonus,
+            totalEarning: delivery.totalEarning,
+            pickupOtp: delivery.pickupOtp,
+            deliveryOtp: delivery.deliveryOtp
         };
-        const nextRider = await riderAssignmentService.findBestRider(customerLocation);
 
-        if (nextRider) {
-            // 3. Create NEW Delivery for Next Rider
-            const newDelivery = new Delivery({
-                orderId: delivery.orderId,
-                riderId: nextRider._id,
-                customerId: delivery.customerId,
-                pickupLocation: delivery.pickupLocation,
-                deliveryLocation: delivery.deliveryLocation,
-                distance: delivery.distance,
-                baseEarning: delivery.baseEarning,
-                totalEarning: delivery.totalEarning,
-                status: 'assigned',
-                assignedAt: new Date()
-            });
+        // Use retry logic to find next rider (exclude current rider)
+        const io = req.app.get('io');
+        const assignmentResult = await riderAssignmentService.assignRiderWithRetry(
+            order,
+            io,
+            deliveryData
+        );
 
-            await newDelivery.save();
+        // Update rider metrics
+        riderMetricsService.updateMetrics(req.user.userId);
 
-            // Notify New Rider DIRECTLY
-            const io = req.app.get('io');
-            if (io) {
-                // Notify New Rider (Assigned)
-                io.to(SOCKET_ROOMS.user(nextRider._id.toString())).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, {
-                    deliveryId: newDelivery._id,
-                    orderId: newDelivery.orderId,
-                    earning: newDelivery.totalEarning
-                });
-            }
+        if (assignmentResult.success) {
+            // Update order with new rider
+            order.riderId = assignmentResult.rider._id;
+            await order.save();
 
-            // Update Metrics
-            riderMetricsService.updateMetrics(req.user.userId);
+            logger.info(`[RejectDelivery] Successfully reassigned to ${assignmentResult.rider.name}`);
 
             return res.json({
                 success: true,
-                message: 'Delivery rejected and re-assigned to next rider',
-                nextRider: nextRider.name
+                message: 'Delivery rejected and reassigned to next rider',
+                nextRider: assignmentResult.rider.name
             });
-
         } else {
-            // No Riders Available!
-            // Notify Admin DIRECTLY
-            const io = req.app.get('io');
+            // No riders available - update order status
+            order.status = 'waiting_for_rider';
+            order.notes = (order.notes || '') + `\nRider ${req.user.name} rejected. ${assignmentResult.reason}`;
+            await order.save();
+
+            logger.warn(`[RejectDelivery] No riders available after rejection`);
+
+            // Notify admin
             if (io) {
-                io.to(SOCKET_ROOMS.role('admin')).emit('alert:no-riders-available', {
-                    orderId: delivery.orderId,
-                    message: 'Order rejected and no backup riders found!'
+                io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit('alert:no-riders-available', {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber,
+                    message: `Rider rejected and no backup riders available`
                 });
             }
 
-            // Update Metrics
-            riderMetricsService.updateMetrics(req.user.userId);
-
             return res.json({
                 success: true,
-                message: 'Delivery rejected. No other riders available currently.'
+                message: 'Delivery rejected. No other riders available currently.',
+                orderStatus: 'waiting_for_rider'
             });
         }
 
