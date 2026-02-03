@@ -3,9 +3,10 @@ import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo_teasntrees.png';
 
 const LoginPage = () => {
-    const [step, setStep] = useState('MOBILE'); // MOBILE | OTP | PROFILE | APPROVAL_PENDING
+    const [step, setStep] = useState('MOBILE');
     const [mobile, setMobile] = useState('');
     const [otp, setOtp] = useState('');
     const [profile, setProfile] = useState({ name: '', email: '', address: '' });
@@ -104,9 +105,7 @@ const LoginPage = () => {
                 className="relative z-10 w-full max-w-md p-8 glass-card mx-4 bg-white/80 shadow-2xl backdrop-blur-xl border border-white/50"
             >
                 <div className="text-center mb-8">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-primary to-emerald-600 mx-auto mb-4 flex items-center justify-center shadow-lg shadow-brand-primary/30">
-                        <span className="text-xl font-bold text-white">T</span>
-                    </div>
+                    <img src={logo} alt="Teas N Trees" className="h-24 w-auto object-contain mx-auto mb-4" />
                     <h1 className="text-2xl font-bold text-gray-900 mb-1">
                         {step === 'PROFILE' ? 'Complete Profile' : 'Manager Portal'}
                     </h1>

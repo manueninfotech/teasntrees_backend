@@ -3,22 +3,22 @@ import { Home, ShoppingBag, Truck, Users, BarChart2, Menu, Bell, Navigation } fr
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import logo from '../../assets/logo_teasntrees.png'; // Import Logo
+
 const NAV_ITEMS = [
     { icon: Home, label: 'Overview', path: '/' },
     { icon: ShoppingBag, label: 'Orders', path: '/orders' },
     { icon: Truck, label: 'Riders', path: '/riders' },
-    { icon: Navigation, label: 'Deliveries', path: '/deliveries' }, // Added
+    { icon: Navigation, label: 'Deliveries', path: '/deliveries' },
     { icon: Users, label: 'Customers', path: '/customers' },
-    { icon: ShoppingBag, label: 'Products', path: '/products' }, // Changed
+    { icon: ShoppingBag, label: 'Products', path: '/products' },
 ];
 
 const DesktopSidebar = () => (
     <aside className="hidden lg:flex flex-col w-64 glass-panel border-r border-glass-border h-screen fixed left-0 top-0 z-50 bg-white/80 backdrop-blur-xl">
-        <div className="p-6">
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-primary to-emerald-600">
-                Teas N Trees
-            </h1>
-            <p className="text-xs text-brand-primary tracking-widest uppercase mt-1">Manager</p>
+        <div className="p-6 flex flex-col items-center"> {/* Centered Logo */}
+            <img src={logo} alt="Teas N Trees" className="h-16 w-auto object-contain mb-2" />
+            <p className="text-xs text-brand-primary tracking-widest uppercase font-bold">Manager</p>
         </div>
 
         <nav className="flex-1 px-4 space-y-2 mt-4">
@@ -89,10 +89,8 @@ const DashboardLayout = () => {
                 {/* Mobile Header */}
                 <div className="lg:hidden p-4 flex items-center justify-between glass-panel sticky top-0 z-40 mb-4 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
                     <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white shadow-lg shadow-brand-primary/20">
-                            <span className="font-bold">T</span>
-                        </div>
-                        <span className="font-bold text-lg text-gray-800">Teas N Trees</span>
+                        <img src={logo} alt="Teas N Trees" className="h-8 w-auto object-contain" />
+                        <span className="font-bold text-lg text-gray-800">Manager Pnl</span>
                     </div>
                     <Bell className="w-6 h-6 text-gray-600" />
                 </div>
