@@ -9,7 +9,7 @@ import DashboardHome from './pages/DashboardHome';
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-900">Loading...</div>;
 
   if (!isAuthenticated) return <Navigate to="/login" />;
 
@@ -27,10 +27,10 @@ const AppRoutes = () => {
         </ProtectedRoute>
       }>
         <Route index element={<DashboardHome />} />
-        <Route path="orders" element={<div className="text-white p-8">Orders Page</div>} />
-        <Route path="riders" element={<div className="text-white p-8">Riders Page</div>} />
-        <Route path="products" element={<div className="text-white p-8">Products Page</div>} />
-        <Route path="customers" element={<div className="text-white p-8">Customers Page</div>} />
+        <Route path="orders" element={<div className="text-gray-900 p-8">Orders Page</div>} />
+        <Route path="riders" element={<div className="text-gray-900 p-8">Riders Page</div>} />
+        <Route path="products" element={<div className="text-gray-900 p-8">Products Page</div>} />
+        <Route path="customers" element={<div className="text-gray-900 p-8">Customers Page</div>} />
       </Route>
     </Routes>
   );

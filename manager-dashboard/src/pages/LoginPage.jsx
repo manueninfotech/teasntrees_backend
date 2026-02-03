@@ -79,45 +79,44 @@ const LoginPage = () => {
 
     if (step === 'APPROVAL_PENDING') {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white p-4">
-                <div className="glass-card p-8 text-center max-w-md">
-                    <div className="w-16 h-16 bg-yellow-500/20 text-yellow-500 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-900 p-4">
+                <div className="glass-card p-8 text-center max-w-md bg-white shadow-xl">
+                    <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Lock className="w-8 h-8" />
                     </div>
                     <h2 className="text-2xl font-bold mb-2">Approval Pending</h2>
-                    <p className="text-white/60">Your profile has been submitted. Please wait for an Admin to approve your account before you can log in.</p>
-                    <button onClick={() => setStep('MOBILE')} className="mt-8 text-brand-primary text-sm hover:underline">Back to Login</button>
+                    <p className="text-gray-600">Your profile has been submitted. Please wait for an Admin to approve your account before you can log in.</p>
+                    <button onClick={() => setStep('MOBILE')} className="mt-8 text-brand-primary text-sm hover:underline font-medium">Back to Login</button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-zinc-950">
-            {/* Background Elements */}
-            <div className="absolute inset-0 bg-black/80 z-0" />
-            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/20 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[120px]" />
+        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50">
+            {/* Background Elements - Light Mode */}
+            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/10 rounded-full blur-[120px]" />
+            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative z-10 w-full max-w-md p-8 glass-card mx-4"
+                className="relative z-10 w-full max-w-md p-8 glass-card mx-4 bg-white/80 shadow-2xl backdrop-blur-xl border border-white/50"
             >
                 <div className="text-center mb-8">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-primary to-emerald-600 mx-auto mb-4 flex items-center justify-center shadow-lg shadow-brand-primary/30">
                         <span className="text-xl font-bold text-white">T</span>
                     </div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-brand-primary mb-1">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-1">
                         {step === 'PROFILE' ? 'Complete Profile' : 'Manager Portal'}
                     </h1>
-                    <p className="text-white/60 text-xs">
+                    <p className="text-gray-500 text-xs font-medium">
                         {step === 'PROFILE' ? 'Tell us a bit about yourself' : 'Secure Login Access'}
                     </p>
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-200 text-sm text-center font-medium">
+                    <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center font-medium">
                         {error}
                     </div>
                 )}
@@ -133,14 +132,14 @@ const LoginPage = () => {
                             className="space-y-6"
                         >
                             <div className="space-y-2">
-                                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Mobile Number</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mobile Number</label>
                                 <div className="relative group">
-                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40 group-focus-within:text-brand-primary transition-colors" />
+                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-brand-primary transition-colors" />
                                     <input
                                         type="tel"
                                         value={mobile}
                                         onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white text-lg tracking-widest focus:outline-none focus:border-brand-primary/50 focus:bg-white/10 transition-all font-mono"
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-gray-900 text-lg tracking-widest focus:outline-none focus:border-brand-primary focus:bg-white transition-all font-mono shadow-sm"
                                         placeholder="9876543210"
                                         required
                                     />
@@ -148,7 +147,7 @@ const LoginPage = () => {
                             </div>
                             <button
                                 disabled={isLoading}
-                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 shadow-lg shadow-brand-primary/25"
                             >
                                 {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Get OTP'}
                                 {!isLoading && <ArrowRight className="w-5 h-5" />}
@@ -167,17 +166,17 @@ const LoginPage = () => {
                         >
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center">
-                                    <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Enter OTP</label>
+                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Enter OTP</label>
                                     <div className="text-right">
-                                        <p className="text-white/80 text-sm font-mono tracking-wider mb-1">+91 {mobile}</p>
-                                        <button type="button" onClick={() => setStep('MOBILE')} className="text-xs text-brand-primary">Change Number</button>
+                                        <p className="text-gray-900 text-sm font-mono tracking-wider mb-1">+91 {mobile}</p>
+                                        <button type="button" onClick={() => setStep('MOBILE')} className="text-xs text-brand-primary font-medium hover:underline">Change Number</button>
                                     </div>
                                 </div>
                                 <input
                                     type="text"
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value.slice(0, 6))}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl py-4 text-white text-lg tracking-[0.5em] focus:outline-none focus:border-brand-primary/50 text-center font-mono"
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 text-gray-900 text-lg tracking-[0.5em] focus:outline-none focus:border-brand-primary focus:bg-white transition-all font-mono text-center shadow-sm"
                                     placeholder="......"
                                     maxLength={6}
                                     required
@@ -185,7 +184,7 @@ const LoginPage = () => {
                             </div>
                             <button
                                 disabled={isLoading}
-                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 shadow-lg shadow-brand-primary/25"
                             >
                                 {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Verify'}
                             </button>
@@ -201,26 +200,26 @@ const LoginPage = () => {
                             className="space-y-4"
                         >
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-white/50 uppercase">Full Name</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Full Name</label>
                                 <input type="text" required
                                     value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-brand-primary/50 outline-none" placeholder="John Doe" />
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-900 focus:border-brand-primary focus:bg-white outline-none transition-all shadow-sm" placeholder="John Doe" />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-white/50 uppercase">Email</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
                                 <input type="email" required
                                     value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-brand-primary/50 outline-none" placeholder="manager@example.com" />
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-900 focus:border-brand-primary focus:bg-white outline-none transition-all shadow-sm" placeholder="manager@example.com" />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs font-medium text-white/50 uppercase">Branch / Address</label>
+                                <label className="text-xs font-bold text-gray-500 uppercase">Branch / Address</label>
                                 <textarea required
                                     value={profile.address} onChange={e => setProfile({ ...profile, address: e.target.value })}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-white focus:border-brand-primary/50 outline-none h-20 resize-none" placeholder="Store Location" />
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-900 focus:border-brand-primary focus:bg-white outline-none h-20 resize-none transition-all shadow-sm" placeholder="Store Location" />
                             </div>
                             <button
                                 disabled={isLoading}
-                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors mt-2 disabled:opacity-50"
+                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors mt-2 disabled:opacity-50 shadow-lg shadow-brand-primary/25"
                             >
                                 {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Complete Registration'}
                             </button>
