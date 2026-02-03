@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import {
     User, Mail, MapPin, Package, Settings, Camera, Loader2,
     Edit2, LogOut, ChevronRight, Star, AlertCircle, Plus,
-    Trash2, Save, X, RotateCcw, Truck, FileText, Calendar, ArrowRight, Phone
+    Trash2, Save, X, RotateCcw, Truck, FileText, Calendar, ArrowRight, Phone, Smartphone, Bell, Percent
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useSocket } from '../context/SocketContext';
@@ -101,7 +101,6 @@ const ProfilePage = () => {
     // --- DASHBOARD LOGIC ---
     useEffect(() => {
         if (isAuthenticated) {
-            setProfileData(user); // Ensure sync
             loadDashboardData();
         }
     }, [isAuthenticated, activeTab, user]);
