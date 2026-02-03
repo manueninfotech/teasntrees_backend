@@ -44,6 +44,18 @@ export const getDashboardStats = async (req, res) => {
             isAvailable: false
         });
 
+        // 6. Recent Orders (Last 5)
+        const recentOrders = await Order.find()
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .populate('customerId', 'name mobile') // Get customer details
+            .select('orderNumber items total status createdAt paymentStatus customerId'); // Select correct fields
+
+        // 7. Active Riders List (Limit 5)
+        const activeRidersList = await Rider.find({ isApproved: true, isActive: true })
+            .limit(5)
+            .select('name mobile isOnline');
+
         res.status(200).json({
             success: true,
             data: {
@@ -55,11 +67,13 @@ export const getDashboardStats = async (req, res) => {
                 },
                 riders: {
                     active: activeRiders,
-                    online: onlineRiders
+                    online: onlineRiders,
+                    list: activeRidersList
                 },
                 inventory: {
                     lowStock: lowStockProducts
-                }
+                },
+                recentOrders
             }
         });
 

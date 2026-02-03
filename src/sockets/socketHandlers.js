@@ -57,12 +57,13 @@ export const setupSocketHandlers = (io) => {
                     .to(SOCKET_ROOMS.role('admin'))
                     .emit(SOCKET_EVENTS.RIDER_OFFLINE, {
                         riderId: userId,
+                        name: name, // Add name for optimistic UI updates
                         timestamp: new Date()
                     });
             }
         });
 
-        // Handle errors
+        // ... existing error handler ...
         socket.on(SOCKET_EVENTS.ERROR, (error) => {
             console.error(`Socket error for user ${userId}:`, error);
         });
@@ -109,6 +110,8 @@ const handleRiderEvents = (socket, io) => {
         .to(SOCKET_ROOMS.role('admin'))
         .emit(SOCKET_EVENTS.RIDER_ONLINE, {
             riderId: userId,
+            name: socket.user.name, // Add name
+            isOnline: true,
             timestamp: new Date()
         });
 };
