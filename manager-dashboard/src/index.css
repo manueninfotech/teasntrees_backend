@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+
+  /* Glass Adaptive Colors */
+  --glass-bg: rgba(245, 240, 240, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+@theme {
+  --color-brand-primary: #00A67E;
+  /* Teas N Trees Green */
+  --color-brand-secondary: #007F5F;
+  --color-brand-accent: #D4F1C5;
+  --color-glass-dark: rgba(18, 18, 18, 0.6);
+  --color-glass-light: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  @apply bg-zinc-950 text-white font-sans antialiased overflow-hidden;
+  background-image: radial-gradient(circle at 50% 0%, #1a332a 0%, #09090b 70%);
+  min-height: 100vh;
+}
+
+/* Scrollbar Hide */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  @apply rounded-2xl transition-all duration-300;
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+}
