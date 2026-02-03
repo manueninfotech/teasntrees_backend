@@ -271,15 +271,38 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
 
                         <div className="col-span-2 space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                                Tags (separate with comma)
+                                Product Tags
                             </label>
-                            <input
-                                type="text"
-                                value={formData.tags}
-                                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
-                                placeholder="E.G. NEW, BESTSELLER, SPICY"
-                            />
+                            <div className="grid grid-cols-2 gap-3">
+                                {['new-intro', 'must-try', 'best-seller', 'egg-contains'].map((tag) => {
+                                    const isSelected = formData.tags.split(',').map(t => t.trim()).filter(Boolean).includes(tag);
+                                    return (
+                                        <label
+                                            key={tag}
+                                            className={`flex items-center justify-center gap-2 p-4 rounded-2xl border transition-all cursor-pointer ${isSelected
+                                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200'
+                                                : 'bg-gray-50 border-gray-100 text-gray-400 hover:bg-gray-100'
+                                                }`}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={(e) => {
+                                                    const currentTags = formData.tags.split(',').map(t => t.trim()).filter(Boolean);
+                                                    const newTags = e.target.checked
+                                                        ? [...currentTags, tag]
+                                                        : currentTags.filter(t => t !== tag);
+                                                    setFormData({ ...formData, tags: newTags.join(', ') });
+                                                }}
+                                                className="hidden"
+                                            />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">
+                                                {tag.replace('-', ' ')}
+                                            </span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <div className="col-span-2 space-y-2">
