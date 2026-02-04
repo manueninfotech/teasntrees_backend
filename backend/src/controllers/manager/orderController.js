@@ -57,7 +57,7 @@ export const updateOrderStatus = async (req, res) => {
         const { orderId } = req.params;
         const { status } = req.body;
 
-        const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'picked_up', 'out-for-delivery', 'delivered', 'cancelled'];
+        const validStatuses = ['confirmed', 'preparing', 'ready', 'cancelled'];
 
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
@@ -107,7 +107,7 @@ export const updateOrderStatus = async (req, res) => {
                 status,
                 timeline: order.timeline
             });
-            console.log('[Manager OrderController] ✅ Emitted to order room');
+            console.log('[Manager OrderController] Emitted to order room');
 
             // Notify Customer (User Room - for Lists/Dashboard)
             if (order.customerId) {
@@ -116,7 +116,7 @@ export const updateOrderStatus = async (req, res) => {
                     status,
                     timeline: order.timeline
                 });
-                console.log('[Manager OrderController] ✅ Emitted to user room');
+                console.log('[Manager OrderController] Emitted to user room');
             }
 
             // Notify Admin/Manager Rooms
@@ -124,10 +124,10 @@ export const updateOrderStatus = async (req, res) => {
                 orderId,
                 status
             });
-            console.log('[Manager OrderController] ✅ Emitted to admin room');
+            console.log('[Manager OrderController] Emitted to admin room');
             console.log('[Manager OrderController] ===== SOCKET EMISSION END =====');
         } else {
-            console.error('[Manager OrderController] ❌ IO instance not found!');
+            console.error('[Manager OrderController] IO instance not found!');
         }
 
         // Log Activity
@@ -188,13 +188,6 @@ export const assignRider = async (req, res) => {
 
         const order = await Order.findById(orderId);
         if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
-
-        // Check if rider exists and is active
-        // Ideally we should also check if rider is assigned to THIS manager?
-        // But for flexibility, maybe just check if approved.
-        // Spec: "Manager assigns riders to orders" "Each rider belongs to one manager"
-        // Let's enforcing strictness: Rider must be assigned to THIS manager OR manager is admin-like? 
-        // User said "Manager -> Rider (one-to-many)". So strict.
 
         const rider = await User.findOne({
             _id: riderId,

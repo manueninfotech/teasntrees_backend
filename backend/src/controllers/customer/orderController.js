@@ -320,8 +320,8 @@ export const cancelOrder = async (req, res) => {
             });
         }
 
-        // Only allow cancellation if order is pending or accepted
-        if (!['pending', 'accepted'].includes(order.status)) {
+        // Only allow cancellation if order is pending
+        if (order.status !== 'pending') {
             return res.status(400).json({
                 success: false,
                 message: 'Order cannot be cancelled at this stage'

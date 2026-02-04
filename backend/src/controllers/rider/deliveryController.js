@@ -12,7 +12,7 @@ export const getActiveDelivery = async (req, res) => {
     try {
         const delivery = await Delivery.findOne({
             riderId: req.user.userId,
-            status: { $in: ['assigned', 'accepted', 'heading_to_pickup', 'arrived_at_pickup', 'picked_up', 'in_transit', 'arrived'] }
+            status: { $in: ['assigned', 'heading_to_pickup', 'arrived_at_pickup', 'picked_up', 'in_transit', 'arrived'] }
         })
             .populate('orderId')
             .populate('customerId', 'name mobile location address');
@@ -51,12 +51,12 @@ export const acceptDelivery = async (req, res) => {
         }
 
         // Update delivery status
-        delivery.status = 'accepted';
+        delivery.status = 'heading_to_pickup';
         delivery.acceptedAt = new Date();
         await delivery.save();
 
         // Update order status
-        await Order.findByIdAndUpdate(delivery.orderId, { status: 'driver_assigned' });
+        await Order.findByIdAndUpdate(delivery.orderId, { status: 'assigned' });
 
         logger.info(`[AcceptDelivery] Rider ${req.user.name} accepted delivery ${delivery._id}`);
 
@@ -194,7 +194,7 @@ export const updateDeliveryStatus = async (req, res) => {
             }
             delivery.pickedUpAt = new Date();
             // Update Order
-            await Order.findByIdAndUpdate(delivery.orderId, { status: 'out_for_delivery' });
+            await Order.findByIdAndUpdate(delivery.orderId, { status: 'out-for-delivery' });
         }
         if (status === 'delivered') {
             if (delivery.deliveryOtp && delivery.deliveryOtp !== otp) {

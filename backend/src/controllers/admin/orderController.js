@@ -175,7 +175,7 @@ export const updatePaymentStatus = async (req, res) => {
 export const updateOrderStatus = async (req, res) => {
     try {
         const { status } = req.body;
-        const validStatuses = ['pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled', 'waiting_for_rider'];
+        const validStatuses = ['pending', 'confirmed', 'preparing', 'ready', 'assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled', 'waiting_for_rider'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -191,31 +191,42 @@ export const updateOrderStatus = async (req, res) => {
         }
 
         // --- STATE MACHINE VALIDATION ---
-        // Define valid status transitions
+        // --- STRICT PERMISSION & STATE MACHINE VALIDATION ---
+        // Admin/Manager allowed statuses:
+        const allowedManualStatuses = ['confirmed', 'preparing', 'ready', 'cancelled'];
+
+        if (!allowedManualStatuses.includes(status)) {
+            return res.status(403).json({
+                success: false,
+                message: `Permission Denied: You cannot manually set status to '${status}'. Only System or Riders can update this status.`
+            });
+        }
+
+        // Define valid logical transitions for Admin allowed statuses
         const validTransitions = {
             'pending': ['confirmed', 'cancelled'],
-            'confirmed': ['preparing', 'waiting_for_rider', 'cancelled'],
-            'waiting_for_rider': ['preparing', 'cancelled'], // Manual assignment by admin
+            'confirmed': ['preparing', 'cancelled'],
+            'waiting_for_rider': ['preparing', 'cancelled'], // Can start preparing even if waiting for rider
             'preparing': ['ready', 'cancelled'],
-            'ready': ['assigned', 'cancelled'], // When rider accepts
-            'assigned': ['picked_up', 'cancelled'], // Rider accepted and picked up
-            'picked_up': ['out-for-delivery', 'in_transit', 'cancelled'],
-            'out-for-delivery': ['in_transit', 'delivered', 'cancelled'],
-            'in_transit': ['delivered', 'cancelled'],
-            'delivered': [], // Terminal state
-            'cancelled': [] // Terminal state
+            'ready': ['cancelled'], // Can only cancel (Assigning is done via separate endpoint)
+            'assigned': ['cancelled'],
+            'picked_up': ['cancelled'],
+            'out-for-delivery': ['cancelled'],
+            'in_transit': ['cancelled'],
+            'delivered': [], // Terminal
+            'cancelled': []  // Terminal
         };
 
         const currentStatus = order.status;
         const allowedNextStatuses = validTransitions[currentStatus] || [];
 
+        // Allow update if it's in allowed list AND it's a valid transition (or if just updating details without changing status - though this endpoint is updateOrderStatus)
+        // Actually, sometimes we might want to "re-confirm" ? No, status change usually means change.
+
         if (!allowedNextStatuses.includes(status) && currentStatus !== status) {
             return res.status(400).json({
                 success: false,
-                message: `Invalid status transition from '${currentStatus}' to '${status}'. Allowed transitions: ${allowedNextStatuses.join(', ') || 'none (terminal state)'}`,
-                currentStatus,
-                requestedStatus: status,
-                allowedStatuses: allowedNextStatuses
+                message: `Invalid status transition from '${currentStatus}' to '${status}'. Allowed transitions: ${allowedNextStatuses.join(', ')}`
             });
         }
 
@@ -676,9 +687,7 @@ export const assignDeliveryRider = async (req, res) => {
         await rider.save();
 
         order.riderId = assignedRiderId;
-        order.status = 'out-for-delivery';
-        order.dispatchedAt = new Date();
-        order.outForDeliveryAt = new Date(); // Map to model field
+        order.status = 'waiting_for_rider';
 
         await order.save();
 
@@ -734,15 +743,14 @@ export const assignDeliveryRider = async (req, res) => {
                     baseEarning: baseFee,
                     distanceBonus: distBonus,
                     totalEarning: totalEarning,
-                    status: 'in_transit',
+                    status: 'assigned',
                     assignedAt: new Date(),
-                    pickedUpAt: new Date(),
                     pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
                     deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
                 });
             } else {
                 delivery.riderId = assignedRiderId;
-                delivery.status = 'in_transit';
+                delivery.status = 'assigned';
                 delivery.deliveryLocation = {
                     type: 'Point',
                     coordinates: order.deliveryAddress.location.coordinates,
@@ -750,8 +758,7 @@ export const assignDeliveryRider = async (req, res) => {
                 };
                 delivery.distance = distMeters;
                 delivery.estimatedTime = estimatedTravelTime; // Update the estimated time
-                delivery.assignedAt = delivery.assignedAt || new Date();
-                delivery.pickedUpAt = delivery.pickedUpAt || new Date();
+                delivery.assignedAt = new Date(); // Re-assigned
                 delivery.totalEarning = totalEarning;
             }
 
@@ -781,12 +788,6 @@ export const assignDeliveryRider = async (req, res) => {
                 riderMobile: rider.mobile
             };
             io.to(SOCKET_ROOMS.user(customerIdStr)).emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, riderData); // mapped 'order:rider-assigned' -> DELIVERY_ASSIGNED for customer? Or keeping 'order:rider-assigned' event name?
-            // Actually let's use the explicit string 'order:rider-assigned' if not in SOCKET_EVENTS, or define it. 
-            // Checking sockets file: 'order:rider-assigned' doesn't seem to be a standard constant in my previous views, 
-            // but DELIVERY_ASSIGNED is 'delivery:assigned'. 
-            // I'll stick to direct string 'order:rider-assigned' for safety unless I'm sure.
-            // OR better, checking deliveryController used DELIVERY_ASSIGNED for rider.
-            // But customer listens to what? Previous code said 'order:rider-assigned'.
             io.to(SOCKET_ROOMS.user(customerIdStr)).emit('order:rider-assigned', riderData);
 
             io.to(SOCKET_ROOMS.order(order._id.toString())).emit('order:rider-assigned', riderData);

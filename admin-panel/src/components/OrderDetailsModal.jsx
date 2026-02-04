@@ -421,19 +421,13 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                 className="w-full bg-gray-50 border-none rounded-2xl px-6 py-4 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 mb-6 focus:bg-white"
                             >
                                 <option value="">Select New Status</option>
-                                {statusOptions.map(status => {
-                                    const isDeliveryStatus = ['assigned', 'picked_up', 'out-for-delivery', 'in_transit', 'delivered'].includes(status);
-                                    const isDisabled = isDeliveryStatus && !order.riderId;
-                                    return (
-                                        <option
-                                            key={status}
-                                            value={status}
-                                            disabled={isDisabled}
-                                        >
-                                            {status.toUpperCase()} {isDisabled ? '(Assign Rider First)' : ''}
+                                {statusOptions
+                                    .filter(status => ['confirmed', 'preparing', 'ready', 'cancelled'].includes(status))
+                                    .map(status => (
+                                        <option key={status} value={status}>
+                                            {status.toUpperCase().replace('_', ' ')}
                                         </option>
-                                    );
-                                })}
+                                    ))}
                             </select>
                             <div className="flex gap-3">
                                 <button
