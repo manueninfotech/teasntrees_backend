@@ -46,8 +46,19 @@ export default function Categories() {
             const params = new URLSearchParams({ page: pagination.currentPage, limit: pagination.limit, sortBy: filters.sortBy, order: filters.order });
             if (searchTerm) params.append('search', searchTerm);
             const response = await api.get(`/admin/categories?${params.toString()}`);
-            return response.data;
-        }
+            const data = response.data;
+            const cacheKey = `categories-cache-${pagination.currentPage}-${filters.sortBy}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cacheKey = `categories-cache-${pagination.currentPage}-${filters.sortBy}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0
     });
 
     const isSyncing = isFetching;
@@ -125,9 +136,7 @@ export default function Categories() {
             {error && <div className="bg-red-50 border-2 border-red-100 text-red-700 px-6 py-4 rounded-2xl font-black text-xs uppercase">{error}</div>}
 
             <div className="min-h-[400px]">
-                {loading && categories.length === 0 ? (
-                    <CardSkeleton />
-                ) : categories.length > 0 ? (
+                {categories.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {categories.map((category) => (
                             <div key={category._id} className="bg-white rounded-[2rem] shadow-sm border-2 border-gray-50 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all flex flex-col group">

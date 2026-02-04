@@ -42,8 +42,17 @@ export default function Orders() {
         queryKey: ['orders-stats'],
         queryFn: async () => {
             const response = await api.get('/admin/orders/stats');
-            return response.data.data;
-        }
+            const data = response.data.data;
+            localStorage.setItem('orders-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('orders-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0
     });
 
     // Fetch Orders
@@ -62,8 +71,20 @@ export default function Orders() {
             if (searchTerm) params.append('search', searchTerm);
 
             const response = await api.get(`/admin/orders?${params.toString()}`);
-            return response.data;
-        }
+            const data = response.data;
+            // Cache with filter key to maintain different caches for different filters
+            const cacheKey = `orders-cache-${pagination.currentPage}-${filters.status}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cacheKey = `orders-cache-${pagination.currentPage}-${filters.status}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0
     });
 
     const isSyncing = isFetching;
@@ -168,9 +189,7 @@ export default function Orders() {
             </div>
 
             <div className="min-h-[400px]">
-                {loading && orders.length === 0 ? (
-                    <OrderCardSkeleton />
-                ) : orders.length > 0 ? (
+                {orders.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {orders.map((order) => (
                             <div key={order._id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group">

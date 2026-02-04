@@ -8,15 +8,21 @@ import UserCard from '../components/UserCard';
 import UserDetailsModal from '../components/UserDetailsModal';
 
 const UsersPage = () => {
-    const [users, setUsers] = useState([]);
+    const [users, setUsers] = useState(() => {
+        const cached = localStorage.getItem('users_cache_default');
+        return cached ? JSON.parse(cached) : [];
+    });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        customers: 0,
-        riders: 0,
-        admins: 0,
-        managers: 0
+    const [stats, setStats] = useState(() => {
+        const cached = localStorage.getItem('users_stats_cache');
+        return cached ? JSON.parse(cached) : {
+            totalUsers: 0,
+            customers: 0,
+            riders: 0,
+            admins: 0,
+            managers: 0
+        };
     });
 
     // Filters
@@ -42,6 +48,7 @@ const UsersPage = () => {
             const response = await api.get('/admin/users/stats');
             if (response.data.success) {
                 setStats(response.data.data);
+                localStorage.setItem('users_stats_cache', JSON.stringify(response.data.data));
             }
         } catch (error) {
             console.error('Error fetching stats:', error);
@@ -60,6 +67,9 @@ const UsersPage = () => {
             const response = await api.get('/admin/users', { params });
             if (response.data.success) {
                 setUsers(response.data.data);
+                if (page === 1 && roleFilter === 'all' && !search) {
+                    localStorage.setItem('users_cache_default', JSON.stringify(response.data.data));
+                }
                 setTotalPages(response.data.pagination.totalPages);
             }
             setError(null);
@@ -142,7 +152,7 @@ const UsersPage = () => {
                     icon={Users}
                     theme="blue"
                     desc="Registered Users"
-                    loading={!stats}
+                    loading={loading && !stats.totalUsers}
                 />
                 <StatCard
                     label="Customers"
@@ -150,7 +160,7 @@ const UsersPage = () => {
                     icon={User}
                     theme="green"
                     desc="App Users"
-                    loading={!stats}
+                    loading={loading && !stats.totalUsers}
                 />
                 <StatCard
                     label="Riders"
@@ -158,7 +168,7 @@ const UsersPage = () => {
                     icon={Bike}
                     theme="orange"
                     desc="Delivery Fleet"
-                    loading={!stats}
+                    loading={loading && !stats.totalUsers}
                 />
                 <StatCard
                     label="Staff"
@@ -166,7 +176,7 @@ const UsersPage = () => {
                     icon={Shield}
                     theme="purple"
                     desc="Admins & Managers"
-                    loading={!stats}
+                    loading={loading && !stats.totalUsers}
                 />
             </div>
 
@@ -200,7 +210,7 @@ const UsersPage = () => {
             </div>
 
             {/* Content Area */}
-            {loading ? (
+            {loading && users.length === 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
                     {[1, 2, 3, 4, 5, 6].map(i => (
                         <div key={i} className="bg-white rounded-[2rem] border border-gray-100 h-64"></div>

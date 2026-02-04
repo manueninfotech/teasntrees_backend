@@ -41,8 +41,16 @@ const CartAnalytics = () => {
         queryKey: ['cart-analytics-stats'],
         queryFn: async () => {
             const response = await api.get('/admin/cart-analytics');
-            return response.data.data;
-        }
+            const data = response.data.data;
+            localStorage.setItem('cart-analytics-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('cart-analytics-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     // Fetch Abandoned Carts
@@ -50,8 +58,18 @@ const CartAnalytics = () => {
         queryKey: ['cart-abandoned', page],
         queryFn: async () => {
             const response = await api.get(`/admin/cart-analytics/abandoned?page=${page}&limit=10`);
-            return response.data.data;
-        }
+            const data = response.data.data;
+            const cacheKey = `cart-abandoned-cache-${page}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cacheKey = `cart-abandoned-cache-${page}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     const isSyncing = statsFetching || tableFetching;
@@ -230,9 +248,7 @@ const CartAnalytics = () => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                        {statsLoading ? (
-                            <PopularSkeleton />
-                        ) : stats?.popularCartItems?.length === 0 ? (
+                        {stats?.popularCartItems?.length === 0 ? (
                             <div className="flex-1 flex flex-col items-center justify-center text-gray-300">
                                 <ShoppingBag className="w-10 h-10 mb-2 opacity-50" />
                                 <span className="text-[10px] font-black uppercase tracking-widest">No active items</span>
@@ -274,12 +290,7 @@ const CartAnalytics = () => {
                     )}
                 </div>
 
-                {tableLoading && abandonedCarts.length === 0 ? (
-                    <div className="p-12 text-center text-gray-300">
-                        <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin grayscale opacity-50" />
-                        <p className="text-xs font-black uppercase tracking-widest">Loading data...</p>
-                    </div>
-                ) : abandonedCarts.length === 0 ? (
+                {abandonedCarts.length === 0 ? (
                     <div className="p-20 text-center">
                         <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
                             <Users className="w-8 h-8" />

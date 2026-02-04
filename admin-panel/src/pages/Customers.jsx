@@ -30,8 +30,16 @@ const Customers = () => {
         queryKey: ['customers-stats'],
         queryFn: async () => {
             const response = await api.get('/admin/customers/stats');
-            return response.data.data;
-        }
+            const data = response.data.data;
+            localStorage.setItem('customers-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('customers-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     // Fetch Customers
@@ -44,8 +52,19 @@ const Customers = () => {
                 params.append('isActive', filterStatus === 'active' ? 'true' : 'false');
             }
             const response = await api.get(`/admin/customers?${params.toString()}`);
-            return response.data;
-        }
+            const data = response.data;
+            const cacheKey = `customers-cache-${page}-${filterStatus}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cacheKey = `customers-cache-${page}-${filterStatus}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0
     });
 
     const isSyncing = isFetching;
@@ -136,9 +155,7 @@ const Customers = () => {
             </div>
 
             <div className="min-h-[400px]">
-                {loading && customers.length === 0 ? (
-                    <CardSkeleton />
-                ) : customers.length > 0 ? (
+                {customers.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {customers.map((customer) => (
                             <CustomerCard key={customer._id} customer={customer} onViewDetails={handleViewDetails} onToggleStatus={handleToggleStatus} onDelete={handleDelete} />

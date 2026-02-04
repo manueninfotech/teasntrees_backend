@@ -45,8 +45,18 @@ export default function Riders() {
                     r.vehicleNumber?.toLowerCase().includes(searchTerm.toLowerCase())
                 );
             }
+            const cacheKey = `riders-cache-${filters.status}`;
+            localStorage.setItem(cacheKey, JSON.stringify(riders));
             return riders;
         },
+        initialData: () => {
+            const cacheKey = `riders-cache-${filters.status}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0,
         enabled: activeTab === 'all'
     });
 
@@ -55,8 +65,16 @@ export default function Riders() {
         queryKey: ['riders-pending'],
         queryFn: async () => {
             const response = await api.get('/admin/riders/pending');
-            return response.data.data || [];
-        }
+            const data = response.data.data || [];
+            localStorage.setItem('riders-pending-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('riders-pending-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     // Fetch Stats
@@ -65,13 +83,21 @@ export default function Riders() {
         queryFn: async () => {
             const allResponse = await api.get('/admin/riders?limit=1000');
             const allRiders = allResponse.data.data?.riders || [];
-            return {
+            const data = {
                 totalRiders: allRiders.length,
                 activeRiders: allRiders.filter(r => r.isOnline).length,
                 pendingApprovals: allRiders.filter(r => !r.isApproved).length,
                 totalDeliveries: allRiders.reduce((sum, r) => sum + (r.totalDeliveries || 0), 0)
             };
-        }
+            localStorage.setItem('riders-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('riders-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     useEffect(() => {
@@ -190,9 +216,7 @@ export default function Riders() {
             </div>
 
             <div className="min-h-[400px]">
-                {loading && displayRiders.length === 0 ? (
-                    <CardSkeleton />
-                ) : displayRiders.length > 0 ? (
+                {displayRiders.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {displayRiders.map((rider) => (
                             <RiderCard

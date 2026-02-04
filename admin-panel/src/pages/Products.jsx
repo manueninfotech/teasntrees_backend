@@ -50,8 +50,16 @@ export default function Products() {
         queryKey: ['categories-list'],
         queryFn: async () => {
             const response = await api.get('/admin/categories?limit=100');
-            return response.data.data || [];
-        }
+            const data = response.data.data || [];
+            localStorage.setItem('categories-list-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('categories-list-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 60000 // Cache categories for 1 minute
     });
 
     // Fetch Products
@@ -65,8 +73,19 @@ export default function Products() {
                 params.append('isAvailable', filters.availability === 'available' ? 'true' : 'false');
             }
             const response = await api.get(`/admin/products?${params.toString()}`);
-            return response.data;
-        }
+            const data = response.data;
+            const cacheKey = `products-cache-${pagination.currentPage}-${filters.category}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cacheKey = `products-cache-${pagination.currentPage}-${filters.category}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0
     });
 
     const isSyncing = isFetching;
@@ -203,9 +222,7 @@ export default function Products() {
             )}
 
             <div className="min-h-[400px]">
-                {loading && products.length === 0 ? (
-                    <CardSkeleton />
-                ) : products.length > 0 ? (
+                {products.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {products.map((product) => (
                             <div key={product._id} className={`group bg-white rounded-[2rem] shadow-sm border-2 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all ${selectedProducts.has(product._id) ? 'border-indigo-600 ring-4 ring-indigo-50' : 'border-gray-50'}`}>

@@ -43,8 +43,16 @@ export default function SeasonalProducts() {
         queryKey: ['products-seasonal-all'],
         queryFn: async () => {
             const response = await api.get('/admin/products/seasonal/all');
-            return response.data.data || [];
-        }
+            const data = response.data.data || [];
+            localStorage.setItem('products-seasonal-all-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('products-seasonal-all-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     // Fetch Out-of-Season Products
@@ -52,8 +60,16 @@ export default function SeasonalProducts() {
         queryKey: ['products-seasonal-out-of-season'],
         queryFn: async () => {
             const response = await api.get('/admin/products/seasonal/out-of-season');
-            return response.data.data || [];
-        }
+            const data = response.data.data || [];
+            localStorage.setItem('products-seasonal-out-of-season-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('products-seasonal-out-of-season-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     useEffect(() => {
@@ -113,9 +129,7 @@ export default function SeasonalProducts() {
                 </div>
 
                 <div className="p-8">
-                    {loading && displayProducts.length === 0 ? (
-                        <ProductSkeleton />
-                    ) : filteredProducts.length > 0 ? (
+                    {filteredProducts.length > 0 ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
                             {filteredProducts.map((product) => (
                                 <div key={product._id} className="group bg-white rounded-[2rem] border-2 border-gray-50 overflow-hidden hover:shadow-2xl transition-all">

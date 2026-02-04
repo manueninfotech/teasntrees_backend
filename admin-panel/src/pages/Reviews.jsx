@@ -28,8 +28,16 @@ const Reviews = () => {
         queryKey: ['reviews-stats'],
         queryFn: async () => {
             const response = await api.get('/admin/reviews/stats');
-            return response.data.data;
-        }
+            const data = response.data.data;
+            localStorage.setItem('reviews-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('reviews-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     // Fetch Reviews
@@ -39,8 +47,19 @@ const Reviews = () => {
             const params = { page, limit: 10, type: reviewType };
             if (activeTab !== 'all') params.status = activeTab;
             const response = await api.get('/admin/reviews', { params });
-            return response.data.data;
-        }
+            const data = response.data.data;
+            const cacheKey = `reviews-cache-${reviewType}-${activeTab}-${page}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cacheKey = `reviews-cache-${reviewType}-${activeTab}-${page}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0
     });
 
     const reviews = reviewsData?.reviews || [];
@@ -122,9 +141,7 @@ const Reviews = () => {
                 </div>
 
                 <div className="p-8 flex-1">
-                    {loading && reviews.length === 0 ? (
-                        <CardSkeleton />
-                    ) : reviews.length === 0 ? (
+                    {reviews.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-gray-200 font-black uppercase tracking-widest opacity-20 py-20"><MessageSquare className="w-20 h-20 mb-4" /> No reviews found</div>
                     ) : (
                         <div className="space-y-6">

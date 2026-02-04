@@ -42,8 +42,18 @@ export default function Managers() {
                     m.mobile?.includes(searchTerm)
                 );
             }
+            const cacheKey = `managers-cache-${filters.status}`;
+            localStorage.setItem(cacheKey, JSON.stringify(managers));
             return managers;
         },
+        initialData: () => {
+            const cacheKey = `managers-cache-${filters.status}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0,
         enabled: activeTab === 'all'
     });
 
@@ -52,8 +62,16 @@ export default function Managers() {
         queryKey: ['managers-pending'],
         queryFn: async () => {
             const response = await api.get('/admin/managers/pending');
-            return response.data.data || [];
-        }
+            const data = response.data.data || [];
+            localStorage.setItem('managers-pending-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('managers-pending-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     // Fetch Stats
@@ -62,12 +80,20 @@ export default function Managers() {
         queryFn: async () => {
             const response = await api.get('/admin/managers?limit=1000');
             const all = response.data.data?.managers || [];
-            return {
+            const data = {
                 total: all.length,
                 pending: all.filter(m => !m.isApproved).length,
                 active: all.filter(m => m.isActive).length
             };
-        }
+            localStorage.setItem('managers-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('managers-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     useEffect(() => {
@@ -180,9 +206,7 @@ export default function Managers() {
             </div>
 
             <div className="min-h-[400px]">
-                {loading && displayData.length === 0 ? (
-                    <CardSkeleton />
-                ) : displayData.length > 0 ? (
+                {displayData.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                         {displayData.map(manager => (
                             <div key={manager._id} className="bg-white rounded-[2rem] shadow-sm border border-gray-100 p-6 hover:shadow-xl transition-all group">

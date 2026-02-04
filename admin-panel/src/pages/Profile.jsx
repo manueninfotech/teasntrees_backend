@@ -8,14 +8,17 @@ const Profile = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    const [profile, setProfile] = useState({
-        name: '',
-        email: '',
-        mobile: '',
-        address: '',
-        role: '',
-        createdAt: '',
-        isProfileComplete: false
+    const [profile, setProfile] = useState(() => {
+        const cached = localStorage.getItem('profile_cache');
+        return cached ? JSON.parse(cached) : {
+            name: '',
+            email: '',
+            mobile: '',
+            address: '',
+            role: '',
+            createdAt: '',
+            isProfileComplete: false
+        };
     });
     const [error, setError] = useState(null);
     const [successMessage, setSuccessMessage] = useState('');
@@ -30,7 +33,7 @@ const Profile = () => {
             const response = await api.get('/admin/profile');
             if (response.data.success) {
                 const userData = response.data.data.user;
-                setProfile({
+                const newProfile = {
                     name: userData.name || '',
                     email: userData.email || '',
                     mobile: userData.mobile || '',
@@ -38,7 +41,9 @@ const Profile = () => {
                     role: userData.role || '',
                     createdAt: userData.createdAt || '',
                     isProfileComplete: userData.isProfileComplete
-                });
+                };
+                setProfile(newProfile);
+                localStorage.setItem('profile_cache', JSON.stringify(newProfile));
             }
         } catch (err) {
             console.error('Failed to fetch profile:', err);
@@ -89,7 +94,7 @@ const Profile = () => {
         }
     };
 
-    if (loading) {
+    if (loading && !profile.name) {
         return (
             <div className="flex justify-center items-center h-screen bg-gray-50">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>

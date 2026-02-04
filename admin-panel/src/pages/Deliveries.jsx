@@ -31,8 +31,16 @@ const Deliveries = () => {
         queryKey: ['deliveries-stats'],
         queryFn: async () => {
             const response = await api.get('/admin/deliveries/stats');
-            return response.data.data;
-        }
+            const data = response.data.data;
+            localStorage.setItem('deliveries-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('deliveries-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        staleTime: 0
     });
 
     // Fetch Deliveries
@@ -42,8 +50,19 @@ const Deliveries = () => {
             const params = new URLSearchParams({ page, limit: 10, sortBy: 'createdAt', order: 'desc' });
             if (statusFilter !== 'all') params.append('status', statusFilter);
             const response = await api.get(`/admin/deliveries?${params.toString()}`);
-            return response.data;
-        }
+            const data = response.data;
+            const cacheKey = `deliveries-cache-${page}-${statusFilter}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cacheKey = `deliveries-cache-${page}-${statusFilter}`;
+            const cached = localStorage.getItem(cacheKey);
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        placeholderData: (previousData) => previousData,
+        refetchOnWindowFocus: false,
+        staleTime: 0
     });
 
     const isSyncing = deliveriesFetching;
@@ -153,64 +172,61 @@ const Deliveries = () => {
                 </div>
 
                 <div className="flex-1">
-                    {loading && deliveries.length === 0 ? (
-                        <TableSkeleton />
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="text-[10px] text-gray-400 font-black uppercase tracking-widest bg-gray-50/30">
-                                        <th className="px-8 py-6">Order ID</th>
-                                        <th className="px-8 py-6">Status</th>
-                                        <th className="px-8 py-6">Rider</th>
-                                        <th className="px-8 py-6">Location</th>
-                                        <th className="px-8 py-6 text-right">View</th>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="text-[10px] text-gray-400 font-black uppercase tracking-widest bg-gray-50/30">
+                                    <th className="px-8 py-6">Order ID</th>
+                                    <th className="px-8 py-6">Status</th>
+                                    <th className="px-8 py-6">Rider</th>
+                                    <th className="px-8 py-6">Location</th>
+                                    <th className="px-8 py-6 text-right">View</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50">
+                                {filteredDeliveries.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" className="px-8 py-32 text-center text-gray-200 font-black uppercase tracking-[0.2em]">Zero transmissions found</td>
                                     </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50">
-                                    {filteredDeliveries.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="5" className="px-8 py-32 text-center text-gray-200 font-black uppercase tracking-[0.2em]">Zero transmissions found</td>
+                                ) : (
+                                    filteredDeliveries.map((delivery) => (
+                                        <tr key={delivery._id} className="group hover:bg-indigo-50/20 transition-all duration-300">
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="w-12 h-12 bg-gray-50 border border-gray-100 text-indigo-600 rounded-2xl flex items-center justify-center font-black group-hover:scale-110 transition-transform">#{delivery.orderId?.orderNumber?.slice(-4)}</div>
+                                                    <div className="min-w-0">
+                                                        <p className="text-xs font-black text-gray-900 uppercase mb-0.5">{delivery.customerId?.name || '---'}</p>
+                                                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Initiated {new Date(delivery.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 ${getStatusColor(delivery.status)}`}>
+                                                    {getStatusIcon(delivery.status)} {delivery.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-8 py-6">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center"><Bike className="w-3 h-3 text-gray-400" /></div>
+                                                    <span className="text-xs font-black text-gray-700 uppercase">{delivery.riderId?.name || 'WAITING'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-8 py-6 font-black uppercase text-[10px] text-gray-400 tracking-widest">
+                                                <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> LIVE SECTOR</div>
+                                            </td>
+                                            <td className="px-8 py-6 text-right">
+                                                <button onClick={() => handleViewDetails(delivery)} className="p-3 bg-gray-50 text-gray-400 hover:bg-black hover:text-white rounded-2xl transition-all shadow-sm">
+                                                    <Eye className="w-5 h-5" />
+                                                </button>
+                                            </td>
                                         </tr>
-                                    ) : (
-                                        filteredDeliveries.map((delivery) => (
-                                            <tr key={delivery._id} className="group hover:bg-indigo-50/20 transition-all duration-300">
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 bg-gray-50 border border-gray-100 text-indigo-600 rounded-2xl flex items-center justify-center font-black group-hover:scale-110 transition-transform">#{delivery.orderId?.orderNumber?.slice(-4)}</div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-xs font-black text-gray-900 uppercase mb-0.5">{delivery.customerId?.name || '---'}</p>
-                                                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Initiated {new Date(delivery.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 ${getStatusColor(delivery.status)}`}>
-                                                        {getStatusIcon(delivery.status)} {delivery.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-6 h-6 bg-gray-100 rounded-lg flex items-center justify-center"><Bike className="w-3 h-3 text-gray-400" /></div>
-                                                        <span className="text-xs font-black text-gray-700 uppercase">{delivery.riderId?.name || 'WAITING'}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 font-black uppercase text-[10px] text-gray-400 tracking-widest">
-                                                    <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> LIVE SECTOR</div>
-                                                </td>
-                                                <td className="px-8 py-6 text-right">
-                                                    <button onClick={() => handleViewDetails(delivery)} className="p-3 bg-gray-50 text-gray-400 hover:bg-black hover:text-white rounded-2xl transition-all shadow-sm">
-                                                        <Eye className="w-5 h-5" />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+
 
                 {totalPages > 1 && (
                     <div className="p-6 bg-gray-50/20 border-t border-gray-50 flex justify-center gap-2">

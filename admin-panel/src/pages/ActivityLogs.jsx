@@ -10,9 +10,15 @@ import LogDetailsModal from '../components/LogDetailsModal';
 import { useSocket } from '../context/SocketContext';
 
 const ActivityLogs = () => {
-    const [logs, setLogs] = useState([]);
+    const [logs, setLogs] = useState(() => {
+        const cached = localStorage.getItem('activity_logs_cache_default');
+        return cached ? JSON.parse(cached) : [];
+    });
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState(null);
+    const [stats, setStats] = useState(() => {
+        const cached = localStorage.getItem('activity_logs_stats_cache');
+        return cached ? JSON.parse(cached) : null;
+    });
     const [showModal, setShowModal] = useState(false);
     const [selectedLog, setSelectedLog] = useState(null);
 
@@ -53,6 +59,10 @@ const ActivityLogs = () => {
                     if (page === 1) {
                         // Keep list size reasonable, e.g., 20 items
                         const updated = [newLog, ...prevLogs].slice(0, 20);
+                        // Cache default view if no filters are applied
+                        if (!filters.action && !filters.resource && !filters.search && !filters.startDate && !filters.endDate) {
+                            localStorage.setItem('activity_logs_cache_default', JSON.stringify(updated));
+                        }
                         return updated;
                     }
                     return prevLogs;
@@ -61,11 +71,13 @@ const ActivityLogs = () => {
                 // Update stats locally
                 setStats(prevStats => {
                     if (!prevStats) return prevStats;
-                    return {
+                    const updatedStats = {
                         ...prevStats,
                         totalLogs: prevStats.totalLogs + 1,
                         todayLogs: prevStats.todayLogs + 1
                     };
+                    localStorage.setItem('activity_logs_stats_cache', JSON.stringify(updatedStats));
+                    return updatedStats;
                 });
             };
 
@@ -92,8 +104,13 @@ const ActivityLogs = () => {
             };
             const response = await api.get('/admin/activity-logs', { params });
             if (response.data.success) {
-                setLogs(response.data.data);
+                const newLogs = response.data.data;
+                setLogs(newLogs);
                 setTotalPages(response.data.pagination.totalPages);
+                // Cache default view if no filters are applied and on the first page
+                if (page === 1 && !filters.action && !filters.resource && !filters.search && !filters.startDate && !filters.endDate) {
+                    localStorage.setItem('activity_logs_cache_default', JSON.stringify(newLogs));
+                }
             }
         } catch (error) {
             console.error('Error fetching logs:', error);
@@ -107,6 +124,7 @@ const ActivityLogs = () => {
             const response = await api.get('/admin/activity-logs/stats');
             if (response.data.success) {
                 setStats(response.data.data);
+                localStorage.setItem('activity_logs_stats_cache', JSON.stringify(response.data.data));
             }
         } catch (error) {
             console.error('Error fetching stats:', error);
@@ -294,7 +312,7 @@ const ActivityLogs = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
-                            {loading ? (
+                            {loading && logs.length === 0 ? (
                                 Array.from({ length: 5 }).map((_, i) => (
                                     <tr key={i} className="animate-pulse">
                                         <td className="px-8 py-6"><div className="h-10 w-10 bg-gray-50 rounded-full"></div></td>
