@@ -20,7 +20,7 @@ const UserCard = ({ user, onToggleStatus, onDelete, onViewDetails }) => {
     const isActive = user.isActive !== false;
 
     return (
-        <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all group flex flex-col">
+        <div className="bg-white rounded-[2rem] shadow-sm border-2 border-gray-50 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all group flex flex-col">
             {/* Header Area */}
             <div className="p-6 pb-0 flex items-start justify-between">
                 <div className="flex items-center gap-4">

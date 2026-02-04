@@ -108,25 +108,20 @@ const CartAnalytics = () => {
     };
 
     return (
-        <div className="space-y-8 pb-12">
+        <div className="space-y-6 pb-12">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 uppercase tracking-tighter">
-                        Cart Analytics
-                    </h1>
-                    <p className="text-gray-500 font-bold tracking-tight mt-1 flex items-center gap-2">
-                        <Activity className="w-4 h-4 text-emerald-500" />
-                        Real-time abandonment insights
-                    </p>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Cart Analytics</h1>
+                    <p className="text-gray-500 mt-1 font-bold">Real-time abandonment insights</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button onClick={handleSync} disabled={isSyncing} className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-lg transition-all disabled:opacity-50 group">
+                        <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-emerald-600' : 'text-gray-400 group-hover:text-emerald-600'}`} />
+                    </button>
                     <button onClick={handleExport} disabled={isExporting} className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1 disabled:opacity-50 hover:bg-gray-900">
                         <Download className="w-4 h-4" />
                         {isExporting ? 'Exporting...' : 'Export CSV'}
-                    </button>
-                    <button onClick={handleSync} disabled={isSyncing} className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-lg transition-all disabled:opacity-50 hover:-translate-y-1 group">
-                        <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-emerald-600' : 'text-gray-400 group-hover:text-emerald-600'}`} />
                     </button>
                 </div>
             </div>
@@ -137,7 +132,7 @@ const CartAnalytics = () => {
                     label="Active Carts"
                     value={stats?.totalActiveCarts || 0}
                     icon={ShoppingCart}
-                    theme="indigo"
+                    theme="blue"
                     desc="Currently Shopping"
                     loading={statsLoading}
                 />
@@ -153,7 +148,7 @@ const CartAnalytics = () => {
                     label="Potential Revenue"
                     value={`₹${stats?.totalAbandonedValue || (stats?.totalActiveCarts * stats?.averageCartValue) || 0}`}
                     icon={DollarSign}
-                    theme="emerald"
+                    theme="green"
                     desc="Locked in carts"
                     loading={statsLoading}
                 />
@@ -161,7 +156,7 @@ const CartAnalytics = () => {
                     label="Avg. Cart Size"
                     value={`₹${stats?.averageCartValue || 0}`}
                     icon={TrendingUp}
-                    theme="rose"
+                    theme="purple"
                     desc="Per customer"
                     loading={statsLoading}
                 />
@@ -171,11 +166,8 @@ const CartAnalytics = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                 {/* Main Chart Area */}
-                <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <TrendingUp className="w-32 h-32" />
-                    </div>
-                    <div className="flex items-center justify-between mb-8 relative z-10">
+                <div className="lg:col-span-2 bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 relative overflow-hidden group">
+                    <div className="flex items-center justify-between mb-8">
                         <div>
                             <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Abandonment Trend</h2>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Value over time</p>
@@ -229,7 +221,7 @@ const CartAnalytics = () => {
                 </div>
 
                 {/* Hot Items Sidebar */}
-                <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm p-8 flex flex-col h-full relative overflow-hidden">
+                <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 flex flex-col h-full relative overflow-hidden">
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">Trending Items</h2>
@@ -266,11 +258,10 @@ const CartAnalytics = () => {
             </div>
 
             {/* Abandoned Carts Table */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50/30">
                     <div>
                         <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-orange-500" />
                             Recovery Priority
                         </h2>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">Carts idle for 24h+</p>
@@ -330,10 +321,10 @@ const CartAnalytics = () => {
                                         </td>
                                         <td className="px-8 py-6">
                                             <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest border ${cart.daysAbandoned > 7
-                                                    ? 'bg-red-50 text-red-600 border-red-100'
-                                                    : cart.daysAbandoned > 3
-                                                        ? 'bg-orange-50 text-orange-600 border-orange-100'
-                                                        : 'bg-indigo-50 text-indigo-600 border-indigo-100'
+                                                ? 'bg-red-50 text-red-600 border-red-100'
+                                                : cart.daysAbandoned > 3
+                                                    ? 'bg-orange-50 text-orange-600 border-orange-100'
+                                                    : 'bg-indigo-50 text-indigo-600 border-indigo-100'
                                                 }`}>
                                                 <Clock className="w-3 h-3" />
                                                 {cart.daysAbandoned === 0 ? 'Today' : `${cart.daysAbandoned}d Ago`}
@@ -370,8 +361,8 @@ const CartAnalytics = () => {
                                 key={p}
                                 onClick={() => setPage(p)}
                                 className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${page === p
-                                        ? 'bg-black text-white shadow-lg scale-110'
-                                        : 'bg-white text-gray-400 hover:bg-gray-100'
+                                    ? 'bg-black text-white shadow-lg scale-110'
+                                    : 'bg-white text-gray-400 hover:bg-gray-100'
                                     }`}
                             >
                                 {p}
@@ -388,42 +379,27 @@ const CartAnalytics = () => {
 
 const StatCard = ({ label, value, icon: Icon, theme, desc, loading }) => {
     const themes = {
-        indigo: 'from-indigo-500 to-violet-600 shadow-indigo-200 text-indigo-600 bg-indigo-50',
-        orange: 'from-orange-400 to-red-500 shadow-orange-200 text-orange-600 bg-orange-50',
-        emerald: 'from-emerald-400 to-teal-500 shadow-emerald-200 text-emerald-600 bg-emerald-50',
-        rose: 'from-rose-400 to-pink-500 shadow-rose-200 text-rose-600 bg-rose-50',
+        blue: 'from-blue-600 to-blue-700 shadow-blue-100 text-blue-600 bg-blue-50',
+        orange: 'from-orange-500 to-orange-600 shadow-orange-100 text-orange-600 bg-orange-50',
+        purple: 'from-purple-600 to-purple-700 shadow-purple-100 text-purple-600 bg-purple-50',
+        green: 'from-emerald-600 to-emerald-700 shadow-emerald-100 text-emerald-600 bg-emerald-50'
     };
-
-    // Default to indigo if theme not found
-    const style = themes[theme] || themes.indigo;
+    const style = themes[theme] || themes.blue;
     const [gradientFrom, gradientTo, shadow, textColor, bgColor] = style.split(' ');
 
-    // Manual gradient construction because splitting string classes is tricky with Tailwind compiler sometimes, 
-    // but assuming these are standard utility classes it works.
-
     return (
-        <div className="relative overflow-hidden bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 group">
-            {/* Background Decor */}
-            <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full bg-gradient-to-br ${gradientFrom} ${gradientTo} opacity-10 group-hover:scale-150 transition-transform duration-500`} />
-
-            <div className="relative flex items-start justify-between">
-                <div>
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${bgColor} mb-4`}>
-                        <div className={`w-1.5 h-1.5 rounded-full bg-current ${textColor} animate-pulse`} />
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${textColor}`}>{label}</span>
+        <div className="relative overflow-hidden bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+            <div className="relative flex items-center justify-between">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{label}</p>
+                    <h3 className={`text-3xl font-black text-gray-900 tracking-tight ${loading ? 'animate-pulse opacity-50' : ''}`}>{value}</h3>
+                    <div className={`flex items-center gap-1.5 py-1 px-2 ${bgColor} rounded-lg w-fit`}>
+                        <ArrowRight className={`w-3 h-3 ${textColor}`} />
+                        <span className={`text-[10px] font-black uppercase ${textColor}`}>{desc}</span>
                     </div>
-                    {loading ? (
-                        <div className="h-8 w-24 bg-gray-100 rounded-lg animate-pulse mb-1" />
-                    ) : (
-                        <h3 className="text-3xl font-black text-gray-900 tracking-tighter mb-1">{value}</h3>
-                    )}
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide flex items-center gap-1">
-                        {desc}
-                    </p>
                 </div>
-
-                <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg transform group-hover:rotate-12 transition-transform duration-300`}>
-                    <Icon className="w-6 h-6" />
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg ${shadow} transform group-hover:rotate-12 transition-all`}>
+                    <Icon className="w-7 h-7" />
                 </div>
             </div>
         </div>
