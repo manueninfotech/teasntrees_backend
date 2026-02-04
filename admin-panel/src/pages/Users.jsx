@@ -3,6 +3,7 @@ import {
     Users, Search, Filter, Shield,
     User, Bike, Briefcase, ArrowRight, RefreshCw, Plus
 } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
 import api from '../utils/api';
 import UserCard from '../components/UserCard';
 import UserDetailsModal from '../components/UserDetailsModal';
@@ -35,9 +36,27 @@ const UsersPage = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+    const { socket } = useSocket();
+
     useEffect(() => {
         fetchStats();
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleUpdate = () => {
+            fetchStats();
+            fetchUsers();
+        };
+        socket.on('user:registered', handleUpdate);
+        socket.on('user:deleted', handleUpdate);
+        socket.on('user:updated', handleUpdate);
+        return () => {
+            socket.off('user:registered', handleUpdate);
+            socket.off('user:deleted', handleUpdate);
+            socket.off('user:updated', handleUpdate);
+        };
+    }, [socket, page, roleFilter, search]);
 
     useEffect(() => {
         fetchUsers();

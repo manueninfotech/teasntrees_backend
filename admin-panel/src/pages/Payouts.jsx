@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
     Wallet, IndianRupee, Clock, CheckCircle2,
     ArrowRight, Loader2, RefreshCw, AlertCircle,
     User, Bike, Calendar
 } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
 import api from '../utils/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -19,6 +20,7 @@ const Payouts = () => {
     const queryClient = useQueryClient();
     const [processingId, setProcessingId] = useState(null);
     const [notification, setNotification] = useState(null);
+    const { socket } = useSocket();
 
     const { data: stats = [], isLoading: loading, isFetching, refetch } = useQuery({
         queryKey: ['payouts-stats'],
@@ -35,6 +37,21 @@ const Payouts = () => {
         placeholderData: (previousData) => previousData,
         staleTime: 0
     });
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleUpdate = () => {
+            queryClient.invalidateQueries(['payouts-stats']);
+        };
+        socket.on('payout:updated', handleUpdate);
+        socket.on('payout:processed', handleUpdate);
+        socket.on('order:delivered', handleUpdate);
+        return () => {
+            socket.off('payout:updated', handleUpdate);
+            socket.off('payout:processed', handleUpdate);
+            socket.off('order:delivered', handleUpdate);
+        };
+    }, [socket, queryClient]);
 
     const isSyncing = isFetching;
 

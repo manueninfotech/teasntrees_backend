@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Circle, FeatureGroup, Polygon, Popup } from 'react-leaflet';
 import { EditControl } from 'react-leaflet-draw';
 import { MapPin, Save, X, AlertCircle } from 'lucide-react';
+import { useSocket } from '../../context/SocketContext';
 import api from '../../utils/api';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-draw/dist/leaflet.draw.css';
@@ -25,6 +26,7 @@ const ServiceAreas = () => {
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const { socket } = useSocket();
 
     // Modal State
     const [showModal, setShowModal] = useState(false);
@@ -37,6 +39,19 @@ const ServiceAreas = () => {
     useEffect(() => {
         fetchSettings();
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleUpdate = () => {
+            fetchSettings();
+        };
+        socket.on('settings:updated', handleUpdate); // Assuming service areas are part of settings updates
+        socket.on('zone:updated', handleUpdate);
+        return () => {
+            socket.off('settings:updated', handleUpdate);
+            socket.off('zone:updated', handleUpdate);
+        };
+    }, [socket]);
 
     const fetchSettings = async () => {
         try {

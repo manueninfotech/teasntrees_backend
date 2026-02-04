@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Building, Phone, Mail, Clock, MapPin, DollarSign, Bike } from 'lucide-react';
+import { useSocket } from '../../context/SocketContext';
 import api from '../../utils/api';
 
 const GeneralSettings = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const { socket } = useSocket();
     const [settings, setSettings] = useState({
         // Default structure
         contactPhone: '',
@@ -32,6 +34,17 @@ const GeneralSettings = () => {
     useEffect(() => {
         fetchSettings();
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+        const handleUpdate = () => {
+            fetchSettings();
+        };
+        socket.on('settings:updated', handleUpdate);
+        return () => {
+            socket.off('settings:updated', handleUpdate);
+        };
+    }, [socket]);
 
     const fetchSettings = async () => {
         try {

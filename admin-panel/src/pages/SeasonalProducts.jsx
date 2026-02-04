@@ -3,14 +3,17 @@ import api from '../utils/api';
 import ProductModal from '../components/ProductModal';
 import {
     Edit,
-    Trash2,
     Search,
     Calendar,
     Package,
     ChevronLeft,
     ChevronRight,
-    Eye,
     AlertCircle,
+    Plus,
+    X,
+    Trash2,
+    Save,
+    RefreshCw,
     ArrowRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -108,6 +111,16 @@ export default function SeasonalProducts() {
                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Seasonal Items</h1>
                     <p className="text-gray-500 mt-1 font-bold">Manage items available only at certain times</p>
                 </div>
+                <button
+                    onClick={() => {
+                        queryClient.invalidateQueries({ queryKey: ['products-seasonal-all'] });
+                        queryClient.invalidateQueries({ queryKey: ['products-seasonal-out-of-season'] });
+                    }}
+                    disabled={loading}
+                    className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                >
+                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
+                </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
