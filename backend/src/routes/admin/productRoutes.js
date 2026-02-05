@@ -8,6 +8,7 @@ import {
     deleteProduct,
     toggleProductAvailability,
     bulkUpdateProducts,
+    getProductStats,
     getSeasonalProducts,
     getOutOfSeasonProducts,
     updateProductSeason
@@ -25,6 +26,9 @@ const router = express.Router();
 
 // Get all products
 router.get('/', getAllProducts);
+
+// Get product stats
+router.get('/stats', getProductStats);
 
 // Seasonal product management (before /:id to avoid wildcard catch)
 router.get('/seasonal/all', getSeasonalProducts);

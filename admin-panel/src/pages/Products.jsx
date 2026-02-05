@@ -88,12 +88,28 @@ export default function Products() {
         staleTime: 0
     });
 
+    // Fetch Global Stats
+    const { data: statsData, isLoading: statsLoading } = useQuery({
+        queryKey: ['products-stats'],
+        queryFn: async () => {
+            const response = await api.get('/admin/products/stats');
+            const data = response.data.data;
+            localStorage.setItem('products-stats-cache', JSON.stringify(data));
+            return data;
+        },
+        initialData: () => {
+            const cached = localStorage.getItem('products-stats-cache');
+            return cached ? JSON.parse(cached) : undefined;
+        },
+        staleTime: 30000 // Cache for 30 seconds
+    });
+
     const isSyncing = isFetching;
 
     const products = productsData?.data || [];
     const paginationInfo = productsData?.pagination || { totalPages: 1, totalItems: 0 };
-    const totalCount = productsData?.count || 0;
     const categories = categoriesData || [];
+    const stats = statsData || { totalProducts: 0, categoriesCount: 0, newIntroProducts: 0, hiddenProducts: 0 };
 
     useEffect(() => {
         if (!socket) return;
@@ -171,10 +187,10 @@ export default function Products() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                <StatCard label="Total Items" value={totalCount} icon={Package} theme="blue" desc="All items listed" loading={loading && !productsData} />
-                <StatCard label="Categories" value={categories.length} icon={Filter} theme="purple" desc="Active groups" loading={!categoriesData} />
-                <StatCard label="New Items" value={products.filter(p => p.tags?.includes('new-intro')).length} icon={Calendar} theme="green" desc="Marked as New" loading={loading && !productsData} />
-                <StatCard label="Hidden Items" value={products.filter(p => !p.isAvailable).length} icon={EyeOff} theme="orange" desc="Not visible to site" loading={loading && !productsData} />
+                <StatCard label="Total Items" value={stats.totalProducts} icon={Package} theme="blue" desc="All items listed" loading={statsLoading} />
+                <StatCard label="Categories" value={stats.categoriesCount} icon={Filter} theme="purple" desc="Active groups" loading={!categoriesData} />
+                <StatCard label="New Items" value={stats.newIntroProducts} icon={Calendar} theme="green" desc="Marked as New" loading={statsLoading} />
+                <StatCard label="Hidden Items" value={stats.hiddenProducts} icon={EyeOff} theme="orange" desc="Not visible to site" loading={statsLoading} />
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-4">
@@ -280,7 +296,10 @@ export default function Products() {
                 </div>
             )}
 
-            <ProductModal isOpen={showModal} onClose={() => { setShowModal(false); setEditingProduct(null); }} product={editingProduct} onSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })} />
+            <ProductModal isOpen={showModal} onClose={() => { setShowModal(false); setEditingProduct(null); }} product={editingProduct} onSuccess={() => {
+                queryClient.invalidateQueries({ queryKey: ['products'] });
+                queryClient.invalidateQueries({ queryKey: ['products-stats'] });
+            }} />
         </div>
     );
 }
