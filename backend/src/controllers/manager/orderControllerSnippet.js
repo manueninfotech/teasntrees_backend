@@ -1,38 +1,108 @@
-// Add assignRider in Order Controller
+import Order from '../../models/Order.js';
+import Rider from '../../models/Rider.js';
+import Delivery from '../../models/Delivery.js';
+import { riderAssignmentService } from '../../services/riderAssignmentService.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
+import activityLogService from '../../services/activityLogService.js';
+
+/* =========================================================
+   ASSIGN RIDER (MANAGER – SAFE & CORRECT)
+========================================================= */
 export const assignRider = async (req, res) => {
     try {
         const { orderId } = req.params;
         const { riderId } = req.body;
 
+        // 1️⃣ Fetch order
         const order = await Order.findById(orderId);
-        if (!order) return res.status(404).json({ message: 'Order not found' });
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
 
-        const rider = await Rider.findOne({ _id: riderId, isApproved: true, isActive: true });
-        if (!rider) return res.status(400).json({ message: 'Invalid or inactive rider' });
+        // 2️⃣ Fetch rider (strict checks)
+        const rider = await Rider.findOne({
+            _id: riderId,
+            isApproved: true,
+            isActive: true,
+            isOnline: true
+        });
 
-        // Update Order
-        order.rider = rider._id;
-        order.status = 'assigned';
-        order.handledBy = req.user.userId; // Track manager
+        if (!rider) {
+            return res.status(400).json({
+                success: false,
+                message: 'Rider is not available or inactive'
+            });
+        }
+
+        // 3️⃣ Ensure rider has no active delivery
+        const activeDelivery = await Delivery.findOne({
+            riderId: rider._id,
+            status: { $nin: ['delivered', 'cancelled', 'rejected'] }
+        });
+
+        if (activeDelivery) {
+            return res.status(400).json({
+                success: false,
+                message: 'Rider is already on another delivery'
+            });
+        }
+
+        // 4️⃣ Update order (SYSTEM state)
+        order.riderId = rider._id;
+        order.status = 'waiting_for_rider'; // ✅ CORRECT
+        order.handledBy = req.user.userId;
 
         order.timeline.push({
-            status: 'assigned',
+            status: 'waiting_for_rider',
             timestamp: new Date(),
-            description: `Assigned to rider ${rider.name} by Manager ${req.user.name}`
+            description: `Rider ${rider.name} assigned by Manager ${req.user.name}`
         });
 
         await order.save();
 
-        // Notify
+        // 5️⃣ Create / update delivery via service (single source of truth)
+        await riderAssignmentService.createOrUpdateDelivery(order, rider);
+
+        // 6️⃣ Notify rider & dashboards
         const io = req.app.get('io');
         if (io) {
-            io.to(SOCKET_ROOMS.order(orderId)).emit(SOCKET_EVENTS.ORDER_UPDATED, order);
-            io.to(SOCKET_ROOMS.user(riderId)).emit(SOCKET_EVENTS.NEW_ORDER_ASSIGNED, order);
+            io.to(SOCKET_ROOMS.user(rider._id.toString()))
+                .emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, {
+                    orderId: order._id,
+                    orderNumber: order.orderNumber
+                });
+
+            io.to(SOCKET_ROOMS.role('admin'))
+                .to(SOCKET_ROOMS.role('manager'))
+                .emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+                    orderId: order._id,
+                    status: order.status
+                });
         }
 
-        res.status(200).json({ success: true, data: order });
+        // 7️⃣ Log activity
+        await activityLogService.log(req, {
+            action: 'assign_rider',
+            resource: 'order',
+            resourceId: order._id,
+            details: {
+                rider: rider.name,
+                manager: req.user.name
+            }
+        });
 
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(200).json({
+            success: true,
+            message: 'Rider assigned successfully',
+            data: order
+        });
+
+    } catch (error) {
+        console.error('assignRider error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to assign rider'
+        });
     }
-}
+};
+

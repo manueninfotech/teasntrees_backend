@@ -167,9 +167,11 @@ export default function Orders() {
                         <option value="confirmed">Confirmed</option>
                         <option value="preparing">Preparing</option>
                         <option value="ready">Ready</option>
+                        <option value="waiting_for_rider">Waiting for Rider</option>
                         <option value="assigned">Assigned</option>
                         <option value="picked_up">Picked Up</option>
                         <option value="out-for-delivery">Out for Delivery</option>
+                        <option value="in_transit">In Transit</option>
                         <option value="delivered">Delivered</option>
                         <option value="cancelled">Cancelled</option>
                     </select>

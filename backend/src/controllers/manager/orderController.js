@@ -1,136 +1,99 @@
-// Manager Order Controller
 import Order from '../../models/Order.js';
+import Delivery from '../../models/Delivery.js';
 import User from '../../models/User.js';
+import { riderAssignmentService } from '../../services/riderAssignmentService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import activityLogService from '../../services/activityLogService.js';
 
-// Get all orders (with filters)
+/* =========================================================
+   GET ORDERS (MANAGER)
+========================================================= */
 export const getOrders = async (req, res) => {
     try {
         const { status, page = 1, limit = 10, search } = req.query;
-        let query = {};
+        const query = {};
 
-        if (status && status !== 'all') {
-            query.status = status;
-        }
+        if (status && status !== 'all') query.status = status;
 
         if (search) {
             query.$or = [
                 { orderNumber: { $regex: search, $options: 'i' } },
-                { 'deliveryAddress.mobile': { $regex: search, $options: 'i' } }
+                { 'customerId.name': { $regex: search, $options: 'i' } }
             ];
         }
 
-        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const skip = (page - 1) * limit;
 
         const orders = await Order.find(query)
             .populate('customerId', 'name mobile')
             .populate('riderId', 'name mobile')
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(parseInt(limit));
+            .limit(Number(limit));
 
         const total = await Order.countDocuments(query);
 
-        res.status(200).json({
+        res.json({
             success: true,
             data: orders,
             pagination: {
-                current: parseInt(page),
-                totalPages: Math.ceil(total / parseInt(limit)),
-                totalItems: total
+                page: Number(page),
+                totalPages: Math.ceil(total / limit),
+                total
             }
         });
-
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching orders',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Failed to fetch orders' });
     }
 };
 
-// Update Order Status
+/* =========================================================
+   UPDATE ORDER STATUS (MANAGER – BUSINESS ONLY)
+========================================================= */
 export const updateOrderStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
         const { status } = req.body;
 
-        const validStatuses = ['confirmed', 'preparing', 'ready', 'cancelled'];
-
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({
+        const allowedStatuses = ['confirmed', 'preparing', 'ready', 'cancelled'];
+        if (!allowedStatuses.includes(status)) {
+            return res.status(403).json({
                 success: false,
-                message: 'Invalid status'
+                message: `Manager cannot set status '${status}'`
             });
         }
 
         const order = await Order.findById(orderId);
         if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
+            return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
         const previousStatus = order.status;
         order.status = status;
 
-        // Update timeline
         order.timeline.push({
             status,
             timestamp: new Date(),
-            description: `Status updated to ${status} by Manager`
+            description: `Updated by manager`
         });
 
         await order.save();
 
-        // Socket Notifications
         const io = req.app.get('io');
-        console.log('[Manager OrderController] ===== SOCKET EMISSION START =====');
-        console.log('[Manager OrderController] Order ID:', orderId);
-        console.log('[Manager OrderController] New Status:', status);
-        console.log('[Manager OrderController] Customer ID:', order.customerId);
-        console.log('[Manager OrderController] IO instance exists:', !!io);
-
         if (io) {
-            const orderRoom = SOCKET_ROOMS.order(orderId);
-            const userRoom = SOCKET_ROOMS.user(order.customerId);
+            io.to(SOCKET_ROOMS.order(orderId)).emit(
+                SOCKET_EVENTS.ORDER_STATUS_UPDATED,
+                { orderId, status }
+            );
 
-            console.log('[Manager OrderController] Order Room:', orderRoom);
-            console.log('[Manager OrderController] User Room:', userRoom);
-
-            // Notify Customer (Specific Order Room)
-            io.to(orderRoom).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
-                orderId,
-                status,
-                timeline: order.timeline
-            });
-            console.log('[Manager OrderController] Emitted to order room');
-
-            // Notify Customer (User Room - for Lists/Dashboard)
-            if (order.customerId) {
-                io.to(userRoom).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+            io.to(SOCKET_ROOMS.role('admin'))
+                .to(SOCKET_ROOMS.role('manager'))
+                .emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
                     orderId,
-                    status,
-                    timeline: order.timeline
+                    status
                 });
-                console.log('[Manager OrderController] Emitted to user room');
-            }
-
-            // Notify Admin/Manager Rooms
-            io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
-                orderId,
-                status
-            });
-            console.log('[Manager OrderController] Emitted to admin room');
-            console.log('[Manager OrderController] ===== SOCKET EMISSION END =====');
-        } else {
-            console.error('[Manager OrderController] IO instance not found!');
         }
 
-        // Log Activity
         await activityLogService.log(req, {
             action: 'update_status',
             resource: 'order',
@@ -138,49 +101,37 @@ export const updateOrderStatus = async (req, res) => {
             details: { previousStatus, newStatus: status }
         });
 
-        res.status(200).json({
-            success: true,
-            message: 'Order status updated',
-            data: order
-        });
+        res.json({ success: true, data: order });
 
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error updating order status',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Status update failed' });
     }
 };
 
+/* =========================================================
+   GET ORDER DETAILS (MANAGER)
+========================================================= */
 export const getOrderDetails = async (req, res) => {
     try {
         const { orderId } = req.params;
+
         const order = await Order.findById(orderId)
             .populate('customerId', 'name mobile email')
-            .populate('riderId', 'name mobile vehicleDetails');
+            .populate('riderId', 'name mobile');
 
         if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
+            return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        res.status(200).json({
-            success: true,
-            data: order
-        });
-
+        res.json({ success: true, data: order });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching order details',
-            error: error.message
-        });
+        res.status(500).json({ success: false, message: 'Failed to fetch order' });
     }
 };
 
+/* =========================================================
+   ASSIGN RIDER (MANAGER – SAFE)
+========================================================= */
 export const assignRider = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -192,69 +143,91 @@ export const assignRider = async (req, res) => {
         const rider = await User.findOne({
             _id: riderId,
             role: 'rider',
-            isApproved: true,
             isActive: true,
-            //managerId: req.user.userId // Strict check? Let's leave it open for now or check if needed.
+            isApproved: true,
+            isOnline: true
         });
 
-        if (!rider) return res.status(400).json({ success: false, message: 'Invalid or inactive rider' });
-
-        // Check if rider already has an active order
-        const activeOrder = await Order.findOne({
-            riderId: rider._id,
-            status: { $in: ['assigned', 'confirmed', 'preparing', 'ready', 'picked_up', 'out-for-delivery'] }
-        });
-
-        if (activeOrder) {
+        if (!rider) {
             return res.status(400).json({
                 success: false,
-                message: `Rider is currently busy with Order #${activeOrder.orderNumber || 'Unknown'}`
+                message: 'Rider is not available'
             });
         }
 
-        // Update Order
-        order.riderId = rider._id; // Note: Schema uses riderId (check Rider model/Order model) - Order model uses riderId
-        order.status = 'assigned';
-        order.handledBy = req.user.userId; // Track manager
+        // Check active delivery instead of Order
+        const activeDelivery = await Delivery.findOne({
+            riderId: rider._id,
+            status: { $nin: ['delivered', 'cancelled', 'rejected'] }
+        });
+
+        if (activeDelivery) {
+            return res.status(400).json({
+                success: false,
+                message: 'Rider already has an active delivery'
+            });
+        }
+
+        // Move order to system-owned state
+        order.riderId = rider._id;
+        order.status = 'waiting_for_rider';
+        order.handledBy = req.user.userId;
 
         order.timeline.push({
-            status: 'assigned',
+            status: 'waiting_for_rider',
             timestamp: new Date(),
-            description: `Assigned to rider ${rider.name} by Manager`
+            description: `Rider ${rider.name} assigned by manager`
         });
 
         await order.save();
 
-        // Log Activity
-        await activityLogService.log(req, {
-            action: 'assign_rider',
-            resource: 'order',
-            resourceId: order._id,
-            details: { rider: rider.name, manager: req.user.name }
-        });
+        // Delegate delivery creation to service
+        try {
+            await riderAssignmentService.createOrUpdateDelivery(order, rider);
 
-        // Notify
-        const io = req.app.get('io');
-        if (io) {
-            io.to(SOCKET_ROOMS.order(orderId)).emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
-                orderId,
-                status: 'assigned',
-                rider: { name: rider.name, mobile: rider.mobile }
+            const io = req.app.get('io');
+            if (io) {
+                // Notify rider
+                io.to(SOCKET_ROOMS.user(rider._id.toString()))
+                    .emit(SOCKET_EVENTS.DELIVERY_ASSIGNED, {
+                        orderId,
+                        orderNumber: order.orderNumber
+                    });
+
+                // Notify all managers/admins
+                io.to(SOCKET_ROOMS.role('admin'))
+                    .to(SOCKET_ROOMS.role('manager'))
+                    .emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+                        orderId: order._id,
+                        status: order.status
+                    });
+            }
+
+            await activityLogService.log(req, {
+                action: 'assign_rider',
+                resource: 'order',
+                resourceId: order._id,
+                details: { rider: rider.name, manager: req.user.name }
             });
-            // Notify Rider
-            io.to(SOCKET_ROOMS.user(rider._id)).emit('order:assigned', { // defined in spec as order:rider-assigned but standardized on socket events?
-                orderId,
-                message: 'New order assigned'
+
+            res.json({
+                success: true,
+                message: 'Rider assigned successfully',
+                data: order
+            });
+
+        } catch (serviceError) {
+            logger.error(`Manager assignment failed: ${serviceError.message}`);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to complete rider assignment',
+                error: serviceError.message
             });
         }
-
-        res.status(200).json({ success: true, message: 'Rider assigned', data: order });
-
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: 'Error assigning rider',
-            error: error.message
+            message: 'Failed to assign rider'
         });
     }
 };

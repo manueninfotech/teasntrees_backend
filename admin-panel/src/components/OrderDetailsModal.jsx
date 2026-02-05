@@ -40,8 +40,8 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
     if (!isOpen || !order) return null;
 
     const statusOptions = [
-        'pending', 'confirmed', 'accepted', 'preparing', 'ready', 'assigned',
-        'picked_up', 'out-for-delivery', 'in_transit', 'delivered', 'cancelled'
+        /*'pending'*/, 'confirmed', /*'accepted'*/, 'preparing', 'ready', /*'assigned'*/,
+        /*'picked_up', 'out-for-delivery', 'in_transit', 'delivered'*/, 'cancelled'
     ];
 
     const handleUpdateStatus = async () => {
