@@ -70,7 +70,7 @@ verifyOtpBtn.onclick = async () => {
         localStorage.setItem('riderToken', data.token);
         localStorage.setItem('riderProfile', JSON.stringify(data.rider));
 
-        window.location.href = 'index.html';
+        window.location.href = 'dashboard.html';
     } catch (err) {
         showError(errorOtp, err.message);
     } finally {
@@ -97,5 +97,5 @@ function hideError(el) {
 
 // Auto-redirect if already logged in
 if (localStorage.getItem('riderToken') && window.location.pathname.includes('login.html')) {
-    window.location.href = 'index.html';
+    window.location.href = 'dashboard.html';
 }

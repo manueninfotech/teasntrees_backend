@@ -180,7 +180,7 @@ function renderActiveOrder() {
                 <button onclick="handleAction('reject', '${activeDelivery._id}')" class="btn bg-gray-200 text-gray-600 flex-1">Reject</button>
             </div>
         ` : `
-             <button class="btn btn-primary" onclick="window.location.href='delivery-detail.html?id=${activeDelivery._id}'">
+             <button class="btn btn-primary" onclick="window.location.href='delivery.html?id=${activeDelivery._id}'">
                 View Task Details
                 <i data-lucide="arrow-right"></i>
              </button>

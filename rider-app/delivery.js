@@ -15,7 +15,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const deliveryId = urlParams.get('id');
 
 if (!deliveryId) {
-    window.location.href = 'index.html';
+    window.location.href = 'dashboard.html';
 }
 
 // UI Elements
@@ -63,17 +63,11 @@ async function fetchDelivery() {
         const res = await fetch(`${API_BASE}/deliveries/active`, { headers });
         const data = await res.json();
 
-        // Find the specific delivery from active or just fetch by ID if backend supports it
-        // For now, let's assume /active returns the current one.
         if (data.success && data.data && data.data._id === deliveryId) {
             delivery = data.data;
         } else {
-            // Fallback: If not in active (e.g. just completed), we might need a GET /deliveries/:id
-            // Checking if such route exists... backend/src/routes/rider/deliveryRoutes.js: no specific GET /:id
-            // Let's check if getActiveDelivery can filter or if we need a new route.
-            // Actually, if it's already delivered, it won't be in /active.
             alert('Delivery not found or already completed');
-            window.location.href = 'index.html';
+            window.location.href = 'dashboard.html';
         }
     } catch (err) {
         console.error('Fetch error:', err);
@@ -89,15 +83,12 @@ function renderDelivery() {
     deliveryNumber.innerText = `Order #${order.orderNumber || '...'}`;
     statusBadge.innerText = delivery.status.replace(/_/g, ' ');
 
-    // Status Display
     renderStatusUI();
 
-    // Customer Info
     customerName.innerText = delivery.customerId?.name || 'Customer';
     customerPhone.innerText = delivery.customerId?.mobile || '';
     deliveryAddress.innerText = order.deliveryAddress?.address || 'N/A';
 
-    // Items
     orderItems.innerHTML = (order.items || []).map(item => `
         <div class="flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -173,6 +164,9 @@ statusBtn.onclick = async () => {
         if (delivery.status === 'delivered') {
             actionBar.classList.add('hidden');
             statusTitle.innerText = 'Mission Accomplished!';
+            setTimeout(() => {
+                window.location.href = 'dashboard.html';
+            }, 3000);
         }
     } catch (err) {
         alert(err.message);
@@ -182,7 +176,6 @@ statusBtn.onclick = async () => {
     }
 };
 
-// Simple Location Tracking
 function startLocationTracking() {
     if ("geolocation" in navigator) {
         navigator.geolocation.watchPosition(async (position) => {
