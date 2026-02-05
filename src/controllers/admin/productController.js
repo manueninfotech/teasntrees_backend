@@ -513,3 +513,35 @@ export const updateProductSeason = async (req, res) => {
         });
     }
 };
+// Get product stats
+export const getProductStats = async (req, res) => {
+    try {
+        const [
+            totalProducts,
+            hiddenProducts,
+            newIntroProducts,
+            categoriesCount
+        ] = await Promise.all([
+            Product.countDocuments(),
+            Product.countDocuments({ isAvailable: false }),
+            Product.countDocuments({ tags: 'new-intro' }),
+            Category.countDocuments()
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totalProducts,
+                hiddenProducts,
+                newIntroProducts,
+                categoriesCount
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching product stats',
+            error: error.message
+        });
+    }
+};
