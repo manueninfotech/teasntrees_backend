@@ -490,10 +490,6 @@ class RiderAssignmentService {
             }
         }
 
-        /* ❌ NO RIDERS AVAILABLE */
-        order.status = "waiting_for_rider";
-        await order.save();
-
         if (io) {
             io.to("role:admin").to("role:manager").emit("rider:assignment-failed", {
                 orderId: order._id,

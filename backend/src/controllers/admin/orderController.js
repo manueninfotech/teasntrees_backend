@@ -4,11 +4,9 @@ import Settings from "../../models/Settings.js";
 
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
 import { getDistance } from "../../utils/geoUtils.js";
-import { notificationService } from "../../services/notificationService.js";
 
 import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import activityLogService from "../../services/activityLogService.js";
-import logger from "../../config/logger.js";
 
 /* =========================================================
    GET ALL ORDERS
@@ -126,14 +124,13 @@ export const updateOrderStatus = async (req, res) => {
         await order.save();
 
         // Auto-assign only AFTER confirming.
-        // Order stays confirmed until assignment decides next state.
+        // Confirmed should advance to preparing automatically.
         if (status === 'confirmed') {
-            const coords = order.deliveryAddress?.location?.coordinates;
+            order.status = 'preparing';
+            await order.save();
 
-            if (!coords || coords.length !== 2) {
-                order.status = 'waiting_for_rider';
-                await order.save();
-            } else {
+            const coords = order.deliveryAddress?.location?.coordinates;
+            if (coords && coords.length === 2) {
                 const OUTLET = { lat: 16.3090716, lng: 80.4308257 };
                 const distance = getDistance(
                     OUTLET.lat,
@@ -166,6 +163,12 @@ export const updateOrderStatus = async (req, res) => {
                     }
                 );
             }
+        }
+
+        // If kitchen finished (ready) and still no rider, show waiting_for_rider
+        if (status === 'ready' && !order.riderId) {
+            order.status = 'waiting_for_rider';
+            await order.save();
         }
 
         // Re-fetch to return latest state (Delivery hook may have updated it)
@@ -322,22 +325,54 @@ export const cancelOrder = async (req, res) => {
 ========================================================= */
 export const getOrderStats = async (req, res) => {
     try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const [
             totalOrders,
+            pendingOrders,
             deliveredOrders,
-            cancelledOrders
+            cancelledOrders,
+            inProgressOrders,
+            revenueData
         ] = await Promise.all([
             Order.countDocuments(),
+            Order.countDocuments({ status: 'pending' }),
             Order.countDocuments({ status: 'delivered' }),
-            Order.countDocuments({ status: 'cancelled' })
+            Order.countDocuments({ status: 'cancelled' }),
+            Order.countDocuments({
+                status: {
+                    $in: [
+                        'confirmed',
+                        'preparing',
+                        'ready',
+                        'waiting_for_rider',
+                        'assigned',
+                        'out-for-delivery',
+                        'in_transit'
+                    ]
+                }
+            }),
+            Order.aggregate([
+                {
+                    $match: {
+                        status: 'delivered',
+                        deliveredAt: { $gte: today }
+                    }
+                },
+                { $group: { _id: null, total: { $sum: '$total' } } }
+            ])
         ]);
 
         res.json({
             success: true,
             data: {
                 totalOrders,
+                pendingOrders,
                 deliveredOrders,
-                cancelledOrders
+                cancelledOrders,
+                inProgressOrders,
+                todayRevenue: revenueData.length > 0 ? revenueData[0].total : 0
             }
         });
     } catch (error) {
