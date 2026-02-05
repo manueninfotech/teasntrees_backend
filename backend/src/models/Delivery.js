@@ -9,8 +9,8 @@ import Rider from './Rider.js';
 const DELIVERY_TO_ORDER_STATUS = {
     assigned: 'assigned',
     accepted: 'assigned',
-    heading_to_pickup: null,
-    arrived_at_pickup: null,
+    heading_to_pickup: 'assigned',
+    arrived_at_pickup: 'assigned',
     picked_up: 'out-for-delivery',
     in_transit: 'in_transit',
     arrived: 'in_transit',
@@ -204,7 +204,10 @@ deliverySchema.post('save', async function (delivery) {
                 delivery.riderId &&
                 order.riderId.toString() === delivery.riderId.toString()
             ) {
-                order.riderId = undefined;
+                // ONLY clear if rejected or cancelled
+                if (['rejected', 'cancelled'].includes(delivery.status)) {
+                    order.riderId = undefined;
+                }
             }
         }
 

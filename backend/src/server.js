@@ -68,6 +68,25 @@ const socketService = new SocketService(io);
 app.set('io', io);
 app.set('socketService', socketService);
 
+// CORS configuration (Moved up for preflight handling)
+const corsOptions = {
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        // Check if origin is allowed
+        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+            callback(null, true);
+        } else {
+            logger.warn(`CORS blocked for origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
 // Security Middleware
 app.use(helmet({
     contentSecurityPolicy: {
@@ -78,8 +97,6 @@ app.use(helmet({
         },
     },
 })); // Set security HTTP headers
-// Temporarily disabled due to compatibility issue with Express
-// app.use(mongoSanitize({ replaceWith: '_' })); // Prevent NoSQL injection
 app.use(express.json({ limit: '10mb' })); // Body limit to prevent payload attacks
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -89,23 +106,6 @@ app.use(morgan(morganFormat, {
     stream: logger.stream
 }));
 
-// CORS configuration
-const corsOptions = {
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        // Check if origin is allowed
-        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
 
 // Rate limiting for API routes
 app.use('/api/', apiLimiter);
@@ -114,6 +114,7 @@ app.use('/api/', apiLimiter);
 app.use(express.static(join(__dirname, '..')));
 
 //MongoDB connection
+import './models/Counter.js';
 import connectDB from './config/db.js';
 connectDB();
 

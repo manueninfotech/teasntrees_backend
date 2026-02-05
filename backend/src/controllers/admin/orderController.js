@@ -143,7 +143,7 @@ export const updateOrderStatus = async (req, res) => {
                 const base = settings.riderBaseEarning || 20;
                 const rate = settings.distanceBonusPerKm || 5;
 
-                await riderAssignmentService.assignRiderWithRetry(
+                const result = await riderAssignmentService.assignRiderWithRetry(
                     order,
                     req.app.get('io'),
                     {
@@ -162,6 +162,11 @@ export const updateOrderStatus = async (req, res) => {
                         deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
                     }
                 );
+
+                if (!result.success) {
+                    order.status = 'waiting_for_rider';
+                    await order.save();
+                }
             }
         }
 

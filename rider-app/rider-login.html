@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rider Login | Teas N Trees</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="container flex items-center justify-center">
+        <div class="w-full">
+            <div class="header animate-fade-in">
+                <h1 class="title">Rider Portal</h1>
+                <p class="subtitle">Enter your mobile number to begin</p>
+            </div>
+
+            <div class="card animate-fade-in" id="loginCard">
+                <!-- Mobile Selection Stage -->
+                <div id="mobileStage">
+                    <div class="input-group">
+                        <label class="label">Mobile Number</label>
+                        <input type="tel" id="mobileInput" class="input" placeholder="9876543210" maxlength="10">
+                    </div>
+                    <button id="sendOtpBtn" class="btn btn-primary">
+                        Send OTP
+                        <i data-lucide="arrow-right"></i>
+                    </button>
+                    <p id="errorMobile" class="text-danger text-[10px] mt-2 hidden font-bold uppercase"></p>
+                </div>
+
+                <!-- OTP Verification Stage -->
+                <div id="otpStage" class="hidden">
+                    <div class="input-group">
+                        <label class="label">Enter 6-Digit OTP</label>
+                        <input type="text" id="otpInput" class="input text-center tracking-[1em] font-mono"
+                            placeholder="000000" maxlength="6">
+                    </div>
+                    <button id="verifyOtpBtn" class="btn btn-primary">
+                        Verify & Login
+                        <i data-lucide="check-circle-2"></i>
+                    </button>
+                    <p id="errorOtp" class="text-danger text-[10px] mt-2 hidden font-bold uppercase"></p>
+                    <button id="backToMobile" class="btn mt-4 text-xs font-black text-muted uppercase">Back to
+                        Mobile</button>
+                </div>
+            </div>
+
+            <p class="text-center mt-8 text-[10px] font-black uppercase text-gray-400 tracking-widest">
+                Protected by Teas N Trees Security
+            </p>
+        </div>
+    </div>
+
+    <script src="auth.js?v=2"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

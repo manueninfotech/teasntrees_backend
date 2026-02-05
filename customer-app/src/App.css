@@ -1,4 +1,0 @@
-/* Global root container should not restrict full-width sections */
-#root {
-  width: 100%;
-}

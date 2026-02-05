@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delivery Details | Teas N Trees</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body class="bg-gray-50">
+    <div class="container pb-32">
+        <!-- Header -->
+        <div class="flex items-center gap-4 mb-8 pt-4">
+            <button onclick="window.location.href='index.html'"
+                class="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-gray-600">
+                <i data-lucide="arrow-left"></i>
+            </button>
+            <div>
+                <h1 class="text-xl font-black text-gray-900 uppercase tracking-tight">Delivery Detail</h1>
+                <p id="deliveryNumber" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                    Order #...</p>
+            </div>
+        </div>
+
+        <div id="loader" class="py-20 text-center">
+            <div class="animate-pulse flex flex-col items-center gap-4">
+                <div class="w-12 h-12 bg-gray-200 rounded-full"></div>
+                <div class="h-4 w-32 bg-gray-200 rounded"></div>
+            </div>
+        </div>
+
+        <div id="content" class="hidden animate-fade-in space-y-6">
+            <!-- Status Card -->
+            <div class="card bg-indigo-600 text-white border-none shadow-indigo-200">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-indigo-200">Current Status</span>
+                    <span id="statusBadge"
+                        class="bg-white/20 px-3 py-1 rounded-full text-[10px] font-black uppercase">...</span>
+                </div>
+                <h2 id="statusTitle" class="text-2xl font-black uppercase leading-none">...</h2>
+            </div>
+
+            <!-- Info Sections -->
+            <div class="space-y-4">
+                <div class="card">
+                    <h3 class="label mb-4">Pickup Point</h3>
+                    <div class="flex gap-4">
+                        <div class="p-3 bg-gray-50 rounded-2xl">
+                            <i data-lucide="store" class="text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <p class="font-black text-gray-900 uppercase">Teas N Trees Outlet</p>
+                            <p class="text-xs text-gray-500 font-medium">123, Coffee Main Road, Downtown</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="label mb-4">Customer Details</h3>
+                    <div class="flex gap-4 mb-6">
+                        <div class="p-3 bg-gray-50 rounded-2xl">
+                            <i data-lucide="user" class="text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <p id="customerName" class="font-black text-gray-900 uppercase">...</p>
+                            <p id="customerPhone" class="text-xs text-gray-500 font-medium">...</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="p-3 bg-gray-50 rounded-2xl">
+                            <i data-lucide="navigation" class="text-indigo-600"></i>
+                        </div>
+                        <div>
+                            <p class="label mb-1">Delivery Address</p>
+                            <p id="deliveryAddress" class="text-sm font-bold text-gray-700">...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Order Items -->
+                <div class="card">
+                    <h3 class="label mb-4">Order Items</h3>
+                    <div id="orderItems" class="space-y-4">
+                        <!-- Items list -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Action Bar -->
+    <div id="actionBar"
+        class="fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-xl border-t border-gray-100 hidden">
+        <div class="container p-0">
+            <div id="otpSection" class="hidden mb-4 animate-fade-in">
+                <label for="otpInput" class="label text-center mb-3">Enter Verification OTP</label>
+                <input type="text" id="otpInput" maxlength="4" placeholder="0000"
+                    class="input text-center text-2xl tracking-[1em] font-black">
+            </div>
+            <button id="statusBtn" class="btn btn-primary shadow-xl">
+                Update Status
+                <i data-lucide="arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <script src="delivery.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>

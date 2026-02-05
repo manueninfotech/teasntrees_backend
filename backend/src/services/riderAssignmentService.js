@@ -1,308 +1,4 @@
-/*import Rider from "../models/Rider.js";
-import Delivery from "../models/Delivery.js";
-import { getDistance } from "../utils/geoUtils.js";
-import logger from "../config/logger.js";
-
-class RiderAssignmentService {
-    CONFIG = {
-        MAX_ASSIGNMENT_DISTANCE: 15000, // 15KM max pickup distance (HARD LIMIT)
-        SEARCH_RADIUS: 10000,
-        AUTO_ASSIGN_TIMEOUT: 30000 // 30 seconds for rider to accept
-    };
-
-    /**
-     * Find best rider for an order with atomic locking
-     * @param {Object} customerLocation - { lat, lng }
-     * @param {Array} excludeRiderIds - Rider IDs to exclude (already tried)
-     * @returns {Object|null} - Locked rider or null
-     */
-/*  async findBestRider(customerLocation, excludeRiderIds = []) {
-      try {
-          const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 };
-
-          // Get all available riders (excluding already tried ones)
-          const query = {
-              isOnline: true,
-              isOnDelivery: false,
-              isApproved: true,
-              isActive: true
-          };
-
-          if (excludeRiderIds.length > 0) {
-              query._id = { $nin: excludeRiderIds };
-          }
-
-          const onlineRiders = await Rider.find(query)
-              .select('name currentLocation vehicleType averageRating totalDeliveries')
-              .lean();
-
-          logger.info(`[RiderAssignment] Found ${onlineRiders.length} available riders (excluded: ${excludeRiderIds.length})`);
-
-          if (onlineRiders.length === 0) {
-              logger.warn('[RiderAssignment] No online riders available');
-              return null;
-          }
-
-          // Score and filter riders
-          const scoredRiders = onlineRiders
-              .map(rider => {
-                  if (!rider.currentLocation || !rider.currentLocation.coordinates) {
-                      logger.debug(`[RiderAssignment] Rider ${rider.name} skipped: Missing location`);
-                      return { rider, score: -1, distToOutlet: Infinity };
-                  }
-
-                  const riderLat = rider.currentLocation.coordinates[1];
-                  const riderLng = rider.currentLocation.coordinates[0];
-
-                  logger.debug(`[RiderAssignment] Rider ${rider.name} location: [${riderLng}, ${riderLat}]`);
-                  logger.debug(`[RiderAssignment] Outlet location: [${OUTLET_LOCATION.lng}, ${OUTLET_LOCATION.lat}]`);
-
-                  const distToOutlet = getDistance(riderLat, riderLng, OUTLET_LOCATION.lat, OUTLET_LOCATION.lng);
-
-                  logger.debug(`[RiderAssignment] Calculated distance: ${distToOutlet}m`);
-
-                  // HARD DISTANCE ENFORCEMENT: Exclude riders beyond MAX_ASSIGNMENT_DISTANCE
-                  if (distToOutlet > this.CONFIG.MAX_ASSIGNMENT_DISTANCE) {
-                      logger.debug(`[RiderAssignment] Rider ${rider.name} excluded: ${(distToOutlet / 1000).toFixed(2)}km > ${this.CONFIG.MAX_ASSIGNMENT_DISTANCE / 1000}km`);
-                      return { rider, score: -1, distToOutlet };
-                  }
-
-                  const score = this.calculateRiderScore(rider, customerLocation, OUTLET_LOCATION);
-                  logger.info(`[RiderAssignment] Scored Rider: ${rider.name}, Score: ${score.toFixed(2)}, Dist to Outlet: ${(distToOutlet / 1000).toFixed(2)}km`);
-
-                  return { rider, score, distToOutlet };
-              })
-              .filter(r => r.score > 0) // Remove excluded riders
-              .sort((a, b) => b.score - a.score); // Sort by score descending
-
-          if (scoredRiders.length === 0) {
-              logger.warn('[RiderAssignment] No eligible riders within distance limit');
-              return null;
-          }
-
-          // Return best rider WITHOUT locking (locking happens on acceptance)
-          const bestRider = scoredRiders[0];
-          logger.info(`[RiderAssignment] Best rider found: ${bestRider.rider.name} (score: ${bestRider.score.toFixed(2)})`);
-
-          return bestRider.rider;
-
-      } catch (error) {
-          logger.error('[RiderAssignment] Error finding best rider:', error);
-          return null;
-      }
-  }
-
-  /**
-   * Atomically lock a rider to prevent race conditions
-   * @param {String} riderId - Rider ID to lock
-   * @returns {Object|null} - Locked rider document or null if already locked
-   */
-/* async atomicLockRider(riderId) {
-     try {
-         // Atomic operation: only update if isOnDelivery is false
-         const lockedRider = await Rider.findOneAndUpdate(
-             {
-                 _id: riderId,
-                 isOnDelivery: false // Condition: must be available
-             },
-             {
-                 isOnDelivery: true, // Update: mark as busy
-                 lastAssignedAt: new Date()
-             },
-             {
-                 new: true, // Return updated document
-                 select: 'name mobile currentLocation vehicleType'
-             }
-         );
-
-         if (!lockedRider) {
-             logger.debug(`[RiderAssignment] Rider ${riderId} already locked by another order`);
-             return null;
-         }
-
-         logger.info(`[RiderAssignment] Atomically locked rider: ${lockedRider.name}`);
-         return lockedRider;
-
-     } catch (error) {
-         logger.error(`[RiderAssignment] Error locking rider ${riderId}:`, error);
-         return null;
-     }
- }
-
- /**
-  * Unlock a rider (if assignment fails or is rejected)
-  * @param {String} riderId - Rider ID to unlock
-  */
-/*  async unlockRider(riderId) {
-      try {
-          await Rider.findByIdAndUpdate(riderId, { isOnDelivery: false });
-          logger.info(`[RiderAssignment] Unlocked rider: ${riderId}`);
-      } catch (error) {
-          logger.error(`[RiderAssignment] Error unlocking rider ${riderId}:`, error);
-      }
-  }
-
-  /**
-   * Calculate rider score (0-100)
-   * Higher score = better candidate
-   */
-/* calculateRiderScore(rider, customerLocation, outletLocation) {
-     let score = 100;
-     const riderLat = rider.currentLocation.coordinates[1];
-     const riderLng = rider.currentLocation.coordinates[0];
-
-     logger.debug(`[RiderAssignment] Scoring rider ${rider.name}`);
-     logger.debug(`[RiderAssignment] Customer location:`, JSON.stringify(customerLocation));
-     logger.debug(`[RiderAssignment] Rider stats: rating=${rider.averageRating}, deliveries=${rider.totalDeliveries}`);
-
-     // Distance from outlet (primary factor)
-     const distToOutlet = getDistance(riderLat, riderLng, outletLocation.lat, outletLocation.lng);
-     score -= (distToOutlet / 1000) * 5; // -5 points per km from outlet
-
-     // Distance from customer (secondary factor)
-     if (customerLocation && customerLocation.lat && customerLocation.lng) {
-         const distToCustomer = getDistance(riderLat, riderLng, customerLocation.lat, customerLocation.lng);
-         score -= (distToCustomer / 1000) * 1; // -1 point per km from customer
-     } else {
-         logger.warn(`[RiderAssignment] Invalid customer location for scoring: ${JSON.stringify(customerLocation)}`);
-     }
-
-     // Rating bonus (up to +20 points)
-     if (rider.averageRating && rider.averageRating > 4.0) {
-         score += (rider.averageRating - 4.0) * 20;
-     }
-
-     // Experience bonus (up to +10 points)
-     score += Math.min((rider.totalDeliveries || 0) / 100, 10);
-
-     logger.debug(`[RiderAssignment] Final score for ${rider.name}: ${score}`);
-
-     return Math.max(score, 1); // Minimum score of 1
- }
-
- /**
-  * Assign rider with retry logic and timeout handling
-  * @param {Object} order - Order document
-  * @param {Object} io - Socket.io instance
-  * @param {Object} deliveryData - Delivery creation data
-  * @returns {Object} - { success, delivery, rider, reason }
-  */
-/* async assignRiderWithRetry(order, io, deliveryData) {
-     const maxRetries = 5; // Try up to 5 different riders
-     const excludedRiders = [];
-     let attempt = 0;
-
-     logger.info(`[RiderAssignment] Starting assignment for order ${order.orderNumber}`);
-
-     // Emit assignment started event
-     if (io) {
-         io.to('role:admin').to('role:manager').emit('rider:assignment-started', {
-             orderId: order._id,
-             orderNumber: order.orderNumber,
-             timestamp: new Date()
-         });
-     }
-
-     while (attempt < maxRetries) {
-         attempt++;
-         logger.info(`[RiderAssignment] Attempt ${attempt}/${maxRetries}`);
-
-         // Find and lock best available rider
-         const rider = await this.findBestRider(deliveryData.deliveryLocation, excludedRiders);
-
-         if (!rider) {
-             logger.warn(`[RiderAssignment] No riders available (attempt ${attempt})`);
-             break; // No more riders to try
-         }
-
-         try {
-             // Create delivery record with status 'assigned' (rider NOT locked yet)
-             // Rider will be locked when they accept via rider/deliveryController
-             const delivery = new Delivery({
-                 ...deliveryData,
-                 riderId: rider._id,
-                 status: 'assigned', // Waiting for rider acceptance
-                 assignedAt: new Date()
-             });
-
-             await delivery.save();
-             logger.info(`[RiderAssignment] Delivery created: ${delivery._id} (waiting for rider acceptance)`);
-
-             // Emit rider assigned event
-             if (io) {
-                 const assignmentData = {
-                     orderId: order._id,
-                     orderNumber: order.orderNumber,
-                     riderId: rider._id,
-                     riderName: rider.name,
-                     deliveryId: delivery._id,
-                     earning: delivery.totalEarning,
-                     timestamp: new Date()
-                 };
-
-                 // Notify rider - they need to accept/reject within 30s
-                 io.to(`user:${rider._id}`).emit('delivery:assigned', {
-                     deliveryId: delivery._id,
-                     orderId: order._id,
-                     orderNumber: order.orderNumber,
-                     earning: delivery.totalEarning,
-                     pickupAddress: deliveryData.pickupLocation.address,
-                     deliveryAddress: deliveryData.deliveryLocation.address,
-                     distance: (deliveryData.distance / 1000).toFixed(2) + ' km',
-                     timeout: 30 // 30 seconds to accept
-                 });
-
-                 // Notify admin/managers
-                 io.to('role:admin').to('role:manager').emit('rider:assigned', assignmentData);
-             }
-
-             logger.info(`[RiderAssignment] Successfully assigned rider ${rider.name} to order ${order.orderNumber} (pending acceptance)`);
-
-             return {
-                 success: true,
-                 delivery,
-                 rider,
-                 reason: 'Rider assigned successfully (pending acceptance)'
-             };
-
-         } catch (error) {
-             logger.error(`[RiderAssignment] Error creating delivery for rider ${rider.name}:`, error);
-
-             // Unlock rider if delivery creation failed
-             await this.unlockRider(rider._id);
-             excludedRiders.push(rider._id);
-
-             // Continue to next rider
-             continue;
-         }
-     }
-
-     // All attempts failed
-     logger.error(`[RiderAssignment] Failed to assign rider after ${attempt} attempts`);
-
-     // Emit assignment failed event
-     if (io) {
-         io.to('role:admin').to('role:manager').emit('rider:assignment-failed', {
-             orderId: order._id,
-             orderNumber: order.orderNumber,
-             reason: excludedRiders.length === 0 ? 'No riders available' : 'All riders unavailable',
-             timestamp: new Date()
-         });
-     }
-
-     return {
-         success: false,
-         delivery: null,
-         rider: null,
-         reason: excludedRiders.length === 0 ? 'No riders available' : 'All eligible riders are busy'
-     };
- }
-}
-
-export const riderAssignmentService = new RiderAssignmentService();
-*/
-
-
+import mongoose from "mongoose";
 import Rider from "../models/Rider.js";
 import Delivery from "../models/Delivery.js";
 import { getDistance } from "../utils/geoUtils.js";
@@ -567,6 +263,63 @@ class RiderAssignmentService {
             logger.error(`[RiderAssignment] createOrUpdateDelivery failed: ${err.message}`);
             await this.unlockRider(rider._id);
             throw err;
+        }
+    }
+
+    /* ======================================================
+       PROCESS WAITING ORDERS (BACKGROUND / TRIGGERED)
+    ====================================================== */
+    async processWaitingOrders(io) {
+        try {
+            const Order = mongoose.model('Order');
+            const pendingOrders = await Order.find({
+                status: 'waiting_for_rider',
+                riderId: { $exists: false }
+            }).limit(10); // Batch process
+
+            if (!pendingOrders.length) return;
+
+            logger.info(`[RiderAssignment] Scanning ${pendingOrders.length} waiting orders...`);
+
+            const Settings = mongoose.model('Settings');
+            const settings = (await Settings.findOne()) || {};
+            const base = settings.riderBaseEarning || 20;
+            const rate = settings.distanceBonusPerKm || 5;
+            const OUTLET = { lat: 16.3090716, lng: 80.4308257 };
+
+            for (const order of pendingOrders) {
+                const coords = order.deliveryAddress?.location?.coordinates;
+                if (!coords || coords.length !== 2) continue;
+
+                const distance = getDistance(
+                    OUTLET.lat,
+                    OUTLET.lng,
+                    coords[1],
+                    coords[0]
+                );
+
+                await this.assignRiderWithRetry(
+                    order,
+                    io,
+                    {
+                        orderId: order._id,
+                        customerId: order.customerId,
+                        pickupLocation: {
+                            type: 'Point',
+                            coordinates: [OUTLET.lng, OUTLET.lat],
+                            address: 'Teas N Trees Outlet'
+                        },
+                        deliveryLocation: order.deliveryAddress.location,
+                        distance,
+                        baseEarning: base,
+                        totalEarning: Math.round(base + (distance / 1000) * rate),
+                        pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+                        deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
+                    }
+                );
+            }
+        } catch (err) {
+            logger.error("[RiderAssignment] processWaitingOrders failed:", err);
         }
     }
 

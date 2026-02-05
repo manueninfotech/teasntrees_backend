@@ -11,6 +11,7 @@ const steps = [
     { status: 'placed', label: 'Order Placed', icon: Package },
     { status: 'confirmed', label: 'Confirmed', icon: CheckCircle },
     { status: 'preparing', label: 'Preparing', icon: Clock },
+    { status: 'waiting_for_rider', label: 'Waiting for Rider', icon: Clock },
     { status: 'assigned', label: 'Rider Assigned', icon: UserCheck },
     { status: 'out_for_delivery', label: 'Out for Delivery', icon: Bike },
     { status: 'delivered', label: 'Delivered', icon: CheckCircle }
@@ -133,13 +134,14 @@ const OrderTrackingPage = () => {
             case 'confirmed': return 1;
             case 'accepted': return 1;
             case 'preparing': return 2;
-            case 'ready': return 2;
-            case 'assigned': return 3;
-            case 'picked_up': return 4;
-            case 'out-for-delivery': return 4;
-            case 'in_transit': return 4;
-            case 'out_for_delivery': return 4;
-            case 'delivered': return 5;
+            case 'ready': return 3;
+            case 'waiting_for_rider': return 3;
+            case 'assigned': return 4;
+            case 'picked_up': return 5;
+            case 'out-for-delivery': return 5;
+            case 'in_transit': return 5;
+            case 'out_for_delivery': return 5;
+            case 'delivered': return 6;
             default: return 0;
         }
     };
@@ -293,7 +295,9 @@ const OrderTrackingPage = () => {
                                             </p>
                                             {isCurrent && (
                                                 <p className="text-sm text-emerald-600 font-medium">
-                                                    {index === 5 ? 'Successfully Delivered' : (index < 3 ? 'Processing...' : 'On the way')}
+                                                    {index === steps.length - 1 ? 'Successfully Delivered' :
+                                                        index === 3 ? 'Searching for nearby riders...' :
+                                                            index < 3 ? 'Processing your order...' : 'Rider is on the way'}
                                                 </p>
                                             )}
                                         </div>
