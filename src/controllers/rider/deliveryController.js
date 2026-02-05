@@ -221,6 +221,11 @@ export const updateDeliveryStatus = async (req, res) => {
 
         emitDeliveryStatus(delivery, req);
 
+        if (status === 'delivered') {
+            // Trigger reassignment for any waiting orders since this rider is now free
+            riderAssignmentService.processWaitingOrders(req.app.get('io'));
+        }
+
         res.json({
             success: true,
             message: `Status updated to ${status}`,

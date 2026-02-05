@@ -6,6 +6,7 @@ import { SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import logger from '../../config/logger.js';
+import { riderAssignmentService } from '../../services/riderAssignmentService.js';
 
 // Register a new Rider
 export const registerRider = async (req, res) => {
@@ -260,6 +261,10 @@ export const toggleAvailability = async (req, res) => {
         catch (socketError) {
             logger.warn('Socket emission failed (non-critical):', socketError.message);
             // Continue anyway - this is not critical
+        }
+
+        if (isOnline) {
+            riderAssignmentService.processWaitingOrders(req.app.get('io'));
         }
 
         res.json({

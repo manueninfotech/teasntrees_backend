@@ -11,7 +11,10 @@ const buildTimeline = (delivery) => {
         if (time) timeline.push({ status, timestamp: time });
     };
 
-    push('assigned', delivery.assignedAt || delivery.createdAt);
+    // Always start with when it was ready for a rider
+    push('waiting_for_rider', delivery.createdAt);
+
+    push('assigned', delivery.assignedAt);
     push('accepted', delivery.acceptedAt);
     push('heading_to_pickup', delivery.acceptedAt);
     push('arrived_at_pickup', delivery.arrivedAtPickup);
@@ -75,7 +78,7 @@ export const getMyDeliveries = async (req, res) => {
                     total: delivery.orderId?.total
                 },
 
-                timeline: buildTimeline(delivery),
+                statusHistory: buildTimeline(delivery),
 
                 deliveryAddress: delivery.orderId?.deliveryAddress,
 
@@ -132,7 +135,7 @@ export const trackDelivery = async (req, res) => {
                 estimatedTime: delivery.estimatedTime,
                 estimatedArrival: calculateETA(delivery),
 
-                timeline: buildTimeline(delivery),
+                statusHistory: buildTimeline(delivery),
 
                 order: {
                     orderNumber: delivery.orderId.orderNumber,
@@ -193,7 +196,7 @@ export const getDeliveryByOrder = async (req, res) => {
                 estimatedTime: delivery.estimatedTime,
                 estimatedArrival: calculateETA(delivery),
 
-                timeline: buildTimeline(delivery),
+                statusHistory: buildTimeline(delivery),
 
                 deliveryAddress: order.deliveryAddress,
 
