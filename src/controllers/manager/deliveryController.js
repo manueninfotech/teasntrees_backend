@@ -14,6 +14,7 @@ export const getActiveDeliveries = async (req, res) => {
 
         // Only true active delivery states (Delivery domain)
         const activeStatuses = [
+            'assigned',
             'accepted',
             'heading_to_pickup',
             'arrived_at_pickup',
@@ -36,28 +37,29 @@ export const getActiveDeliveries = async (req, res) => {
             status: { $in: activeStatuses }
         });
 
-        // Shape data for dashboard / map
+        // Shape data for dashboard / map - Keys must match frontend (riderId, orderId, customerId)
         const data = deliveries.map(d => ({
-            deliveryId: d._id,
+            _id: d._id,
             deliveryNumber: d.deliveryNumber,
             status: d.status,
             updatedAt: d.updatedAt,
 
-            rider: d.riderId ? {
-                id: d.riderId._id,
+            riderId: d.riderId ? {
+                _id: d.riderId._id,
                 name: d.riderId.name,
                 mobile: d.riderId.mobile,
                 isOnline: d.riderId.isOnline,
-                location: d.riderId.currentLocation || null
+                currentLocation: d.riderId.currentLocation || null
             } : null,
 
-            order: d.orderId ? {
-                orderId: d.orderId._id,
+            orderId: d.orderId ? {
+                _id: d.orderId._id,
                 orderNumber: d.orderId.orderNumber,
                 total: d.orderId.total
             } : null,
 
-            customer: d.customerId ? {
+            customerId: d.customerId ? {
+                _id: d.customerId._id,
                 name: d.customerId.name,
                 mobile: d.customerId.mobile
             } : null,

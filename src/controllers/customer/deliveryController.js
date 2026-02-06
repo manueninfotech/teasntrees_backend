@@ -196,7 +196,8 @@ export const getDeliveryByOrder = async (req, res) => {
                 estimatedTime: delivery.estimatedTime,
                 estimatedArrival: calculateETA(delivery),
 
-                statusHistory: buildTimeline(delivery),
+                pickupLocation: delivery.pickupLocation,
+                deliveryLocation: delivery.deliveryLocation,
 
                 deliveryAddress: order.deliveryAddress,
 

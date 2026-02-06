@@ -85,6 +85,21 @@ export const acceptDelivery = async (req, res) => {
         delivery.acceptedAt = new Date();
         await delivery.save();
 
+        // Refresh Order ETA upon acceptance
+        const Order = mongoose.model('Order');
+        const order = await Order.findById(delivery.orderId);
+        if (order) {
+            const now = new Date();
+            // If original ETA is missing or in the past, or if it's too close, refresh it
+            if (!order.estimatedDeliveryTime || order.estimatedDeliveryTime < now) {
+                const newEta = new Date();
+                newEta.setMinutes(newEta.getMinutes() + 30);
+                order.estimatedDeliveryTime = newEta;
+                order.$locals.allowDeliverySync = true;
+                await order.save();
+            }
+        }
+
         emitDeliveryStatus(delivery, req);
 
         res.json({
