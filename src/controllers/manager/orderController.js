@@ -69,10 +69,16 @@ export const updateOrderStatus = async (req, res) => {
         }
 
         const previousStatus = order.status;
-        order.status = status;
+        let finalStatus = status;
+        if (status === 'ready') {
+            // Stay in waiting_for_rider until the rider accepts (Delivery sync will move to assigned)
+            finalStatus = 'waiting_for_rider';
+        }
+
+        order.status = finalStatus;
 
         order.timeline.push({
-            status,
+            status: finalStatus,
             timestamp: new Date(),
             description: `Updated by manager`
         });

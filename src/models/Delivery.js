@@ -7,7 +7,9 @@ import Rider from './Rider.js';
    DELIVERY → ORDER STATUS MAP
 ----------------------------------- */
 const DELIVERY_TO_ORDER_STATUS = {
-    assigned: 'assigned',
+    // "assigned" here means offer sent; do not mark order assigned yet
+    assigned: null,
+    // After acceptance/movement, mark order as assigned
     accepted: 'assigned',
     heading_to_pickup: 'assigned',
     arrived_at_pickup: 'assigned',
