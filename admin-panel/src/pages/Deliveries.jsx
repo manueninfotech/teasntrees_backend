@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
-    Truck, Package, User, Bike, Clock,
-    CheckCircle2, XCircle, Search, Filter,
-    RefreshCw, Eye, Calendar, MapPin, TrendingUp, ArrowRight
+    Truck, Package, Bike, Clock,
+    CheckCircle2, XCircle, Search,
+    RefreshCw, Eye, MapPin, ArrowRight, IndianRupee
 } from 'lucide-react';
 import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
@@ -135,15 +135,15 @@ const Deliveries = () => {
                     className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg hover:shadow-black/20 disabled:opacity-50"
                 >
                     <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Syncing...' : 'Sync Fleet'}
+                    {isSyncing ? 'Refreshing...' : 'Refresh List'}
                 </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-                <StatCard label="Live Missions" value={stats?.activeDeliveries || 0} icon={Truck} theme="indigo" desc="Currently active" loading={statsLoading} />
-                <StatCard label="Goals Reached" value={stats?.completedDeliveries || 0} icon={CheckCircle2} theme="emerald" desc="Landed today" loading={statsLoading} />
-                <StatCard label="Fleet Revenue" value={`₹${stats?.totalEarnings || 0}`} icon={TrendingUp} theme="amber" desc="Total payouts" loading={statsLoading} />
-                <StatCard label="Lost signals" value={stats?.failedDeliveries || 0} icon={XCircle} theme="rose" desc="Failed/Returned" loading={statsLoading} />
+                <StatCard label="Active" value={stats?.activeDeliveries || 0} icon={Truck} theme="indigo" desc="On the way" loading={statsLoading} />
+                <StatCard label="Completed" value={stats?.completedDeliveries || 0} icon={CheckCircle2} theme="emerald" desc="Landed today" loading={statsLoading} />
+                <StatCard label="Earnings" value={`₹${stats?.totalEarnings || 0}`} icon={IndianRupee} theme="amber" desc="Total payouts" loading={statsLoading} />
+                <StatCard label="Failed" value={stats?.failedDeliveries || 0} icon={XCircle} theme="rose" desc="Failed/Returned" loading={statsLoading} />
             </div>
 
             <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
@@ -186,7 +186,7 @@ const Deliveries = () => {
                             <tbody className="divide-y divide-gray-50">
                                 {filteredDeliveries.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="px-8 py-32 text-center text-gray-200 font-black uppercase tracking-[0.2em]">Zero transmissions found</td>
+                                        <td colSpan="5" className="px-8 py-32 text-center text-gray-200 font-black uppercase tracking-[0.2em]">No deliveries found</td>
                                     </tr>
                                 ) : (
                                     filteredDeliveries.map((delivery) => (
@@ -196,7 +196,7 @@ const Deliveries = () => {
                                                     <div className="w-12 h-12 bg-gray-50 border border-gray-100 text-indigo-600 rounded-2xl flex items-center justify-center font-black group-hover:scale-110 transition-transform">#{delivery.orderId?.orderNumber?.slice(-4)}</div>
                                                     <div className="min-w-0">
                                                         <p className="text-xs font-black text-gray-900 uppercase mb-0.5">{delivery.customerId?.name || '---'}</p>
-                                                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Initiated {new Date(delivery.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Started {new Date(delivery.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -212,7 +212,7 @@ const Deliveries = () => {
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 font-black uppercase text-[10px] text-gray-400 tracking-widest">
-                                                <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> LIVE SECTOR</div>
+                                                <div className="flex items-center gap-1.5"><MapPin className="w-3 h-3" /> ON THE WAY</div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <button onClick={() => handleViewDetails(delivery)} className="p-3 bg-gray-50 text-gray-400 hover:bg-black hover:text-white rounded-2xl transition-all shadow-sm">

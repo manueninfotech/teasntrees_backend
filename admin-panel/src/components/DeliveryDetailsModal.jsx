@@ -113,8 +113,8 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
         { status: 'assigned', label: 'Rider Assigned', time: delivery.assignedAt || delivery.createdAt, icon: User, color: 'text-blue-500', bg: 'bg-blue-50' },
         { status: 'picked_up', label: 'Order Picked Up', time: delivery.pickedUpAt, icon: Package, color: 'text-indigo-500', bg: 'bg-indigo-50' },
         { status: 'in_transit', label: 'Out for Delivery', time: delivery.pickedUpAt, icon: Navigation, color: 'text-orange-500', bg: 'bg-orange-50' },
-        { status: 'delivered', label: 'Successfully Delivered', time: delivery.deliveredAt, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50' },
-        { status: 'cancelled', label: 'Delivery Cancelled', time: delivery.cancelledAt, icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
+        { status: 'delivered', label: 'Delivered', time: delivery.deliveredAt, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50' },
+        { status: 'cancelled', label: 'Cancelled', time: delivery.cancelledAt, icon: AlertCircle, color: 'text-red-500', bg: 'bg-red-50' }
     ].filter(step => {
         // Show step if it has a timestamp
         if (step.time) {
@@ -138,13 +138,13 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                         </div>
                         <div>
                             <div className="flex items-center gap-3">
-                                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Delivery Hub</h2>
+                                <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Delivery Details</h2>
                                 <span className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${delivery.status === 'delivered' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100'
                                     }`}>
                                     {delivery.status}
                                 </span>
                             </div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">LOG_ID: #{delivery.orderId?.orderNumber || 'N/A'}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">Order ID: #{delivery.orderId?._number || delivery.orderId?.orderNumber || 'N/A'}</p>
                         </div>
                     </div>
                     <button
@@ -167,7 +167,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                     <div className="p-2 bg-gray-50 rounded-lg">
                                         <Navigation2 className="w-4 h-4 text-gray-400" />
                                     </div>
-                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Live Spatial Vector</h3>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Live Tracking</h3>
                                 </div>
                                 <div className="h-80 bg-gray-50 rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-inner relative z-0">
                                     <MapContainer
@@ -181,7 +181,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                         {/* Store Marker */}
                                         <Marker position={[16.3090716, 80.4308257]} icon={storeIcon}>
                                             <Popup>
-                                                <div className="text-[10px] font-black text-gray-900 uppercase">Teas N Trees Outlet</div>
+                                                <div className="text-[10px] font-black text-gray-900 uppercase">Outlet Location</div>
                                             </Popup>
                                         </Marker>
 
@@ -192,7 +192,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                                 icon={customerIcon}
                                             >
                                                 <Popup>
-                                                    <div className="text-[10px] font-black text-gray-900 uppercase">Destination Node</div>
+                                                    <div className="text-[10px] font-black text-gray-900 uppercase">Customer Location</div>
                                                 </Popup>
                                             </Marker>
                                         )}
@@ -202,7 +202,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                             <>
                                                 <Marker position={riderPos} icon={riderIcon}>
                                                     <Popup>
-                                                        <div className="text-[10px] font-black text-gray-900 uppercase text-indigo-600">Active Personnel</div>
+                                                        <div className="text-[10px] font-black text-gray-900 uppercase text-indigo-600">Rider Location</div>
                                                     </Popup>
                                                 </Marker>
                                                 <MapUpdater center={riderPos} />
@@ -230,8 +230,8 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                                 <Navigation className="w-8 h-8 animate-bounce" />
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Awaiting GPS Handshake</p>
-                                                <p className="text-[8px] text-gray-400 font-black uppercase mt-1 tracking-widest">Searching for active signal...</p>
+                                                <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">Waiting for Location</p>
+                                                <p className="text-[8px] text-gray-400 font-black uppercase mt-1 tracking-widest">Finding rider...</p>
                                             </div>
                                         </div>
                                     )}
@@ -243,19 +243,19 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                 <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <User className="w-4 h-4" /> Recipient Meta
+                                            <User className="w-4 h-4" /> Customer Details
                                         </h3>
                                         <div className="p-3 bg-gray-50 rounded-xl text-gray-400">
                                             <Phone className="w-4 h-4" />
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Subject Name</p>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Customer Name</p>
                                         <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.customerId?.name || 'GENERIC_USER'}</p>
                                     </div>
                                     <div className="pt-6 border-t border-gray-50">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Spatial Coordinate</p>
-                                        <p className="text-[11px] text-gray-900 font-black leading-relaxed uppercase italic">{delivery.customerId?.address || delivery.deliveryLocation?.address || 'COORDS_MISSING'}</p>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Delivery Address</p>
+                                        <p className="text-[11px] text-gray-900 font-black leading-relaxed uppercase italic">{delivery.customerId?.address || delivery.deliveryLocation?.address || 'NO ADDRESS'}</p>
                                     </div>
                                 </div>
 
@@ -263,22 +263,22 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                 <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
                                     <div className="flex items-center justify-between">
                                         <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                            <Bike className="w-4 h-4" /> Personnel Meta
+                                            <Bike className="w-4 h-4" /> Rider Details
                                         </h3>
                                         <div className="p-3 bg-emerald-600 text-white rounded-xl">
                                             <ShieldCheck className="w-4 h-4" />
                                         </div>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Resource Name</p>
-                                        <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.riderId?.name || 'ASSIGNMENT_PENDING'}</p>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Rider Name</p>
+                                        <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.riderId?.name || 'Waiting for Rider'}</p>
                                     </div>
                                     <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
                                         <div>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Net Allocation</p>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Rider Earning</p>
                                             <p className="text-xl font-black text-gray-900 tracking-tight">₹{delivery.totalEarning || 0}</p>
                                         </div>
-                                        <div className="p-2 bg-gray-50 rounded-lg text-[8px] font-black text-gray-400 uppercase tracking-widest">R_UNIT_04</div>
+                                        <div className="p-2 bg-gray-50 rounded-lg text-[8px] font-black text-gray-400 uppercase tracking-widest">ACTIVE</div>
                                     </div>
                                 </div>
                             </div>
@@ -286,7 +286,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                             {/* Order Summary */}
                             <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-50 space-y-6">
                                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                    <Package className="w-4 h-4" /> Cargo Analytics
+                                    <Package className="w-4 h-4" /> Order Summary
                                 </h3>
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-6">
@@ -295,12 +295,12 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                         </div>
                                         <div>
                                             <p className="text-3xl font-black text-gray-900 tracking-tight">₹{delivery.orderId?.total}</p>
-                                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">Total Payload Value</p>
+                                            <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">Order Total</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-xs font-black text-gray-900 uppercase tracking-widest">CASH_ON_DELIVERY</p>
-                                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">Protocol Type</p>
+                                        <p className="text-xs font-black text-gray-900 uppercase tracking-widest">{delivery.orderId?.paymentMethod || 'COD'}</p>
+                                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-[0.2em] mt-1">Payment Mode</p>
                                     </div>
                                 </div>
                             </div>
@@ -313,7 +313,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                     <div className="p-2 bg-gray-50 rounded-lg">
                                         <Clock className="w-4 h-4 text-gray-400" />
                                     </div>
-                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Temporal Logs</h3>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Delivery Timeline</h3>
                                 </div>
                                 <div className="bg-white border border-gray-100 rounded-[2.5rem] p-10 relative overflow-hidden">
                                     {/* Timeline Line */}
@@ -335,7 +335,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                                         {event.label}
                                                     </p>
                                                     <p className={`text-[8px] font-black uppercase tracking-widest ${index === timeline.length - 1 ? 'text-gray-400' : 'text-gray-200'}`}>
-                                                        {event.time ? new Date(event.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'PENDING_SIG'}
+                                                        {event.time ? new Date(event.time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'Waiting'}
                                                     </p>
                                                 </div>
                                             </div>
@@ -350,15 +350,15 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                     <div className="p-2 bg-white/10 rounded-lg">
                                         <Clock className="w-4 h-4 text-white" />
                                     </div>
-                                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Optimization Meta</p>
+                                    <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Time Tracking</p>
                                 </div>
                                 <div>
                                     <p className="text-[8px] font-black text-white/40 uppercase tracking-widest mb-1">Time Elapsed</p>
                                     <p className="text-4xl font-black text-white tracking-tight">42<span className="text-sm font-black text-white/40 ml-2 uppercase">Mins</span></p>
                                 </div>
                                 <div className="pt-6 border-t border-white/10 space-y-1">
-                                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Protocol Efficiency</p>
-                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">NORMAL_OPERATIONS</p>
+                                    <p className="text-[8px] font-black text-white/40 uppercase tracking-widest">Delivery Status</p>
+                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">ON_TIME</p>
                                 </div>
                             </div>
                         </div>
@@ -371,7 +371,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                         onClick={onClose}
                         className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                     >
-                        Terminate View
+                        Close Details
                     </button>
                 </div>
             </div>

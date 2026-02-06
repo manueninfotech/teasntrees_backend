@@ -73,7 +73,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{rider.name}</h2>
-                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mt-1 italic">Logistics Personnel Node</p>
+                            <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mt-1 italic">Rider Profile</p>
                         </div>
                     </div>
                     <button
@@ -94,7 +94,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                 : 'text-gray-400 hover:text-emerald-700'
                                 }`}
                         >
-                            Vitals & Logs
+                            Rider Details
                             {activeTab === 'details' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-full" />}
                         </button>
                         <button
@@ -104,7 +104,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                 : 'text-gray-400 hover:text-emerald-700'
                                 }`}
                         >
-                            Feedback Matrix
+                            Customer Reviews
                             {activeTab === 'reviews' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-full" />}
                         </button>
                     </div>
@@ -150,20 +150,20 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                         <div className="p-2 bg-emerald-50 rounded-lg">
                                             <User className="w-4 h-4 text-emerald-600" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Personnel Meta</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Contact Information</h3>
                                     </div>
                                     <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 space-y-6 shadow-sm hover:border-emerald-100 transition-colors">
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Legal Name</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Full Name</p>
                                                 <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{rider.name}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Contact Link</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Phone Number</p>
                                                 <p className="font-black text-gray-900 text-sm tracking-tight">{rider.mobile}</p>
                                             </div>
                                             <div className="col-span-2">
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Electronic Mail</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Email Address</p>
                                                 <p className="font-black text-gray-900 text-sm tracking-tight">{rider.email || 'N/A'}</p>
                                             </div>
                                             <div>
@@ -180,7 +180,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                         <div className="p-2 bg-emerald-50 rounded-lg">
                                             <Bike className="w-4 h-4 text-emerald-600" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Asset Specs</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Vehicle Details</h3>
                                     </div>
                                     <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 space-y-6 shadow-sm hover:border-emerald-100 transition-colors">
                                         <div className="grid grid-cols-2 gap-6">
@@ -189,11 +189,11 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{rider.vehicleType || 'N/A'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Registry ID</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Vehicle Number</p>
                                                 <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{rider.vehicleNumber || 'N/A'}</p>
                                             </div>
                                             <div className="col-span-2">
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Model Designation</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Vehicle Model</p>
                                                 <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{rider.vehicleModel || 'N/A'}</p>
                                             </div>
                                         </div>
@@ -206,7 +206,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                         <div className="p-2 bg-emerald-50 rounded-lg">
                                             <FileText className="w-4 h-4 text-emerald-600" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Compliance Vault</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Documents</h3>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                         {/* License */}
@@ -228,7 +228,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 </div>
                                             </div>
                                             {rider.licensePhoto && (
-                                                <a href={rider.licensePhoto} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-3 bg-emerald-50 text-[10px] font-black text-emerald-700 uppercase tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all">VIEW_PERMIT</a>
+                                                <a href={rider.licensePhoto} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-3 bg-emerald-50 text-[10px] font-black text-emerald-700 uppercase tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all">VIEW PHOTO</a>
                                             )}
                                         </div>
 
@@ -242,7 +242,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 </div>
                                             </div>
                                             {rider.aadharPhoto && (
-                                                <a href={rider.aadharPhoto} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-3 bg-emerald-50 text-[10px] font-black text-emerald-700 uppercase tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all">VIEW_IDENTITY</a>
+                                                <a href={rider.aadharPhoto} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-3 bg-emerald-50 text-[10px] font-black text-emerald-700 uppercase tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all">VIEW PHOTO</a>
                                             )}
                                         </div>
 
@@ -256,7 +256,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 </div>
                                             </div>
                                             {rider.panPhoto && (
-                                                <a href={rider.panPhoto} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-3 bg-emerald-50 text-[10px] font-black text-emerald-700 uppercase tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all">VIEW_TAX_DOC</a>
+                                                <a href={rider.panPhoto} target="_blank" rel="noopener noreferrer" className="block w-full text-center py-3 bg-emerald-50 text-[10px] font-black text-emerald-700 uppercase tracking-widest rounded-xl hover:bg-emerald-600 hover:text-white transition-all">VIEW PHOTO</a>
                                             )}
                                         </div>
                                     </div>
@@ -270,7 +270,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 <div className="p-2 bg-emerald-50 rounded-lg">
                                                     <CreditCard className="w-4 h-4 text-emerald-600" />
                                                 </div>
-                                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Treasury Dest</h3>
+                                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Bank Details</h3>
                                             </div>
                                             <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 space-y-6 shadow-sm hover:border-emerald-100 transition-colors">
                                                 <div className="grid grid-cols-2 gap-6">
@@ -284,7 +284,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                     </div>
                                                     <div>
                                                         <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Branch</p>
-                                                        <p className="font-black text-gray-900 uppercase text-[10px]">LOCAL_NODE</p>
+                                                        <p className="font-black text-gray-900 uppercase text-[10px]">MAIN</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -295,7 +295,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 <div className="p-2 bg-emerald-50 rounded-lg">
                                                     <Phone className="w-4 h-4 text-emerald-600" />
                                                 </div>
-                                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Fail-Safe Contact</h3>
+                                                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Emergency Contact</h3>
                                             </div>
                                             <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 space-y-6 shadow-sm hover:border-emerald-100 transition-colors">
                                                 <div className="grid grid-cols-2 gap-6">
@@ -308,7 +308,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                         <p className="font-black text-gray-900 text-sm tracking-tight">{rider.emergencyContact?.mobile || 'N/A'}</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Subject Relation</p>
+                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Relationship</p>
                                                         <p className="font-black text-gray-900 uppercase text-[10px]">{rider.emergencyContact?.relation || 'N/A'}</p>
                                                     </div>
                                                 </div>
@@ -326,13 +326,13 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                             onClick={() => { onApprove(rider); onClose(); }}
                                             className="flex-1 py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                                         >
-                                            APPROVE_RECRUIT
+                                            Approve Rider
                                         </button>
                                         <button
                                             onClick={() => { onReject(rider); onClose(); }}
                                             className="flex-1 py-5 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-xl shadow-red-100"
                                         >
-                                            REJECT_RECRUIT
+                                            Reject Rider
                                         </button>
                                     </>
                                 )}
@@ -341,7 +341,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                         onClick={() => { onToggleStatus(rider); onClose(); }}
                                         className={`flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl ${rider.isActive ? 'bg-orange-600 text-white shadow-orange-100 hover:bg-orange-700' : 'bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700'}`}
                                     >
-                                        {rider.isActive ? 'DEACTIVATE_NODE' : 'ACTIVATE_NODE'}
+                                        {rider.isActive ? 'Deactivate Rider' : 'Activate Rider'}
                                     </button>
                                 )}
                             </div>
@@ -351,12 +351,12 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                             {loadingReviews ? (
                                 <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
                                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-600 border-t-transparent mx-auto"></div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Analyzing Feedback Stream...</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Loading reviews...</p>
                                 </div>
                             ) : reviews.length === 0 ? (
                                 <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
                                     <MessageSquare className="w-20 h-20 text-gray-200 mx-auto mb-6" />
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Feedback Buffer Empty</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No reviews yet</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 gap-4">
@@ -399,7 +399,7 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                         onClick={onClose}
                         className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                     >
-                        Terminate View
+                        Close Details
                     </button>
                 </div>
             </div>

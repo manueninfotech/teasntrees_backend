@@ -14,7 +14,9 @@ export const getDashboardStats = async (req, res) => {
         });
 
         const totalOrdersToday = todayOrders.length;
-        const totalSalesToday = todayOrders.reduce((sum, order) => sum + (order.total || 0), 0); // Use .total not .totalAmount if schema says total
+        const totalSalesToday = todayOrders
+            .filter(order => order.paymentStatus === 'paid')
+            .reduce((sum, order) => sum + (order.total || 0), 0);
 
         // 2. Pending Orders (global or assignable?)
         // Managers manage orders, so seeing all pending is good.

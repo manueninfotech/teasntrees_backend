@@ -1,10 +1,74 @@
 import Review from '../../models/Review.js';
 import Order from '../../models/Order.js';
 import User from '../../models/User.js';
+import Rider from '../../models/Rider.js';
+import Product from '../../models/Product.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
 import { notificationService } from '../../services/notificationService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
+
+const updateRiderRating = async (riderId) => {
+    if (!riderId) return;
+    const stats = await Review.aggregate([
+        {
+            $match: {
+                riderId: new mongoose.Types.ObjectId(riderId),
+                riderRating: { $exists: true, $ne: null }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                avg: { $avg: '$riderRating' },
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
+    const count = stats.length > 0 ? stats[0].count : 0;
+
+    await Rider.findByIdAndUpdate(riderId, {
+        averageRating: avg,
+        ratingsCount: count
+    });
+};
+
+const updateProductRating = async (productId) => {
+    if (!productId) return;
+    const stats = await Review.aggregate([
+        {
+            $match: {
+                productId: new mongoose.Types.ObjectId(productId),
+                $or: [
+                    { productRating: { $exists: true, $ne: null } },
+                    { foodRating: { $exists: true, $ne: null } }
+                ]
+            }
+        },
+        {
+            $project: {
+                rating: { $ifNull: ['$productRating', '$foodRating'] }
+            }
+        },
+        {
+            $group: {
+                _id: null,
+                avg: { $avg: '$rating' },
+                count: { $sum: 1 }
+            }
+        }
+    ]);
+
+    const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
+    const count = stats.length > 0 ? stats[0].count : 0;
+
+    await Product.findByIdAndUpdate(productId, {
+        averageRating: avg,
+        totalRatings: count
+    });
+};
 
 // Submit review for order
 export const createReview = async (req, res) => {
@@ -59,6 +123,9 @@ export const createReview = async (req, res) => {
             order.review = review;
             await order.save();
 
+            await updateRiderRating(existingReview.riderId || order.riderId);
+            await updateProductRating(existingReview.productId || (order.items && order.items.length > 0 ? order.items[0].product : null));
+
             return res.status(200).json({
                 success: true,
                 message: 'Review updated successfully',
@@ -84,6 +151,9 @@ export const createReview = async (req, res) => {
         order.riderRating = riderRating;
         order.review = review;
         await order.save();
+
+        await updateRiderRating(newReview.riderId);
+        await updateProductRating(newReview.productId);
 
         logger.info('Review submitted', {
             reviewId: newReview._id,
