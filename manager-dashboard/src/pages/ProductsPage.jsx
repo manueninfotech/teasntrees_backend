@@ -169,13 +169,16 @@ const ProductsPage = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     // Fetch Products
     const fetchProducts = async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams({
-                limit: 100, // Fetch all for now or paginate
+                page,
+                limit: 12,
                 ...(search && { search })
             });
             const res = await fetch(`http://localhost:5000/api/manager/products?${params}`, {
@@ -184,6 +187,7 @@ const ProductsPage = () => {
             const data = await res.json();
             if (data.success) {
                 setProducts(data.data);
+                setTotalPages(data.pagination.totalPages);
             }
         } catch (err) {
             console.error("Failed to fetch products", err);
@@ -193,11 +197,15 @@ const ProductsPage = () => {
     };
 
     useEffect(() => {
+        setPage(1);
+    }, [search]);
+
+    useEffect(() => {
         const timer = setTimeout(() => {
             fetchProducts();
         }, 500);
         return () => clearTimeout(timer);
-    }, [search, token]);
+    }, [search, token, page]);
 
     // Handle Quick Toggle
     const handleToggle = async (product) => {
@@ -355,6 +363,31 @@ const ProductsPage = () => {
                     </div>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-12 pb-20">
+                    <button
+                        onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                        disabled={page === 1}
+                        className="px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 hover:border-emerald-100 disabled:opacity-30 disabled:hover:text-gray-400 disabled:hover:border-gray-100 transition-all shadow-sm"
+                    >
+                        Previous
+                    </button>
+
+                    <div className="flex items-center px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-[10px] font-black uppercase tracking-widest text-gray-900">
+                        Page {page} of {totalPages}
+                    </div>
+
+                    <button
+                        onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={page === totalPages}
+                        className="px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 hover:border-emerald-100 disabled:opacity-30 disabled:hover:text-gray-400 disabled:hover:border-gray-100 transition-all shadow-sm"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
 
             {/* Edit Modal */}
             <AnimatePresence>
