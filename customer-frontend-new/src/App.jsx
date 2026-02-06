@@ -3,6 +3,7 @@ import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import { Toaster } from 'react-hot-toast';
 import SocketListener from './components/SocketListener';
 import Navbar from './components/Navbar';
 import HomePage from './pages/HomePage';
@@ -28,6 +29,7 @@ function App() {
         <CartProvider>
           <WishlistProvider>
             <Router>
+              <Toaster position="top-right" />
               <SocketListener />
               <div className="relative min-h-screen font-sans antialiased text-slate-800">
                 <Navbar />

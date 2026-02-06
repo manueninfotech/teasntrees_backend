@@ -359,8 +359,10 @@ const completeProfile = async (req, res) => {
             isProfileComplete: true
         };
 
-        // Geocode the address
-        if (sanitizedData.address) {
+        // Geocode the address if location not provided
+        if (req.body.location) {
+            sanitizedData.location = req.body.location;
+        } else if (sanitizedData.address) {
             try {
                 const coords = await geocodingService.getCoordinates(sanitizedData.address);
                 if (coords) {

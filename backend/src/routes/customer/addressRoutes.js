@@ -11,11 +11,11 @@ import {
 
 const router = express.Router();
 
-// Apply authentication middleware to all routes
-router.use(authenticate);
-
-// Routes
+// Public Route (accessible during profile completion)
 router.get('/reverse-geocode', reverseGeocode);
+
+// Apply authentication middleware to all other routes
+router.use(authenticate);
 router.post('/', addAddress);
 router.get('/', getAddresses);
 router.put('/:addressId', updateAddress);

@@ -50,6 +50,8 @@ const ProfilePage = () => {
     const [showEditProfileModal, setShowEditProfileModal] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [editForm, setEditForm] = useState({ name: '', email: '', mobile: '' });
+    const [detectingLocation, setDetectingLocation] = useState(false);
+    const [capturedLocation, setCapturedLocation] = useState(null);
 
     // --- AUTH LOGIC ---
     const handleSendOtp = async (e) => {
@@ -90,12 +92,75 @@ const ProfilePage = () => {
         setAuthLoading(true);
         setAuthError('');
         try {
-            await completeProfile({ mobile, ...userDetails });
+            await completeProfile({
+                mobile,
+                ...userDetails,
+                location: capturedLocation
+            });
         } catch (err) {
             setAuthError(err);
         } finally {
             setAuthLoading(false);
         }
+    };
+
+    const handleDetectLocation = async (e, target = 'details') => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        if (!navigator.geolocation) {
+            toast.error("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setDetectingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                const locationObj = {
+                    type: 'Point',
+                    coordinates: [longitude, latitude]
+                };
+
+                try {
+                    const response = await userService.reverseGeocode(latitude, longitude);
+                    if (response.success && response.data) {
+                        const addr = response.data;
+                        if (target === 'details') {
+                            setUserDetails(prev => ({ ...prev, address: addr.formattedAddress || '' }));
+                            setCapturedLocation(locationObj);
+                        } else if (target === 'addressModal') {
+                            const details = addr.details || {};
+                            setNewAddress(prev => ({
+                                ...prev,
+                                flatNo: details.house_number || details.name || '',
+                                street: details.road || '',
+                                area: details.suburb || details.sublocality || details.neighbourhood || details.village || '',
+                                city: details.city || details.town || details.municipality || '',
+                                pincode: details.postcode || '',
+                                location: locationObj
+                            }));
+                        }
+                        toast.success("Location detected!");
+                    } else {
+                        toast.error("Failed to fetch address details");
+                    }
+                } catch (err) {
+                    console.error("Reverse geocode error:", err);
+                    toast.error("Failed to convert coordinates to address");
+                } finally {
+                    setDetectingLocation(false);
+                }
+            },
+            (error) => {
+                console.error("Geolocation error:", error);
+                toast.error(error.message || "Failed to get current location");
+                setDetectingLocation(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
     };
 
     // --- DASHBOARD LOGIC ---
@@ -269,6 +334,7 @@ const ProfilePage = () => {
                 area: newAddress.area,
                 city: newAddress.city,
                 pincode: newAddress.pincode,
+                location: newAddress.location || { type: 'Point', coordinates: [0, 0] },
                 isDefault: newAddress.isDefault || addresses.length === 0
             };
 
@@ -575,12 +641,24 @@ const ProfilePage = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Address</label>
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase">Address</label>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDetectLocation(e, 'details')}
+                                                disabled={detectingLocation}
+                                                className="text-[10px] font-bold text-cafe-emerald uppercase flex items-center gap-1 hover:text-cafe-teal transition-colors disabled:opacity-50"
+                                            >
+                                                {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                Detect My Location
+                                            </button>
+                                        </div>
                                         <input
                                             type="text"
                                             value={userDetails.address}
                                             onChange={e => setUserDetails({ ...userDetails, address: e.target.value })}
                                             className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none"
+                                            placeholder="Enter your full address"
                                             required
                                         />
                                     </div>
@@ -1087,9 +1165,20 @@ const ProfilePage = () => {
                                                             <h3 className="text-xl font-bold text-slate-800">
                                                                 {editingAddressId ? 'Edit Address' : 'Add New Address'}
                                                             </h3>
-                                                            <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                                                <X className="w-5 h-5 text-slate-400" />
-                                                            </button>
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={(e) => handleDetectLocation(e, 'addressModal')}
+                                                                    disabled={detectingLocation}
+                                                                    className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                                                >
+                                                                    {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                                    Detect
+                                                                </button>
+                                                                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+                                                                    <X className="w-5 h-5 text-slate-400" />
+                                                                </button>
+                                                            </div>
                                                         </div>
 
                                                         <form onSubmit={handleSaveAddress} className="p-6 space-y-4">
