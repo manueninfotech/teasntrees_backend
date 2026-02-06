@@ -154,6 +154,9 @@ class RiderAssignmentService {
                     assignedAt: new Date()
                 });
 
+                // Lock rider
+                await Rider.findByIdAndUpdate(rider._id, { isOnDelivery: true });
+
                 if (io) {
                     io.to(`user:${rider._id}`).emit("delivery:assigned", {
                         deliveryId: delivery._id,

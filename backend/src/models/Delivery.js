@@ -150,6 +150,15 @@ const releaseRider = async (riderId) => {
     }
 };
 
+const markRiderBusy = async (riderId) => {
+    if (!riderId) return;
+    try {
+        await Rider.findByIdAndUpdate(riderId, { isOnDelivery: true });
+    } catch (error) {
+        console.error(`Failed to mark rider busy ${riderId}:`, error);
+    }
+};
+
 /* ----------------------------------
    ORDER STATUS SYNC (SAFE)
 ----------------------------------- */
@@ -160,6 +169,18 @@ deliverySchema.post('save', async function (delivery) {
             await releaseRider(delivery.riderId);
         }
         return;
+    }
+
+    const ACTIVE_RIDER_STATUSES = new Set([
+        'heading_to_pickup',
+        'arrived_at_pickup',
+        'picked_up',
+        'in_transit',
+        'arrived'
+    ]);
+
+    if (ACTIVE_RIDER_STATUSES.has(delivery.status)) {
+        await markRiderBusy(delivery.riderId);
     }
 
     const Order = mongoose.model('Order');

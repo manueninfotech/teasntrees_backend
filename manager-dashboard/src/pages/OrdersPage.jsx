@@ -20,13 +20,13 @@ import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 
 // --- Kanban Column Utilities ---
-// Exact mapping of all 11 statuses
 const COLUMNS = [
     { id: 'pending', label: 'Pending', icon: AlertCircle, color: 'amber' },
     { id: 'confirmed', label: 'Confirmed', icon: ClipboardCheck, color: 'blue' },
     { id: 'accepted', label: 'Accepted', icon: CheckCircle, color: 'indigo' },
     { id: 'preparing', label: 'Preparing', icon: ChefHat, color: 'orange' },
     { id: 'ready', label: 'Ready', icon: Package, color: 'emerald' },
+    { id: 'waiting_for_rider', label: 'Waiting for Rider', icon: Navigation, color: 'cyan' },
     { id: 'assigned', label: 'Assigned', icon: UserCheck, color: 'cyan' },
     { id: 'picked_up', label: 'Picked Up', icon: ShoppingBag, color: 'teal' },
     { id: 'out-for-delivery', label: 'Out for Delivery', icon: Truck, color: 'purple' },
@@ -49,50 +49,59 @@ const OrderCard = ({ order, onUpdateStatus }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`p-6 rounded-[2.2rem] bg-white border-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group mb-4
-                ${order.status === 'pending' ? 'border-amber-200 bg-amber-50/20 ring-4 ring-amber-500/5' : 'border-gray-50 hover:border-emerald-600/20'}
+            className={`p-4 rounded-3xl bg-white border shadow-sm hover:shadow-md transition-all relative overflow-hidden group mb-4
+                ${order.status === 'pending' ? 'border-amber-100 bg-amber-50/10' : 'border-gray-100/60 hover:border-emerald-500/30'}
             `}
         >
             {/* Status Indicator Bar */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-${color}-500 shadow-[2px_0_8px_rgba(0,0,0,0.05)]`} />
+            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${color}-500 opacity-70`} />
 
             {/* Header: ID and Time */}
-            <div className="flex justify-between items-start mb-4 pl-2">
+            <div className="flex justify-between items-start mb-3">
                 <div className="space-y-0.5">
-                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.2em] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50/50 px-2 py-0.5 rounded-lg border border-emerald-100/50">
                         {order.orderNumber || `#${order._id?.slice(-4).toUpperCase()}`}
                     </span>
-                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-tighter group-hover:text-emerald-600 transition-colors">
+                    <h4 className="text-[13px] font-bold text-gray-800 tracking-tight leading-tight mt-1">
                         {order.customerId?.name || 'GUEST USER'}
                     </h4>
                 </div>
-                <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-inner">
-                    <Clock className="w-3 h-3" />
-                    {timeElapsed}M AGO
+                <div className="flex items-center gap-1 text-[9px] font-bold text-gray-500/70 bg-gray-50/50 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                    <Clock className="w-2.5 h-2.5" />
+                    {timeElapsed}m ago
                 </div>
             </div>
 
-            {/* Content: Summary and Price */}
-            <div className="space-y-3 mb-6 pl-2">
-                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest line-clamp-2 leading-relaxed">
-                    {order.items.map(i => `${i.quantity}X ${i.productName || 'ITEM'}`).join(', ')}
-                </p>
-                <div className="flex items-center justify-between">
-                    <div className="flex flex-col">
-                        <span className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em]">Amount</span>
-                        <p className="text-xl font-black text-gray-900 tracking-tighter">₹{order.total}</p>
-                    </div>
-                    {order.riderId && (
-                        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-2 rounded-2xl border border-emerald-100 shadow-sm">
-                            <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                            <span className="text-[9px] font-black text-emerald-800 uppercase tracking-widest">{order.riderId.name?.split(' ')[0]}</span>
-                        </div>
+            {/* Items List - Clean & Breathable */}
+            <div className="mb-4">
+                <div className="flex flex-wrap gap-1.5 min-h-[40px]">
+                    {order.items.slice(0, 3).map((item, idx) => (
+                        <span key={idx} className="text-[9px] font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded-md border border-gray-100/50">
+                            {item.quantity} × {item.productName}
+                        </span>
+                    ))}
+                    {order.items.length > 3 && (
+                        <span className="text-[9px] font-medium text-gray-400 px-1 py-1">+{order.items.length - 3} more</span>
                     )}
                 </div>
             </div>
 
-            {/* Actions: Bold Professional Controls */}
-            <div className="pl-2">
+            {/* Footer: Price and Rider */}
+            <div className="flex items-center justify-between pt-1 mb-4 border-t border-gray-50/60">
+                <div className="flex flex-col">
+                    <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Total</span>
+                    <p className="text-base font-extrabold text-gray-900 leading-none">₹{order.total}</p>
+                </div>
+                {order.riderId && (
+                    <div className="flex items-center gap-1.5 bg-emerald-50/40 px-2.5 py-1.5 rounded-xl border border-emerald-100/30">
+                        <UserCheck className="w-3 h-3 text-emerald-600/80" />
+                        <span className="text-[9px] font-bold text-emerald-800/80 uppercase tracking-tight">{order.riderId.name?.split(' ')[0]}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Actions */}
+            <div>
                 {['pending', 'confirmed', 'preparing', 'ready'].includes(order.status) ? (
                     <button
                         onClick={() => {
@@ -100,25 +109,26 @@ const OrderCard = ({ order, onUpdateStatus }) => {
                                 'pending': 'confirmed',
                                 'confirmed': 'preparing',
                                 'preparing': 'ready',
-                                'ready': 'assigned'
+                                'ready': 'waiting_for_rider'
                             };
                             onUpdateStatus(order._id, nextMap[order.status]);
                         }}
-                        className={`w-full py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2
-                            ${order.status === 'pending' ? 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700' :
-                                order.status === 'confirmed' ? 'bg-orange-500 text-white shadow-orange-200 hover:bg-orange-600' :
-                                    order.status === 'preparing' ? 'bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700' :
-                                        'bg-cyan-600 text-white shadow-cyan-200 hover:bg-cyan-700'}
+                        className={`w-full py-2.5 text-[10px] font-extrabold uppercase tracking-widest rounded-xl transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2
+                            ${order.status === 'pending' ? 'bg-blue-600 text-white shadow-blue-100 hover:bg-blue-700' :
+                                order.status === 'confirmed' ? 'bg-orange-500 text-white shadow-orange-100 hover:bg-orange-600' :
+                                    order.status === 'preparing' ? 'bg-emerald-600 text-white shadow-emerald-100 hover:bg-emerald-700' :
+                                        'bg-cyan-600 text-white shadow-cyan-100 hover:bg-cyan-700'}
                         `}
                     >
-                        {order.status === 'pending' && <><ClipboardCheck className="w-4 h-4" /> Confirm Order</>}
-                        {order.status === 'confirmed' && <><ChefHat className="w-4 h-4" /> Start Cooking</>}
-                        {order.status === 'preparing' && <><Package className="w-4 h-4" /> Order Ready</>}
-                        {order.status === 'ready' && <><Navigation className="w-4 h-4" /> Send to Rider</>}
+                        {order.status === 'pending' && <><ClipboardCheck className="w-3.5 h-3.5" /> Confirm</>}
+                        {order.status === 'confirmed' && <><ChefHat className="w-3.5 h-3.5" /> Prepare</>}
+                        {order.status === 'preparing' && <><Package className="w-3.5 h-3.5" /> Ready</>}
+                        {order.status === 'ready' && <><Navigation className="w-3.5 h-3.5" /> Call Rider</>}
                     </button>
                 ) : (
-                    <div className="w-full py-4 bg-gray-50 border border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2">
-                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest italic">With Rider</span>
+                    <div className="w-full py-2.5 bg-gray-50/50 border border-dashed border-gray-200 rounded-xl flex items-center justify-center gap-2">
+                        {col.icon && <col.icon className="w-3 h-3 text-gray-300" />}
+                        <span className="text-[9px] font-bold text-gray-300 uppercase tracking-widest italic">{col.label}</span>
                     </div>
                 )}
             </div>
@@ -228,10 +238,9 @@ const OrdersPage = () => {
             <div className="flex-1 overflow-x-auto custom-scrollbar pb-4 bg-gray-50/30 rounded-xl border border-gray-100">
                 {/* 
                    Width Calculation: 
-                   11 columns * 280px min-width = ~3080px. 
-                   Set min-w to ensure they don't squash.
+                   12 columns * 280px min-width = ~3360px. 
                 */}
-                <div className="flex h-full min-w-[3200px] p-2 gap-3">
+                <div className="flex h-full min-w-[3400px] p-2 gap-3">
                     {COLUMNS.map(col => {
                         // Strict filtering: Only show orders exactly matching the column ID
                         // This ensures every stage is distinct as requested

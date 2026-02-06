@@ -26,24 +26,25 @@ class RiderMetricsService {
                 rating: { $exists: true, $ne: null }
             });
 
-            let avgRating = 5.0;
+            let avgRating = 0;
             if (deliveriesWithRatings.length > 0) {
                 const sum = deliveriesWithRatings.reduce((acc, d) => acc + d.rating, 0);
                 avgRating = sum / deliveriesWithRatings.length;
             }
 
             // Update Rider Doc
-            rider.performanceMetrics = {
-                acceptanceRate: Math.round(acceptanceRate * 10) / 10, // 1 decimal
-                completionRate: 100, // Assuming once accepted, they complete it (unless cancelled)
-                averageRating: Math.round(avgRating * 10) / 10,
-                totalReviews: deliveriesWithRatings.length
-            };
-
-            // Update root level rating for easier sorting
-            rider.averageRating = rider.performanceMetrics.averageRating;
-
-            await rider.save();
+            await Rider.findByIdAndUpdate(riderId, {
+                $set: {
+                    performanceMetrics: {
+                        acceptanceRate: Math.round(acceptanceRate * 10) / 10,
+                        completionRate: 100,
+                        averageRating: Math.round(avgRating * 10) / 10,
+                        totalReviews: deliveriesWithRatings.length
+                    },
+                    averageRating: Math.round(avgRating * 10) / 10,
+                    totalDeliveries: completedCount
+                }
+            });
             logger.info(`Updated metrics for rider ${rider.name}: Rating=${avgRating}, AccRate=${acceptanceRate}%`);
 
         } catch (error) {
