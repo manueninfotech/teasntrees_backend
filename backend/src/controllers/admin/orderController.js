@@ -110,7 +110,13 @@ export const updateOrderStatus = async (req, res) => {
         }
 
         // Business status update (admin only)
-        order.status = status;
+        let finalStatus = status;
+        if (status === 'ready') {
+            // Stay in waiting_for_rider until the rider accepts (Delivery sync will move to assigned)
+            finalStatus = 'waiting_for_rider';
+        }
+
+        order.status = finalStatus;
 
         if (status === 'confirmed') {
             order.confirmedAt = new Date();
@@ -143,7 +149,7 @@ export const updateOrderStatus = async (req, res) => {
                 const base = settings.riderBaseEarning || 20;
                 const rate = settings.distanceBonusPerKm || 5;
 
-                const result = await riderAssignmentService.assignRiderWithRetry(
+                await riderAssignmentService.assignRiderWithRetry(
                     order,
                     req.app.get('io'),
                     {
@@ -162,19 +168,10 @@ export const updateOrderStatus = async (req, res) => {
                         deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
                     }
                 );
-
-                if (!result.success) {
-                    order.status = 'waiting_for_rider';
-                    await order.save();
-                }
             }
         }
 
-        // If kitchen finished (ready) and still no rider, show waiting_for_rider
-        if (status === 'ready' && !order.riderId) {
-            order.status = 'waiting_for_rider';
-            await order.save();
-        }
+        // Status already adjusted to waiting_for_rider above when ready
 
         // Re-fetch to return latest state (Delivery hook may have updated it)
         const updatedOrder = await Order.findById(order._id);
@@ -362,6 +359,7 @@ export const getOrderStats = async (req, res) => {
                 {
                     $match: {
                         status: 'delivered',
+                        paymentStatus: 'paid',
                         deliveredAt: { $gte: today }
                     }
                 },

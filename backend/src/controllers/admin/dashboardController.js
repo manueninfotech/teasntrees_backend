@@ -111,6 +111,7 @@ export const getRevenueAnalytics = async (req, res) => {
             {
                 $match: {
                     status: 'delivered',
+                    paymentStatus: 'paid',
                     createdAt: { $gte: startDate }
                 }
             },

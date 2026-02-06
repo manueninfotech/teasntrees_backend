@@ -111,25 +111,16 @@ export const registerRider = async (req, res) => {
     }
 };
 
-// Send OTP (Standard Auth)
+// Send OTP (Simplified for onboarding)
 export const sendOtp = async (req, res) => {
     try {
         const { mobile } = req.body;
+
+        // Find existing user or just continue if new
         const rider = await Rider.findOne({ mobile });
 
-        if (!rider) {
-            return res.status(404).json({
-                success: false,
-                message: 'Rider not found. Please register first.'
-            });
-        }
-
-        if (!rider.isApproved) {
-            return res.status(403).json({
-                success: false,
-                message: 'Your account is pending admin approval. Please wait for approval before logging in.'
-            });
-        }
+        // If rider exists but is not approved, we might want to block login 
+        // OR allow them to see status. Let's allow login to check status.
 
         const otp = generateOTP();
 
@@ -146,13 +137,14 @@ export const sendOtp = async (req, res) => {
 
         // For dev/test:
         console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-        console.log(`Rider Login OTP for ${mobile}: ${otp}`);
+        console.log(`Rider Auth OTP for ${mobile}: ${otp}`);
         console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
 
         res.json({
             success: true,
             message: 'OTP sent successfully',
-            otpSent: true
+            otpSent: true,
+            isNewUser: !rider
         });
 
     } catch (error) {
@@ -183,9 +175,23 @@ export const verifyOtp = async (req, res) => {
             });
         }
 
-        const rider = await Rider.findOne({ mobile });
+        let rider = await Rider.findOne({ mobile });
+
+        // If it's a new rider (completely new mobile), we can create a skeleton here
+        // or wait for completeProfile. Let's create a placeholder to get an ID.
         if (!rider) {
-            return res.status(404).json({ success: false, message: 'Rider account not found' });
+            rider = new Rider({
+                mobile,
+                role: 'rider',
+                isApproved: false,
+                isProfileComplete: false,
+                vehicleType: 'bike', // default placeholder
+                vehicleNumber: 'PENDING',
+                licenseNumber: 'PENDING',
+                licenseExpiryDate: new Date(),
+                aadharNumber: 'PENDING'
+            });
+            await rider.save();
         }
 
         // Generate Token
@@ -206,12 +212,133 @@ export const verifyOtp = async (req, res) => {
                 _id: rider._id,
                 name: rider.name,
                 isApproved: rider.isApproved,
-                isOnline: rider.isOnline
+                isOnline: rider.isOnline,
+                isProfileComplete: rider.isProfileComplete || false
             }
         });
 
     } catch (error) {
+        logger.error('Rider Verify OTP Error:', error);
         res.status(500).json({ success: false, message: 'Login failed' });
+    }
+};
+
+// Complete Profile
+export const completeProfile = async (req, res) => {
+    try {
+        const riderId = req.user.userId;
+        const {
+            name, email, address, location,
+            vehicleType, vehicleNumber, vehicleModel,
+            bankAccountNumber, ifscCode, accountHolderName,
+            emergencyContactName, emergencyContactMobile, emergencyContactRelation,
+            licenseNumber, licenseExpiryDate, aadharNumber, panNumber
+        } = req.body;
+
+        const rider = await Rider.findById(riderId);
+        if (!rider) {
+            return res.status(404).json({ success: false, message: 'Rider not found' });
+        }
+
+        const files = req.files || {};
+
+        // Update basic info
+        rider.name = name || rider.name;
+        rider.email = email || rider.email;
+        rider.address = address || rider.address;
+
+        let parsedLocation = location;
+        if (typeof location === 'string') {
+            try {
+                parsedLocation = JSON.parse(location);
+            } catch (e) {
+                console.error('Failed to parse location:', e);
+            }
+        }
+
+        // --- NEW: Location Fallback (Geocode manual address if no GPS coordinates) ---
+        const { geocodingService } = await import('../../services/geocodingService.js');
+
+        let targetCoords = null;
+
+        if (parsedLocation && parsedLocation.lng && parsedLocation.lat) {
+            targetCoords = [parseFloat(parsedLocation.lng), parseFloat(parsedLocation.lat)];
+        } else if (rider.address || address) {
+            // No coordinates provided, try to geocode the manual address
+            const searchAddress = address || rider.address;
+            console.log(`[Rider] Attempting fallback geocoding for: ${searchAddress}`);
+            const coords = await geocodingService.getCoordinates(searchAddress);
+            if (coords) {
+                targetCoords = [coords.lng, coords.lat];
+            }
+        }
+
+        if (targetCoords) {
+            const locObj = {
+                type: 'Point',
+                coordinates: targetCoords
+            };
+            rider.location = locObj;
+            rider.currentLocation = {
+                ...locObj,
+                lastUpdated: new Date()
+            };
+        }
+
+        // Vehicle info
+        rider.vehicleType = vehicleType || rider.vehicleType;
+        rider.vehicleNumber = vehicleNumber || rider.vehicleNumber;
+        rider.vehicleModel = vehicleModel || rider.vehicleModel;
+
+        // Documents numbers
+        rider.licenseNumber = licenseNumber || rider.licenseNumber;
+        if (licenseExpiryDate) rider.licenseExpiryDate = new Date(licenseExpiryDate);
+        rider.aadharNumber = aadharNumber || rider.aadharNumber;
+        rider.panNumber = panNumber || rider.panNumber;
+
+        // Document photos
+        if (files.licensePhoto) rider.licensePhoto = files.licensePhoto[0].path;
+        if (files.aadharPhoto) rider.aadharPhoto = files.aadharPhoto[0].path;
+        if (files.panPhoto) rider.panPhoto = files.panPhoto[0].path;
+        if (files.profilePhoto) rider.image = files.profilePhoto[0].path;
+
+        // Bank info
+        rider.bankAccountNumber = bankAccountNumber || rider.bankAccountNumber;
+        rider.ifscCode = ifscCode || rider.ifscCode;
+        rider.accountHolderName = accountHolderName || rider.accountHolderName;
+
+        // Emergency contact
+        if (emergencyContactName || emergencyContactMobile || emergencyContactRelation) {
+            rider.emergencyContact = {
+                name: emergencyContactName || rider.emergencyContact?.name,
+                mobile: emergencyContactMobile || rider.emergencyContact?.mobile,
+                relation: emergencyContactRelation || rider.emergencyContact?.relation
+            };
+        }
+
+        rider.isProfileComplete = true;
+        // Keep isApproved: false until admin checks
+
+        await rider.save();
+
+        res.json({
+            success: true,
+            message: 'Profile completed successfully. Pending administrator approval.',
+            rider: {
+                _id: rider._id,
+                name: rider.name,
+                isApproved: rider.isApproved,
+                isProfileComplete: rider.isProfileComplete
+            }
+        });
+
+    } catch (error) {
+        logger.error('Complete Profile Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to complete profile',
+            error: error.message
+        });
     }
 };
 
@@ -286,9 +413,14 @@ export const toggleAvailability = async (req, res) => {
 // Get Profile
 export const getProfile = async (req, res) => {
     try {
+        const rider = req.rider;
         res.json({
             success: true,
-            data: req.rider
+            data: {
+                ...rider.toObject(),
+                isApproved: rider.isApproved,
+                isProfileComplete: rider.isProfileComplete
+            }
         });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Fetch failed' });

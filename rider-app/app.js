@@ -2,30 +2,39 @@ const API_BASE = 'http://localhost:5000/api/rider';
 const token = localStorage.getItem('riderToken');
 
 // Auth Check
-const isValidToken = token && token !== 'undefined' && token !== 'null';
+function getValidToken() {
+    const t = localStorage.getItem('riderToken');
+    if (!t || t === 'undefined' || t === 'null') {
+        localStorage.removeItem('riderToken');
+        return null;
+    }
+    return t;
+}
+
+const vToken = getValidToken();
 const isDashboardPage = document.getElementById('riderName') !== null;
 
-console.log('App Auth Check:', { isValidToken, isDashboardPage });
-
-if (!isValidToken && isDashboardPage) {
-    console.log('No valid token on dashboard, replacing with login.html');
-    localStorage.removeItem('riderToken');
+if (!vToken && isDashboardPage) {
     window.location.replace('login.html');
 }
 
 // Global Headers
 const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${vToken}`
 };
 
 // UI Elements
 const riderNameEl = document.getElementById('riderName');
 const availabilityBadge = document.getElementById('availabilityBadge');
+const availabilityText = document.getElementById('availabilityText');
 const toggleActiveBtn = document.getElementById('toggleActiveBtn');
+const toggleBtnText = document.getElementById('toggleBtnText');
 const activeOrderSection = document.getElementById('activeOrderSection');
 const activeOrderCard = document.getElementById('activeOrderCard');
 const requestsList = document.getElementById('requestsList');
+const todayEarningsEl = document.getElementById('todayEarnings');
+const totalDeliveriesEl = document.getElementById('totalDeliveries');
 
 // Initial State
 let riderProfile = JSON.parse(localStorage.getItem('riderProfile') || '{}');
@@ -33,7 +42,19 @@ let activeDelivery = null;
 
 // Initialize
 async function init() {
-    await fetchProfile(); // Get latest status from server
+    await fetchProfile();
+
+    // Status Check: Only redirect if we HAVE profile data and it says we aren't approved
+    if (riderProfile._id) {
+        if (!riderProfile.isProfileComplete || !riderProfile.isApproved) {
+            console.log('Rider not approved/complete, redirecting to login');
+            // Update local storage so login.html knows the updated status immediately
+            localStorage.setItem('riderProfile', JSON.stringify(riderProfile));
+            window.location.replace('login.html');
+            return;
+        }
+    }
+
     renderProfile();
     await fetchActiveDelivery();
     initSocket();
@@ -42,42 +63,33 @@ async function init() {
 
 function initSocket() {
     const socket = io('http://localhost:5000', {
-        auth: { token }
-    });
-
-    socket.on('connect', () => {
-        console.log('Connected to real-time server');
+        auth: { token: vToken }
     });
 
     socket.on('delivery:assigned', (data) => {
-        console.log('New delivery assigned:', data);
-        // Instant notification
         showNotification('New Delivery Request!', 'You have a new order waiting for acceptance.');
-        fetchActiveDelivery(); // Refresh to show the new request
-    });
-
-    socket.on('disconnect', () => {
-        console.log('Disconnected from server');
+        fetchActiveDelivery();
     });
 }
 
 function showNotification(title, body) {
     if (Notification.permission === 'granted') {
         new Notification(title, { body });
-    } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then(permission => {
-            if (permission === 'granted') {
-                new Notification(title, { body });
-            }
-        });
+    } else {
+        Notification.requestPermission();
     }
-    // Fallback alert for now
     alert(`${title}\n${body}`);
 }
 
 async function fetchProfile() {
     try {
         const res = await fetch(`${API_BASE}/auth/profile`, { headers });
+
+        if (res.status === 401) {
+            handleLogout();
+            return;
+        }
+
         const data = await res.json();
         if (data.success) {
             riderProfile = { ...riderProfile, ...data.data };
@@ -88,22 +100,35 @@ async function fetchProfile() {
     }
 }
 
+function handleLogout() {
+    localStorage.clear();
+    window.location.replace('login.html');
+}
+
 function renderProfile() {
-    riderNameEl.innerText = `Hi, ${riderProfile.name || 'Rider'}`;
+    riderNameEl.innerText = riderProfile.name || 'Rider';
+    todayEarningsEl.innerText = riderProfile.totalEarnings || 0;
+    totalDeliveriesEl.innerText = riderProfile.totalDeliveries || 0;
     updateAvailabilityUI(riderProfile.isOnline);
 }
 
 function updateAvailabilityUI(isOnline) {
-    availabilityBadge.innerText = isOnline ? 'ONLINE' : 'OFFLINE';
-    availabilityBadge.className = `badge ${isOnline ? 'badge-active' : 'badge-pending'}`;
-    toggleActiveBtn.innerHTML = isOnline
-        ? '<i data-lucide="power"></i> GO OFFLINE'
-        : '<i data-lucide="zap"></i> GO ONLINE';
-    toggleActiveBtn.className = `btn ${isOnline ? 'btn-danger' : 'btn-success'} shadow-xl`;
+    if (availabilityBadge) {
+        availabilityBadge.className = `inline-block w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500 active-glow animate-pulse' : 'bg-slate-300'}`;
+    }
+    if (availabilityText) {
+        availabilityText.innerText = isOnline ? 'ONLINE & ACTIVE' : 'OFFLINE';
+        availabilityText.className = `text-[10px] font-bold ${isOnline ? 'text-emerald-500' : 'text-slate-400'} uppercase tracking-widest`;
+    }
+    if (toggleBtnText) {
+        toggleBtnText.innerText = isOnline ? 'Go Offline' : 'Go Online';
+    }
+    if (toggleActiveBtn) {
+        toggleActiveBtn.className = `w-full py-5 ${isOnline ? 'bg-slate-100 text-slate-600' : 'bg-slate-900 text-white'} rounded-[2rem] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-2xl transition-all active:scale-[0.98]`;
+    }
     lucide.createIcons();
 }
 
-// Fetch Active Delivery
 async function fetchActiveDelivery() {
     try {
         const res = await fetch(`${API_BASE}/deliveries/active`, { headers });
@@ -112,84 +137,80 @@ async function fetchActiveDelivery() {
         if (data.success && data.data) {
             activeDelivery = data.data;
             renderActiveOrder();
-            requestsList.innerHTML = '<p class="text-center text-gray-400 py-4 font-bold uppercase text-[10px]">Finish your current delivery first</p>';
+            requestsList.innerHTML = `
+                <div class="bg-indigo-50 border border-indigo-100 rounded-[2rem] p-8 text-center">
+                    <p class="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Focus Mode</p>
+                    <p class="text-xs font-bold text-indigo-900">Finish your current delivery to see more requests</p>
+                </div>
+            `;
         } else {
             activeOrderSection.classList.add('hidden');
-            fetchRequests(); // Only fetch request if NO active order
+            fetchRequests();
         }
     } catch (err) {
         console.error('Fetch active error:', err);
     }
 }
 
-// Fetch Pending Requests (Mocking the list for now if no list API exists, 
-// but wait, does the backend have a /pending or /requests? 
-// Looking at deliveryRoutes.js: it only has /active.
-// Usually orders are pushed via sockets or retrieved from /active if already assigned.)
-
-// If the system uses "Retry Assignment" or manual assignment, the order 
-// will eventually show up in /active if the status is 'assigned'.
-// However, if there's a "Requests" pool, we need an endpoint for it.
-// Checking backend... productController.js? No. rider/deliveryController.js.
-
 async function fetchRequests() {
-    // In this specific system, orders are assigned to riders.
-    // If an order is assigned to ME but I haven't accepted it yet, 
-    // it normally shows up in a "Requests" list or as a single /active.
-    // Let's assume for now that assigned orders needing acceptance 
-    // are returned in /active but with a 'pending' or 'assigned' status.
-
-    // If the backend doesn't have a "List of requests" yet, 
-    // /active is the primary way to get the current task.
-
-    // UPDATE: Based on my previous implementation in riderAssignmentService 
-    // and rider/deliveryController, an order is assigned to a rider 
-    // and the rider gets a notification.
-
-    requestsList.innerHTML = '<p class="text-center text-gray-400 py-12 font-bold uppercase tracking-widest text-[10px]">No new requests at the moment</p>';
+    requestsList.innerHTML = `
+        <div class="bg-white rounded-[2rem] p-10 border border-slate-100 text-center space-y-3">
+            <div class="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto">
+                <i data-lucide="radar" class="w-8 h-8 text-slate-300"></i>
+            </div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-widest">Searching for nearby orders...</p>
+        </div>
+    `;
+    lucide.createIcons();
 }
 
 function renderActiveOrder() {
     if (!activeDelivery) return;
 
     activeOrderSection.classList.remove('hidden');
-    const order = activeDelivery.orderId; // Standard population
+    const order = activeDelivery.orderId || {};
 
     activeOrderCard.innerHTML = `
-        <div class="flex justify-between items-start mb-4">
+        <div class="flex justify-between items-start mb-6">
             <div>
-                <span class="text-[10px] font-black uppercase text-indigo-600 tracking-tighter">Order #${order.orderNumber || '...'}</span>
-                <h3 class="text-lg font-black uppercase text-gray-900 mt-1">₹${activeDelivery.totalEarning} Earning</h3>
+                <p class="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] mb-1">Incoming Task</p>
+                <h3 class="text-2xl font-black uppercase">₹${activeDelivery.totalEarning || 0} Payout</h3>
             </div>
-            <div class="badge badge-active">${activeDelivery.status.replace(/_/g, ' ')}</div>
+            <div class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/30">
+                ${activeDelivery.status.replace(/_/g, ' ')}
+            </div>
         </div>
         
-        <div class="space-y-3 mb-6">
-            <div class="flex gap-3">
-                <i data-lucide="map-pin" class="w-4 h-4 text-gray-400"></i>
+        <div class="space-y-4 mb-8">
+            <div class="flex gap-4">
+                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="store" class="w-5 h-5 text-indigo-300"></i>
+                </div>
                 <div>
-                    <p class="text-[10px] font-black uppercase text-gray-400">Pickup</p>
-                    <p class="text-xs font-bold truncate">Teas N Trees Outlet</p>
+                    <p class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Pickup</p>
+                    <p class="text-sm font-bold truncate">Teas N Trees Outlet</p>
                 </div>
             </div>
-            <div class="flex gap-3">
-                <i data-lucide="navigation" class="w-4 h-4 text-gray-400"></i>
+            <div class="flex gap-4">
+                <div class="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="map-pin" class="w-5 h-5 text-emerald-300"></i>
+                </div>
                 <div>
-                    <p class="text-[10px] font-black uppercase text-gray-400">Delivery to</p>
-                    <p class="text-xs font-bold">${order.deliveryAddress?.address || 'Customer Location'}</p>
+                    <p class="text-[9px] font-black uppercase text-slate-400 tracking-widest">Deliver to</p>
+                    <p class="text-sm font-bold truncate">${order.deliveryAddress?.address || 'Customer Location'}</p>
                 </div>
             </div>
         </div>
 
         ${activeDelivery.status === 'assigned' ? `
-            <div class="flex gap-2">
-                <button onclick="handleAction('accept', '${activeDelivery._id}')" class="btn btn-success flex-1">Accept</button>
-                <button onclick="handleAction('reject', '${activeDelivery._id}')" class="btn bg-gray-200 text-gray-600 flex-1">Reject</button>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="handleAction('accept', '${activeDelivery._id}')" class="py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-700 transition-all">Accept</button>
+                <button onclick="handleAction('reject', '${activeDelivery._id}')" class="py-4 bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white/20 transition-all">Decline</button>
             </div>
         ` : `
-             <button class="btn btn-primary" onclick="window.location.href='delivery.html?id=${activeDelivery._id}'">
-                View Task Details
-                <i data-lucide="arrow-right"></i>
+             <button class="w-full py-4 bg-white text-slate-900 rounded-2xl font-black uppercase text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-slate-100 transition-all" onclick="window.location.href='delivery.html?id=${activeDelivery._id}'">
+                Open Delivery Card
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
              </button>
         `}
     `;
@@ -205,10 +226,7 @@ window.handleAction = async (action, id) => {
             headers
         });
         const data = await res.json();
-
         if (!data.success) throw new Error(data.message);
-
-        alert(`Delivery ${event}ed successfully!`);
         location.reload();
     } catch (err) {
         alert(err.message);
@@ -220,16 +238,13 @@ toggleActiveBtn.onclick = async () => {
     try {
         toggleActiveBtn.disabled = true;
         const nextStatus = !riderProfile.isOnline;
-
         const res = await fetch(`${API_BASE}/auth/availability`, {
             method: 'POST',
             headers,
             body: JSON.stringify({ isOnline: nextStatus })
         });
         const data = await res.json();
-
         if (!data.success) throw new Error(data.message);
-
         riderProfile.isOnline = data.data.isOnline;
         localStorage.setItem('riderProfile', JSON.stringify(riderProfile));
         updateAvailabilityUI(riderProfile.isOnline);
@@ -246,5 +261,4 @@ document.getElementById('logoutBtn').onclick = () => {
     window.location.href = 'login.html';
 };
 
-// Start
 init();

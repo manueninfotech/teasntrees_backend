@@ -4,7 +4,8 @@ import {
     sendOtp,
     verifyOtp,
     toggleAvailability,
-    getProfile
+    getProfile,
+    completeProfile
 } from '../../controllers/rider/authController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 import multer from 'multer';
@@ -40,5 +41,6 @@ router.post('/verify-otp', verifyOtp);
 // Protected Routes
 router.post('/availability', riderAuth, isApprovedRider, toggleAvailability);
 router.get('/profile', riderAuth, getProfile);
+router.post('/complete-profile', riderAuth, riderUploads, completeProfile);
 
 export default router;

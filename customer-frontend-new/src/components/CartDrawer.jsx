@@ -70,7 +70,10 @@ const CartDrawer = () => {
                                     <ShoppingBag className="w-16 h-16 opacity-20" />
                                     <p className="text-lg font-medium">Your cart is empty</p>
                                     <button
-                                        onClick={toggleCart}
+                                        onClick={() => {
+                                            toggleCart();
+                                            navigate('/menu');
+                                        }}
                                         className="text-cafe-emerald hover:underline text-sm"
                                     >
                                         Browse Menu

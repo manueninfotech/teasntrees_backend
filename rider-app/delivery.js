@@ -1,20 +1,26 @@
 const API_BASE = 'http://localhost:5000/api/rider';
 const token = localStorage.getItem('riderToken');
 
-const isValidToken = token && token !== 'undefined' && token !== 'null';
+// Auth Check
+function getValidToken() {
+    const t = localStorage.getItem('riderToken');
+    if (!t || t === 'undefined' || t === 'null') {
+        localStorage.removeItem('riderToken');
+        return null;
+    }
+    return t;
+}
+
+const vToken = getValidToken();
 const isDeliveryPage = document.getElementById('deliveryNumber') !== null;
 
-console.log('Delivery Auth Check:', { isValidToken, isDeliveryPage });
-
-if (!isValidToken && isDeliveryPage) {
-    console.log('No valid token on delivery page, replacing with login.html');
-    localStorage.removeItem('riderToken');
+if (!vToken && isDeliveryPage) {
     window.location.replace('login.html');
 }
 
 const headers = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    'Authorization': `Bearer ${vToken}`
 };
 
 // URL Params
@@ -30,6 +36,7 @@ const loader = document.getElementById('loader');
 const content = document.getElementById('content');
 const actionBar = document.getElementById('actionBar');
 const statusBtn = document.getElementById('statusBtn');
+const statusBtnText = document.getElementById('statusBtnText');
 const otpSection = document.getElementById('otpSection');
 const otpInput = document.getElementById('otpInput');
 
@@ -38,26 +45,34 @@ const deliveryNumber = document.getElementById('deliveryNumber');
 const statusBadge = document.getElementById('statusBadge');
 const statusTitle = document.getElementById('statusTitle');
 const customerName = document.getElementById('customerName');
-const customerPhone = document.getElementById('customerPhone');
 const deliveryAddress = document.getElementById('deliveryAddress');
 const orderItems = document.getElementById('orderItems');
+const callBtn = document.getElementById('callBtn');
 
 let delivery = null;
 let otpPrompted = false;
 
 // State Machine Mapping
 const NEXT_ACTIONS = {
-    'assigned': { label: 'Start Pickup', next: 'heading_to_pickup', needsOtp: false },
-    'heading_to_pickup': { label: 'I Have Arrived at Outlet', next: 'arrived_at_pickup', needsOtp: false },
-    'arrived_at_pickup': { label: 'Complete Pickup', next: 'picked_up', needsOtp: true },
-    'picked_up': { label: 'Start Delivery', next: 'in_transit', needsOtp: false },
-    'in_transit': { label: 'I Have Arrived at Customer', next: 'arrived', needsOtp: false },
-    'arrived': { label: 'Complete Delivery', next: 'delivered', needsOtp: true },
-    'delivered': { label: 'Delivery Completed', next: null, needsOtp: false },
+    'assigned': { label: 'Start Pickup Route', next: 'heading_to_pickup', needsOtp: false },
+    'heading_to_pickup': { label: 'Arrived at Outlet', next: 'arrived_at_pickup', needsOtp: false },
+    'arrived_at_pickup': { label: 'Package Picked Up', next: 'picked_up', needsOtp: true },
+    'picked_up': { label: 'Start Delivery Route', next: 'in_transit', needsOtp: false },
+    'in_transit': { label: 'Arrived at Customer', next: 'arrived', needsOtp: false },
+    'arrived': { label: 'Complete Handover', next: 'delivered', needsOtp: true },
+    'delivered': { label: 'Mission Accomplished', next: null, needsOtp: false },
     'cancelled': { label: 'Order Cancelled', next: null, needsOtp: false }
 };
 
 async function init() {
+    const profile = JSON.parse(localStorage.getItem('riderProfile') || '{}');
+
+    // Preliminary check
+    if (profile._id && (!profile.isProfileComplete || !profile.isApproved)) {
+        window.location.replace('login.html');
+        return;
+    }
+
     await fetchDelivery();
     if (delivery) {
         renderDelivery();
@@ -68,12 +83,17 @@ async function init() {
 async function fetchDelivery() {
     try {
         const res = await fetch(`${API_BASE}/deliveries/active`, { headers });
-        const data = await res.json();
 
+        if (res.status === 401) {
+            handleLogout();
+            return;
+        }
+
+        const data = await res.json();
         if (data.success && data.data && data.data._id === deliveryId) {
             delivery = data.data;
         } else {
-            alert('Delivery not found or already completed');
+            alert('Delivery mission inactive or completed');
             window.location.href = 'dashboard.html';
         }
     } catch (err) {
@@ -81,28 +101,44 @@ async function fetchDelivery() {
     }
 }
 
+function handleLogout() {
+    localStorage.clear();
+    window.location.replace('login.html');
+}
+
 function renderDelivery() {
     loader.classList.add('hidden');
     content.classList.remove('hidden');
     actionBar.classList.remove('hidden');
 
-    const order = delivery.orderId;
+    const order = delivery.orderId || {};
     deliveryNumber.innerText = `Order #${order.orderNumber || '...'}`;
     statusBadge.innerText = delivery.status.replace(/_/g, ' ');
 
     renderStatusUI();
 
-    customerName.innerText = delivery.customerId?.name || 'Customer';
-    customerPhone.innerText = delivery.customerId?.mobile || '';
-    deliveryAddress.innerText = order.deliveryAddress?.address || 'N/A';
+    customerName.innerText = delivery.customerId?.name || 'Customer Name';
+    deliveryAddress.innerText = order.deliveryAddress?.address || 'Customer Location';
+
+    if (callBtn) {
+        callBtn.onclick = () => {
+            if (delivery.customerId?.mobile) {
+                window.location.href = `tel:${delivery.customerId.mobile}`;
+            } else {
+                alert("Customer phone number not available");
+            }
+        };
+    }
 
     orderItems.innerHTML = (order.items || []).map(item => `
-        <div class="flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <span class="w-6 h-6 flex items-center justify-center bg-gray-100 rounded-lg text-[10px] font-black">${item.quantity}x</span>
-                <span class="text-sm font-bold text-gray-700">${item.name || 'Item'}</span>
+        <div class="flex justify-between items-center group">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center font-black text-slate-800 border border-slate-100 group-hover:bg-emerald-50 transition-colors">
+                    ${item.quantity}x
+                </div>
+                <span class="text-sm font-bold text-slate-700">${item.name || 'Delicious Item'}</span>
             </div>
-            <span class="text-sm font-black text-gray-900">₹${item.price * item.quantity}</span>
+            <span class="text-sm font-black text-slate-900 tracking-tight">₹${(item.price || 0) * (item.quantity || 1)}</span>
         </div>
     `).join('');
 
@@ -119,10 +155,11 @@ function renderStatusUI() {
     }
 
     statusTitle.innerText = action.label;
-    statusBtn.innerText = action.label;
+    if (statusBtnText) statusBtnText.innerText = action.label;
 
     if (action.needsOtp && otpPrompted) {
         otpSection.classList.remove('hidden');
+        otpInput.focus();
     } else {
         otpSection.classList.add('hidden');
     }
@@ -135,7 +172,6 @@ statusBtn.onclick = async () => {
     if (action.needsOtp && !otpPrompted) {
         otpPrompted = true;
         renderStatusUI();
-        otpInput.focus();
         return;
     }
 
@@ -144,7 +180,7 @@ statusBtn.onclick = async () => {
     if (action.needsOtp) {
         const otp = otpInput.value.trim();
         if (otp.length !== 4) {
-            alert('Please enter a valid 4-digit OTP');
+            alert('Please enter a valid 4-digit verification code');
             return;
         }
         payload.otp = otp;
@@ -152,7 +188,7 @@ statusBtn.onclick = async () => {
 
     try {
         statusBtn.disabled = true;
-        statusBtn.innerText = 'Updating...';
+        if (statusBtnText) statusBtnText.innerText = 'Updating Status...';
 
         const res = await fetch(`${API_BASE}/deliveries/${deliveryId}/status`, {
             method: 'PUT',
@@ -170,10 +206,10 @@ statusBtn.onclick = async () => {
 
         if (delivery.status === 'delivered') {
             actionBar.classList.add('hidden');
-            statusTitle.innerText = 'Mission Accomplished!';
+            statusTitle.innerText = 'Delivery Complete!';
             setTimeout(() => {
                 window.location.href = 'dashboard.html';
-            }, 3000);
+            }, 2500);
         }
     } catch (err) {
         alert(err.message);
@@ -194,11 +230,9 @@ function startLocationTracking() {
                     body: JSON.stringify({ lat: latitude, lng: longitude })
                 });
             } catch (err) {
-                console.error('Location sync error:', err);
+                console.error('Location sync failed');
             }
-        }, (err) => {
-            console.error('Geolocation error:', err);
-        }, {
+        }, null, {
             enableHighAccuracy: true,
             maximumAge: 30000,
             timeout: 27000
