@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Delivery from "../../models/Delivery.js";
 import Rider from "../../models/Rider.js";
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
@@ -99,6 +100,11 @@ export const acceptDelivery = async (req, res) => {
                 await order.save();
             }
         }
+
+        // Set rider as busy
+        await Rider.findByIdAndUpdate(req.user.userId, {
+            isOnDelivery: true
+        });
 
         emitDeliveryStatus(delivery, req);
 

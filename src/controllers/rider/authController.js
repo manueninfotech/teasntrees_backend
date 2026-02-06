@@ -356,17 +356,16 @@ export const toggleAvailability = async (req, res) => {
             });
         }
 
-        rider.isOnline = isOnline;
-
+        const updateFields = { isOnline: isOnline };
         if (location) {
-            rider.currentLocation = {
+            updateFields.currentLocation = {
                 type: 'Point',
                 coordinates: [location.lng, location.lat],
                 lastUpdated: new Date()
             };
         }
 
-        await rider.save();
+        await Rider.findByIdAndUpdate(rider._id, { $set: updateFields });
 
         // Emit Socket Event DIRECTLY
         try {
