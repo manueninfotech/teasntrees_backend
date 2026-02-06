@@ -136,12 +136,18 @@ const DeliveriesPage = () => {
     return (
         <div className="flex h-[calc(100vh-2rem)] gap-4 overflow-hidden">
             {/* Left Sidebar: Delivery List */}
-            <div className="w-1/3 min-w-[320px] flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden z-10">
-                <div className="p-4 border-b border-gray-100">
-                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <Navigation className="w-5 h-5 text-brand-primary" /> Active Deliveries
-                    </h2>
-                    <p className="text-xs text-gray-500">{deliveries.length} riders on the road</p>
+            <div className="w-1/3 min-w-[340px] flex flex-col bg-white/50 backdrop-blur-xl rounded-[2.5rem] border-2 border-gray-50 shadow-2xl shadow-gray-200/50 overflow-hidden z-10 transition-all">
+                <div className="p-8 border-b-2 border-gray-50 bg-white/50">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.3em] leading-none">Live Tracking</span>
+                    </div>
+                    <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tighter flex items-center gap-3">
+                        <Navigation className="w-8 h-8 text-emerald-600 drop-shadow-sm" /> Live Fleet
+                    </h1>
+                    <p className="text-gray-400 font-bold uppercase text-[9px] tracking-[0.2em] mt-3 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        {deliveries.length} ACTIVE DELIVERIES
+                    </p>
                 </div>
 
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
@@ -160,28 +166,50 @@ const DeliveriesPage = () => {
                                 key={delivery._id}
                                 layoutId={delivery._id}
                                 onClick={() => setSelectedDelivery(delivery)}
-                                className={`p-4 rounded-xl cursor-pointer border transition-all ${selectedDelivery?._id === delivery._id
-                                    ? 'bg-brand-primary/5 border-brand-primary/20 shadow-md ring-1 ring-brand-primary/10'
-                                    : 'bg-white border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                className={`p-6 rounded-[2rem] cursor-pointer border-2 transition-all relative overflow-hidden group
+                                    ${selectedDelivery?._id === delivery._id
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xl shadow-emerald-200 scale-105 z-10'
+                                        : 'bg-white border-gray-50 hover:border-emerald-600/20 hover:bg-emerald-50/10'
                                     }`}
                             >
-                                <div className="flex justify-between items-start mb-2">
-                                    <div>
-                                        <h3 className="font-bold text-gray-900 text-sm">#{delivery.orderId?.orderNumber}</h3>
-                                        <p className="text-xs text-gray-500">{delivery.customerId?.name}</p>
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="space-y-0.5">
+                                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-md border
+                                            ${selectedDelivery?._id === delivery._id ? 'bg-emerald-500/20 border-emerald-400 text-white' : 'bg-gray-50 border-gray-100 text-emerald-600'}
+                                        `}>
+                                            #{delivery.orderId?.orderNumber || '0000'}
+                                        </span>
+                                        <h3 className={`font-black uppercase tracking-tighter text-sm mt-1.5 ${selectedDelivery?._id === delivery._id ? 'text-white' : 'text-gray-900'}`}>
+                                            {delivery.customerId?.name || 'GUEST'}
+                                        </h3>
                                     </div>
-                                    <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase">
+                                    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm
+                                        ${selectedDelivery?._id === delivery._id
+                                            ? 'bg-white text-emerald-600 border-white'
+                                            : 'bg-blue-50 text-blue-700 border-blue-100'}
+                                    `}>
                                         {delivery.status.replace(/_/g, ' ')}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100/50">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                                            <Bike className="w-3 h-3 text-gray-600" />
+                                <div className={`flex items-center gap-3 mt-4 pt-4 border-t ${selectedDelivery?._id === delivery._id ? 'border-white/10' : 'border-gray-50'}`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-inner ${selectedDelivery?._id === delivery._id ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                                            <Bike className="w-4 h-4" />
                                         </div>
-                                        <span className="text-xs font-medium text-gray-700">{delivery.riderId?.name}</span>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${selectedDelivery?._id === delivery._id ? 'text-emerald-50' : 'text-gray-600'}`}>
+                                            {delivery.riderId?.name}
+                                        </span>
                                     </div>
                                 </div>
+
+                                {selectedDelivery?._id === delivery._id && (
+                                    <motion.div
+                                        layoutId="active-indicator"
+                                        className="absolute right-6 top-1/2 -translate-y-1/2 opacity-20"
+                                    >
+                                        <Navigation className="w-12 h-12 rotate-90" />
+                                    </motion.div>
+                                )}
                             </motion.div>
                         ))
                     )}

@@ -81,41 +81,53 @@ const LoginPage = () => {
     if (step === 'APPROVAL_PENDING') {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-900 p-4">
-                <div className="glass-card p-8 text-center max-w-md bg-white shadow-xl">
-                    <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Lock className="w-8 h-8" />
+                <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-12 text-center max-w-md shadow-2xl border border-white">
+                    <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm">
+                        <Lock className="w-10 h-10" />
                     </div>
-                    <h2 className="text-2xl font-bold mb-2">Approval Pending</h2>
-                    <p className="text-gray-600">Your profile has been submitted. Please wait for an Admin to approve your account before you can log in.</p>
-                    <button onClick={() => setStep('MOBILE')} className="mt-8 text-brand-primary text-sm hover:underline font-medium">Back to Login</button>
+                    <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter mb-4">Approval Pending</h2>
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mb-8 italic leading-relaxed">
+                        Your profile has been submitted. Please wait for an Admin to approve your account before you can log in.
+                    </p>
+                    <button
+                        onClick={() => setStep('MOBILE')}
+                        className="btn-primary w-full py-4 text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-200"
+                    >
+                        Back to Login
+                    </button>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-gray-50">
-            {/* Background Elements - Light Mode */}
-            <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] bg-brand-primary/10 rounded-full blur-[120px]" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px]" />
+        <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-green-50 to-teal-50 flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Animated background elements */}
+            <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-green-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-teal-400 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+            </div>
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative z-10 w-full max-w-md p-8 glass-card mx-4 bg-white/80 shadow-2xl backdrop-blur-xl border border-white/50"
+                className="relative z-10 w-full max-w-md p-10 bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-white/20"
             >
-                <div className="text-center mb-8">
-                    <img src={logo} alt="Teas N Trees" className="h-24 w-auto object-contain mx-auto mb-4" />
-                    <h1 className="text-2xl font-bold text-gray-900 mb-1">
-                        {step === 'PROFILE' ? 'Complete Profile' : 'Manager Portal'}
+                <div className="text-center mb-10">
+                    <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-emerald-600 to-green-600 rounded-[2rem] mb-6 shadow-xl transform hover:scale-105 transition-transform duration-500 p-2">
+                        <img src={logo} alt="Teas N Trees" className="w-full h-full object-contain filter brightness-0 invert" />
+                    </div>
+                    <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent uppercase tracking-tighter mb-2">
+                        {step === 'PROFILE' ? 'Join the Fleet' : 'Manager Portal'}
                     </h1>
-                    <p className="text-gray-500 text-xs font-medium">
-                        {step === 'PROFILE' ? 'Tell us a bit about yourself' : 'Secure Login Access'}
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] italic">
+                        {step === 'PROFILE' ? 'Complete your profile to continue' : 'Secure Access System'}
                     </p>
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center font-medium">
+                    <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-xl text-red-700 text-xs font-black uppercase tracking-widest animate-shake">
                         {error}
                     </div>
                 )}
@@ -131,24 +143,24 @@ const LoginPage = () => {
                             className="space-y-6"
                         >
                             <div className="space-y-2">
-                                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Mobile Number</label>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Mobile Access</label>
                                 <div className="relative group">
-                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-brand-primary transition-colors" />
+                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-emerald-600 transition-colors" />
                                     <input
                                         type="tel"
                                         value={mobile}
                                         onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 pl-12 pr-4 text-gray-900 text-lg tracking-widest focus:outline-none focus:border-brand-primary focus:bg-white transition-all font-mono shadow-sm"
-                                        placeholder="9876543210"
+                                        className="w-full bg-white border border-gray-100 rounded-2xl py-5 pl-14 pr-4 text-gray-900 text-lg tracking-[0.2em] focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/5 transition-all font-black shadow-sm"
+                                        placeholder="Mobile Number"
                                         required
                                     />
                                 </div>
                             </div>
                             <button
-                                disabled={isLoading}
-                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 shadow-lg shadow-brand-primary/25"
+                                disabled={isLoading || mobile.length < 10}
+                                className="btn-primary w-full py-5 text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-xl shadow-emerald-200 hover:scale-[1.02]"
                             >
-                                {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Get OTP'}
+                                {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Request OTP'}
                                 {!isLoading && <ArrowRight className="w-5 h-5" />}
                             </button>
                         </motion.form>
@@ -163,29 +175,30 @@ const LoginPage = () => {
                             onSubmit={handleVerifyOtp}
                             className="space-y-6"
                         >
-                            <div className="space-y-2">
+                            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-4">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Target Device</p>
                                 <div className="flex justify-between items-center">
-                                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Enter OTP</label>
-                                    <div className="text-right">
-                                        <p className="text-gray-900 text-sm font-mono tracking-wider mb-1">+91 {mobile}</p>
-                                        <button type="button" onClick={() => setStep('MOBILE')} className="text-xs text-brand-primary font-medium hover:underline">Change Number</button>
-                                    </div>
+                                    <p className="text-emerald-900 font-black tracking-widest">+91 {mobile}</p>
+                                    <button type="button" onClick={() => setStep('MOBILE')} className="text-[10px] text-emerald-600 font-black uppercase tracking-widest hover:underline">Change</button>
                                 </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Transmission Code</label>
                                 <input
                                     type="text"
                                     value={otp}
                                     onChange={(e) => setOtp(e.target.value.slice(0, 6))}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-xl py-4 text-gray-900 text-lg tracking-[0.5em] focus:outline-none focus:border-brand-primary focus:bg-white transition-all font-mono text-center shadow-sm"
-                                    placeholder="......"
+                                    className="w-full bg-white border border-gray-100 rounded-2xl py-5 text-gray-900 text-2xl tracking-[0.8em] focus:outline-none focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/5 transition-all font-black text-center shadow-sm"
+                                    placeholder="••••••"
                                     maxLength={6}
                                     required
                                 />
                             </div>
                             <button
-                                disabled={isLoading}
-                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 shadow-lg shadow-brand-primary/25"
+                                disabled={isLoading || otp.length < 6}
+                                className="btn-primary w-full py-5 text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-xl shadow-emerald-200 hover:scale-[1.02]"
                             >
-                                {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Verify'}
+                                {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Verify & Enter'}
                             </button>
                         </motion.form>
                     )}
@@ -198,33 +211,39 @@ const LoginPage = () => {
                             onSubmit={handleProfileSubmit}
                             className="space-y-4"
                         >
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Full Name</label>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Identity</label>
                                 <input type="text" required
                                     value={profile.name} onChange={e => setProfile({ ...profile, name: e.target.value })}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-900 focus:border-brand-primary focus:bg-white outline-none transition-all shadow-sm" placeholder="John Doe" />
+                                    className="w-full bg-white border border-gray-100 rounded-2xl p-4 text-gray-900 text-sm font-bold focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm" placeholder="COMMANDER NAME" />
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Email</label>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Secure Email</label>
                                 <input type="email" required
                                     value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-900 focus:border-brand-primary focus:bg-white outline-none transition-all shadow-sm" placeholder="manager@example.com" />
+                                    className="w-full bg-white border border-gray-100 rounded-2xl p-4 text-gray-900 text-sm font-bold focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm" placeholder="EMAIL ADDRESS" />
                             </div>
-                            <div className="space-y-1">
-                                <label className="text-xs font-bold text-gray-500 uppercase">Branch / Address</label>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Sector / Branch</label>
                                 <textarea required
                                     value={profile.address} onChange={e => setProfile({ ...profile, address: e.target.value })}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-gray-900 focus:border-brand-primary focus:bg-white outline-none h-20 resize-none transition-all shadow-sm" placeholder="Store Location" />
+                                    className="w-full bg-white border border-gray-100 rounded-2xl p-4 text-gray-900 text-sm font-bold focus:border-emerald-600 focus:ring-4 focus:ring-emerald-500/5 outline-none h-24 resize-none transition-all shadow-sm" placeholder="STORE LOCATION" />
                             </div>
                             <button
                                 disabled={isLoading}
-                                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium py-4 rounded-xl flex items-center justify-center gap-2 transition-colors mt-2 disabled:opacity-50 shadow-lg shadow-brand-primary/25"
+                                className="btn-primary w-full py-5 text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-xl shadow-emerald-200 hover:scale-[1.02] mt-4"
                             >
-                                {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Complete Registration'}
+                                {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : 'Finalize Registration'}
                             </button>
                         </motion.form>
                     )}
                 </AnimatePresence>
+
+                <div className="mt-10 pt-8 border-t border-gray-100/50 text-center">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">
+                        Secure Manager Node • Little H Encryption
+                    </p>
+                </div>
             </motion.div>
         </div>
     );

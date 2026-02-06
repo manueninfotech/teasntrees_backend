@@ -96,6 +96,23 @@ function hideError(el) {
 }
 
 // Auto-redirect if already logged in
-if (localStorage.getItem('riderToken') && window.location.pathname.includes('login.html')) {
-    window.location.href = 'dashboard.html';
+// Auto-redirect if already logged in
+function checkAuthAndRedirect() {
+    try {
+        const token = localStorage.getItem('riderToken');
+        const isValid = token && token !== 'undefined' && token !== 'null';
+        const isLoginPage = document.getElementById('loginCard') !== null;
+
+        console.log('Auth check on Login Page:', { isValid, isLoginPage });
+
+        if (isValid && isLoginPage) {
+            console.log('Token found, moving to dashboard...');
+            window.location.replace('dashboard.html');
+        }
+    } catch (err) {
+        console.error('Auth redirect error:', err);
+    }
 }
+
+// Run immediately
+checkAuthAndRedirect();

@@ -1,8 +1,15 @@
 const API_BASE = 'http://localhost:5000/api/rider';
 const token = localStorage.getItem('riderToken');
 
-if (!token) {
-    window.location.href = 'login.html';
+const isValidToken = token && token !== 'undefined' && token !== 'null';
+const isDeliveryPage = document.getElementById('deliveryNumber') !== null;
+
+console.log('Delivery Auth Check:', { isValidToken, isDeliveryPage });
+
+if (!isValidToken && isDeliveryPage) {
+    console.log('No valid token on delivery page, replacing with login.html');
+    localStorage.removeItem('riderToken');
+    window.location.replace('login.html');
 }
 
 const headers = {

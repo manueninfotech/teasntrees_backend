@@ -30,60 +30,65 @@ const OrderItemSkeleton = () => (
     </div>
 );
 
-const StatCard = ({ title, value, change, icon: Icon, color }) => (
-    <motion.div
-        whileHover={{ y: -4 }}
-        className="glass-card p-6 relative overflow-hidden group bg-white border border-gray-100 shadow-sm hover:shadow-lg transition-all"
-    >
-        <div className={`absolute top-0 right-0 w-32 h-32 bg-${color}-500/5 rounded-full blur-[40px] -mr-16 -mt-16 transition-all group-hover:bg-${color}-500/10`} />
-        <div className="relative z-10">
-            <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-xl bg-${color}-50 text-${color}-600`}>
-                    <Icon className="w-6 h-6" />
+const StatCard = ({ title, value, change, icon: Icon, color }) => {
+    const colors = {
+        emerald: 'from-emerald-600 to-emerald-700 shadow-emerald-100 text-emerald-600 bg-emerald-50',
+        amber: 'from-amber-500 to-amber-600 shadow-amber-100 text-amber-600 bg-amber-50',
+        blue: 'from-blue-600 to-blue-700 shadow-blue-100 text-blue-600 bg-blue-50',
+        rose: 'from-rose-600 to-rose-700 shadow-rose-100 text-rose-600 bg-rose-50'
+    };
+    const style = colors[color] || colors.emerald;
+    const [gradientFrom, gradientTo, shadow, textColor, bgColor] = style.split(' ');
+
+    return (
+        <div className="relative overflow-hidden bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
+            <div className="relative flex items-center justify-between">
+                <div className="space-y-1">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{title}</p>
+                    <h3 className="text-3xl font-black text-gray-900 tracking-tighter">{value}</h3>
+                    <div className={`flex items-center gap-1 py-1 px-3 ${bgColor} rounded-full w-fit`}>
+                        <TrendingUp className={`w-3 h-3 ${textColor}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-tight ${textColor}`}>{change}</span>
+                    </div>
                 </div>
-                <span className={`text-xs font-bold px-2 py-1 rounded-full bg-${color}-50 text-${color}-600 border border-${color}-100`}>
-                    {change}
-                </span>
+                <div className={`p-4 rounded-2xl bg-gradient-to-br ${gradientFrom} ${gradientTo} text-white shadow-lg ${shadow} transform group-hover:rotate-12 transition-all`}>
+                    <Icon className="w-7 h-7" />
+                </div>
             </div>
-            <h3 className="text-3xl font-bold text-gray-900 mb-1">{value}</h3>
-            <p className="text-gray-500 text-sm font-medium">{title}</p>
         </div>
-    </motion.div>
-);
+    );
+};
 
 const OrderItem = ({ order }) => (
     <motion.div
         layout
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="group relative flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100/80 shadow-[0_2px_8px_-2px_rgba(0,0,0,0.02)] hover:shadow-[0_8px_24px_-4px_rgba(0,166,126,0.12)] hover:border-brand-primary/20 transition-all duration-300 cursor-pointer"
+        className="group relative flex items-center justify-between p-6 bg-white rounded-[2rem] border border-gray-100 hover:shadow-xl hover:shadow-gray-100 transition-all duration-300 cursor-pointer"
     >
-        <div className="absolute left-0 top-3 bottom-3 w-1 bg-brand-primary rounded-r-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300" />
-        <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-700 font-bold border border-gray-100 group-hover:bg-brand-primary group-hover:text-white transition-colors duration-300">
+        <div className="flex items-center gap-6">
+            <div className="w-14 h-14 bg-gray-50 border border-gray-100 text-emerald-600 rounded-2xl flex items-center justify-center font-black group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white transition-all">
                 <ShoppingBag className="w-6 h-6" />
             </div>
             <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-brand-primary tracking-wide bg-brand-primary/5 px-2 py-0.5 rounded border border-brand-primary/10">
-                        {order.orderNumber || `#${order._id?.slice(-6).toUpperCase()}`}
+                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                        {order.orderNumber || `#${order._id?.slice(-4).toUpperCase()}`}
                     </span>
-                    <span className="text-[10px] text-gray-400">•</span>
-                    <span className="text-xs text-gray-500 font-medium">
+                    <span className="text-[10px] text-gray-300 font-black uppercase tracking-widest">
                         {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                 </div>
-                <h4 className="text-sm font-bold text-gray-900 group-hover:text-brand-primary transition-colors flex items-center gap-2">
-                    <User className="w-3.5 h-3.5 text-gray-400" />
-                    {order.customerId?.name || 'Guest Customer'}
+                <h4 className="text-sm font-black text-gray-900 group-hover:text-emerald-600 transition-colors uppercase tracking-tight">
+                    {order.customerId?.name || 'GUEST USER'}
                 </h4>
-                <p className="text-xs text-gray-500 font-medium flex items-center gap-1 pl-6">
-                    {order.items?.length || 0} items • <span className="text-gray-900 font-bold">₹{order.total}</span>
+                <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest">
+                    {order.items?.length || 0} ITEMS • <span className="text-gray-900">₹{order.total}</span>
                 </p>
             </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-            <span className={`px-3 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full border shadow-sm
+        <div className="flex flex-col items-end gap-3">
+            <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border-2 shadow-sm
                 ${order.status === 'pending' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                     order.status === 'preparing' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                         order.status === 'ready' ? 'bg-purple-50 text-purple-600 border-purple-100' :
@@ -91,8 +96,8 @@ const OrderItem = ({ order }) => (
                                 'bg-gray-50 text-gray-500 border-gray-100'}`}>
                 {order.status}
             </span>
-            <div className="flex items-center gap-1 text-xs text-gray-400 group-hover:text-brand-primary transition-colors font-medium">
-                View Details <ChevronRight className="w-3 h-3" />
+            <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-300 uppercase tracking-widest group-hover:text-emerald-600 transition-all">
+                SECURE DETAILS <ChevronRight className="w-3.5 h-3.5" />
             </div>
         </div>
     </motion.div>
@@ -289,16 +294,16 @@ const DashboardHome = () => {
                 </div>
             )}
 
-            <div className="flex justify-between items-end">
+            <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-                    <p className="text-gray-500">Overview</p>
+                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Dashboard</h1>
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Overview of your business</p>
                 </div>
                 <div className="text-right hidden sm:block">
                     <p className="text-3xl font-mono text-gray-900 tracking-tight">
                         {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </p>
-                    <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest font-semibold">
                         {currentTime.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}
                     </p>
                 </div>

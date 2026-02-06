@@ -39,13 +39,9 @@ const COLUMNS = [
 const OrderCard = ({ order, onUpdateStatus }) => {
     const timeElapsed = Math.floor((new Date() - new Date(order.createdAt)) / 60000);
 
-    // Determine color based on status for the strip
-    const getColor = (status) => {
-        const col = COLUMNS.find(c => c.id === status);
-        return col ? col.color : 'gray';
-    };
-
-    const color = getColor(order.status);
+    const findColumn = (status) => COLUMNS.find(c => c.id === status) || { color: 'gray', icon: AlertCircle };
+    const col = findColumn(order.status);
+    const color = col.color;
 
     return (
         <motion.div
@@ -53,87 +49,76 @@ const OrderCard = ({ order, onUpdateStatus }) => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className={`p-4 rounded-xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all relative overflow-hidden group mb-3
-                ${order.status === 'pending' ? 'border-amber-200 bg-amber-50/30' : ''}
+            className={`p-6 rounded-[2.2rem] bg-white border-2 shadow-sm hover:shadow-xl transition-all relative overflow-hidden group mb-4
+                ${order.status === 'pending' ? 'border-amber-200 bg-amber-50/20 ring-4 ring-amber-500/5' : 'border-gray-50 hover:border-emerald-600/20'}
             `}
         >
-            {/* Status Strip */}
-            <div className={`absolute left-0 top-0 bottom-0 w-1 bg-${color}-500`} />
+            {/* Status Indicator Bar */}
+            <div className={`absolute left-0 top-0 bottom-0 w-1.5 bg-${color}-500 shadow-[2px_0_8px_rgba(0,0,0,0.05)]`} />
 
-            {/* Header */}
-            <div className="flex justify-between items-start mb-3 pl-2">
-                <div>
-                    <span className="text-xs font-bold text-gray-500">#{order.orderNumber}</span>
-                    <h4 className="text-sm font-bold text-gray-900">{order.customerId?.name || 'Guest'}</h4>
+            {/* Header: ID and Time */}
+            <div className="flex justify-between items-start mb-4 pl-2">
+                <div className="space-y-0.5">
+                    <span className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.2em] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                        {order.orderNumber || `#${order._id?.slice(-4).toUpperCase()}`}
+                    </span>
+                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-tighter group-hover:text-emerald-600 transition-colors">
+                        {order.customerId?.name || 'GUEST USER'}
+                    </h4>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-inner">
                     <Clock className="w-3 h-3" />
-                    {timeElapsed}m
+                    {timeElapsed}M AGO
                 </div>
             </div>
 
-            {/* Items Summary */}
-            <div className="space-y-1 mb-4 pl-2">
-                <p className="text-xs text-gray-600 line-clamp-2">
-                    {order.items.map(i => `${i.quantity}x ${i.productName || 'Item'}`).join(', ')}
+            {/* Content: Summary and Price */}
+            <div className="space-y-3 mb-6 pl-2">
+                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest line-clamp-2 leading-relaxed">
+                    {order.items.map(i => `${i.quantity}X ${i.productName || 'ITEM'}`).join(', ')}
                 </p>
-                <p className="text-sm font-bold text-gray-900">₹{order.total}</p>
+                <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-black text-gray-300 uppercase tracking-[0.2em]">Amount</span>
+                        <p className="text-xl font-black text-gray-900 tracking-tighter">₹{order.total}</p>
+                    </div>
+                    {order.riderId && (
+                        <div className="flex items-center gap-2 bg-emerald-50 px-3 py-2 rounded-2xl border border-emerald-100 shadow-sm">
+                            <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                            <span className="text-[9px] font-black text-emerald-800 uppercase tracking-widest">{order.riderId.name?.split(' ')[0]}</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            {/* Rider Info (Visible if assigned) */}
-            {order.riderId && (
-                <div className="flex items-center gap-2 mb-3 pl-2 bg-gray-50 p-2 rounded-lg">
-                    <div className="w-6 h-6 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                        <UserCheck className="w-3.5 h-3.5" />
-                    </div>
-                    <div>
-                        <p className="text-[10px] text-gray-400 uppercase font-bold">Rider</p>
-                        <p className="text-xs font-bold text-gray-800">{order.riderId.name || 'Unknown'}</p>
-                    </div>
-                </div>
-            )}
-
-            {/* Actions - Context Aware */}
-            <div className="flex gap-2 pl-2">
-                {/* Manager Workflow Actions */}
-                {order.status === 'pending' && (
+            {/* Actions: Bold Professional Controls */}
+            <div className="pl-2">
+                {['pending', 'confirmed', 'preparing', 'ready'].includes(order.status) ? (
                     <button
-                        onClick={() => onUpdateStatus(order._id, 'confirmed')}
-                        className="flex-1 text-xs font-bold py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                        onClick={() => {
+                            const nextMap = {
+                                'pending': 'confirmed',
+                                'confirmed': 'preparing',
+                                'preparing': 'ready',
+                                'ready': 'assigned'
+                            };
+                            onUpdateStatus(order._id, nextMap[order.status]);
+                        }}
+                        className={`w-full py-4 text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2
+                            ${order.status === 'pending' ? 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700' :
+                                order.status === 'confirmed' ? 'bg-orange-500 text-white shadow-orange-200 hover:bg-orange-600' :
+                                    order.status === 'preparing' ? 'bg-emerald-600 text-white shadow-emerald-200 hover:bg-emerald-700' :
+                                        'bg-cyan-600 text-white shadow-cyan-200 hover:bg-cyan-700'}
+                        `}
                     >
-                        Confirm
+                        {order.status === 'pending' && <><ClipboardCheck className="w-4 h-4" /> Confirm Order</>}
+                        {order.status === 'confirmed' && <><ChefHat className="w-4 h-4" /> Start Cooking</>}
+                        {order.status === 'preparing' && <><Package className="w-4 h-4" /> Order Ready</>}
+                        {order.status === 'ready' && <><Navigation className="w-4 h-4" /> Send to Rider</>}
                     </button>
-                )}
-                {order.status === 'confirmed' && (
-                    <button
-                        onClick={() => onUpdateStatus(order._id, 'preparing')}
-                        className="flex-1 text-xs font-bold py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition"
-                    >
-                        Cook
-                    </button>
-                )}
-                {order.status === 'preparing' && (
-                    <button
-                        onClick={() => onUpdateStatus(order._id, 'ready')}
-                        className="flex-1 text-xs font-bold py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition"
-                    >
-                        Ready
-                    </button>
-                )}
-                {order.status === 'ready' && (
-                    <button
-                        // Ideally opens a modal to assign rider, but for now just a placeholder or manual status push if testing
-                        onClick={() => onUpdateStatus(order._id, 'assigned')} // Just for flow testing
-                        className="flex-1 text-xs font-bold py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition"
-                    >
-                        Assign
-                    </button>
-                )}
-
-                {/* Rider Managed Stages - Read Only Indicator */}
-                {['assigned', 'picked_up', 'out-for-delivery', 'in_transit'].includes(order.status) && (
-                    <div className="flex-1 text-[10px] text-center font-medium text-gray-400 italic py-1">
-                        Waiting for Rider Update...
+                ) : (
+                    <div className="w-full py-4 bg-gray-50 border border-dashed border-gray-200 rounded-2xl flex items-center justify-center gap-2">
+                        <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest italic">With Rider</span>
                     </div>
                 )}
             </div>
@@ -224,17 +209,17 @@ const OrdersPage = () => {
     return (
         <div className="h-full flex flex-col space-y-4 overflow-hidden">
             {/* Header */}
-            <div className="flex justify-between items-center px-2">
+            <div className="flex items-center justify-between px-2 mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Order Management</h1>
-                    <p className="text-gray-500 text-sm">Full Lifecycle View</p>
+                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Live Orders</h1>
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Track order progress here</p>
                 </div>
-                <div className="flex gap-2">
-                    <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        <Filter className="w-4 h-4" /> Filter
+                <div className="flex gap-3">
+                    <button className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 hover:shadow-lg transition-all">
+                        <Filter className="w-5 h-5" /> Filter Stages
                     </button>
-                    <button className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white rounded-lg text-sm font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90">
-                        <ShoppingBag className="w-4 h-4" /> New Order
+                    <button className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-200 hover:scale-105 transition-all">
+                        <ShoppingBag className="w-5 h-5" /> New Order
                     </button>
                 </div>
             </div>
@@ -255,14 +240,14 @@ const OrdersPage = () => {
                         return (
                             <div key={col.id} className="flex-1 flex flex-col min-w-[280px] bg-gray-50/50 rounded-xl border border-gray-200/60 h-full">
                                 {/* Column Header */}
-                                <div className={`p-3 border-b border-gray-200/60 flex justify-between items-center bg-gray-100/50 backdrop-blur-sm rounded-t-xl sticky top-0 z-10`}>
-                                    <div className="flex items-center gap-2">
-                                        <div className={`p-1.5 rounded-md bg-${col.color}-100 text-${col.color}-700`}>
+                                <div className={`p-5 border-b-2 border-gray-100 flex justify-between items-center bg-white rounded-t-3xl sticky top-0 z-10 shadow-sm`}>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2.5 rounded-2xl bg-${col.color}-50 text-${col.color}-600 shadow-sm border border-${col.color}-100`}>
                                             <col.icon className="w-4 h-4" />
                                         </div>
-                                        <span className="font-bold text-gray-700 text-sm">{col.label}</span>
+                                        <span className="font-black text-gray-900 uppercase tracking-widest text-[11px] leading-none">{col.label}</span>
                                     </div>
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border border-${col.color}-200 bg-${col.color}-50 text-${col.color}-600`}>
+                                    <span className={`text-[9px] font-black px-3 py-1.5 rounded-full border-2 border-${col.color}-100 bg-${col.color}-50 text-${col.color}-600 shadow-sm`}>
                                         {colOrders.length}
                                     </span>
                                 </div>

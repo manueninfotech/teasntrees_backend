@@ -12,7 +12,9 @@ import {
     CheckCircle,
     XCircle,
     X,
-    Save
+    Save,
+    AlertCircle,
+    Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -36,7 +38,6 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // Only sending price and availability
             await onUpdate(product._id, {
                 price: Number(formData.price),
                 isAvailable: formData.isAvailable
@@ -52,99 +53,106 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
     if (!product) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden border border-white"
             >
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                    <h2 className="text-xl font-bold text-gray-900">Edit Product</h2>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                    <div>
+                        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">Edit Item</h2>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1 italic">Update price and stock</p>
+                    </div>
+                    <button onClick={onClose} className="p-3 hover:bg-white rounded-2xl transition-all shadow-sm">
+                        <X className="w-5 h-5 text-gray-400" />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <form onSubmit={handleSubmit} className="p-8 space-y-8">
                     {/* Read-Only Info */}
-                    <div className="flex gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <div className="w-16 h-16 bg-white rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden">
+                    <div className="flex gap-4 p-5 bg-white rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-24 h-24 bg-brand-primary/5 rounded-full blur-2xl -mr-12 -mt-12 transition-all group-hover:bg-brand-primary/10" />
+                        <div className="w-20 h-20 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-inner group-hover:scale-110 transition-transform duration-500">
                             {product.image ? (
                                 <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                             ) : (
-                                <ImageIcon className="w-8 h-8 text-gray-300" />
+                                <ImageIcon className="w-10 h-10 text-gray-200" />
                             )}
                         </div>
-                        <div>
-                            <h3 className="font-bold text-gray-900">{product.name}</h3>
-                            <p className="text-sm text-gray-500">{product.category?.name || 'Uncategorized'}</p>
-                            <p className="text-xs text-orange-600 mt-1 font-medium bg-orange-50 px-2 py-0.5 rounded-full inline-block border border-orange-100">
-                                Restricted Access: Updates limited to Price & Stock
-                            </p>
+                        <div className="flex flex-col justify-center">
+                            <p className="text-[10px] font-black text-brand-primary uppercase tracking-widest leading-none mb-1">{product.category?.name || 'GENERIC'}</p>
+                            <h3 className="font-black text-gray-900 uppercase tracking-tight text-lg leading-tight">{product.name}</h3>
+                            <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 rounded-full border border-amber-100">
+                                <AlertCircle className="w-3 h-3 text-amber-600" />
+                                <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Name Cannot be Changed</span>
+                            </div>
                         </div>
                     </div>
 
                     {/* Editable Fields */}
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-1">Price (₹)</label>
-                            <div className="relative">
-                                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <div className="space-y-6">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Price (₹)</label>
+                            <div className="relative group">
+                                <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-brand-primary transition-colors" />
                                 <input
                                     type="number"
                                     required
                                     min="0"
                                     value={formData.price}
                                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                    className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 outline-none transition-all font-bold text-lg"
+                                    className="w-full pl-12 pr-4 py-5 bg-gray-50/50 border border-gray-100 rounded-3xl focus:ring-4 focus:ring-brand-primary/5 focus:bg-white focus:border-brand-primary outline-none transition-all font-black text-2xl tracking-tighter text-gray-900 shadow-inner"
                                 />
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-bold text-gray-700 mb-2">Availability Status</label>
-                            <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Item Stock Status</label>
+                            <div className="grid grid-cols-2 gap-4">
                                 <button
                                     type="button"
                                     onClick={() => setFormData({ ...formData, isAvailable: true })}
-                                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all
+                                    className={`p-5 rounded-3xl border-2 flex flex-col items-center justify-center gap-2 transition-all group
                                         ${formData.isAvailable
-                                            ? 'bg-emerald-50 border-emerald-200 text-emerald-700 ring-2 ring-emerald-500/20'
-                                            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}
+                                            ? 'bg-emerald-600 border-emerald-600 text-white shadow-xl shadow-emerald-200 scale-105'
+                                            : 'bg-white border-gray-100 text-gray-400 hover:border-emerald-200 hover:bg-emerald-50/30'}
                                     `}
                                 >
-                                    <CheckCircle className="w-4 h-4" /> In Stock
+                                    <CheckCircle className={`w-6 h-6 ${formData.isAvailable ? 'text-white' : 'text-gray-300 group-hover:text-emerald-500'}`} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">In Stock</span>
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setFormData({ ...formData, isAvailable: false })}
-                                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 font-bold text-sm transition-all
+                                    className={`p-5 rounded-3xl border-2 flex flex-col items-center justify-center gap-2 transition-all group
                                         ${!formData.isAvailable
-                                            ? 'bg-red-50 border-red-200 text-red-700 ring-2 ring-red-500/20'
-                                            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'}
+                                            ? 'bg-rose-600 border-rose-600 text-white shadow-xl shadow-rose-200 scale-105'
+                                            : 'bg-white border-gray-100 text-gray-400 hover:border-rose-200 hover:bg-rose-50/30'}
                                     `}
                                 >
-                                    <XCircle className="w-4 h-4" /> Out of Stock
+                                    <XCircle className={`w-6 h-6 ${!formData.isAvailable ? 'text-white' : 'text-gray-300 group-hover:text-rose-500'}`} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Out of Stock</span>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="pt-4 flex gap-3">
+                    <div className="pt-4 flex gap-4">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+                            className="flex-1 py-5 bg-white border border-gray-100 text-[10px] font-black uppercase tracking-widest text-gray-400 rounded-3xl hover:bg-gray-50 transition-all hover:text-gray-600"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-1 py-3 bg-brand-primary text-white font-bold rounded-xl hover:bg-brand-primary/90 transition-colors shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2"
+                            className="flex-1 py-5 bg-brand-primary text-white text-[10px] font-black uppercase tracking-widest rounded-3xl hover:bg-brand-secondary transition-all shadow-xl shadow-brand-primary/20 flex items-center justify-center gap-3 disabled:opacity-50 hover:scale-[1.02]"
                         >
-                            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><Save className="w-4 h-4" /> Save Changes</>}
+                            {loading ? <Loader2 className="animate-spin w-5 h-5 text-white" /> : <><Save className="w-5 h-5" /> Save Changes</>}
                         </button>
                     </div>
                 </form>
@@ -236,11 +244,10 @@ const ProductsPage = () => {
 
     return (
         <div className="space-y-6 relative mb-20">
-            {/* Header */}
-            <div className="flex justify-between items-end">
+            <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-                    <p className="text-gray-500 text-sm">Manage menu prices and availability</p>
+                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Products</h1>
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Change prices and stock</p>
                 </div>
             </div>
 
@@ -276,52 +283,70 @@ const ProductsPage = () => {
                         <p>No products found</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
                         {products.map(product => (
                             <motion.div
                                 key={product._id}
                                 layout
-                                className={`bg-white rounded-xl border shadow-sm transition-all group overflow-hidden flex flex-col
-                                    ${!product.isAvailable ? 'border-gray-100 opacity-75' : 'border-gray-100 hover:border-brand-primary/30 hover:shadow-md'}
+                                className={`bg-white rounded-[2.2rem] border-2 shadow-sm transition-all group overflow-hidden flex flex-col relative
+                                    ${!product.isAvailable ? 'border-gray-100 grayscale hover:grayscale-0 ring-gray-100 opacity-80' : 'border-gray-50 hover:border-emerald-600/30 hover:shadow-2xl hover:shadow-emerald-600/10 hover:-translate-y-1'}
                                 `}
                             >
-                                {/* Image Area */}
-                                <div className="h-40 bg-gray-50 relative overflow-hidden">
+                                {/* Quick Availability Toggle - Glass Overlay */}
+                                <div className="absolute top-4 right-4 z-10">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); handleToggle(product); }}
+                                        className={`px-3 py-1.5 rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl backdrop-blur-xl transition-all duration-500 hover:scale-110 active:scale-95 border
+                                            ${product.isAvailable
+                                                ? 'bg-emerald-600/90 text-white border-white/20'
+                                                : 'bg-rose-600/90 text-white border-white/20'}
+                                        `}
+                                    >
+                                        {product.isAvailable ? 'In Stock' : 'No Stock'}
+                                    </button>
+                                </div>
+
+                                {/* Image Area with Modern Framing */}
+                                <div className="h-48 bg-gray-50 relative overflow-hidden flex items-center justify-center p-3">
+                                    <div className="absolute inset-0 bg-gradient-to-t from-gray-900/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                                     {product.image ? (
-                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <div className="w-full h-full rounded-[1.8rem] overflow-hidden shadow-sm">
+                                            <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" />
+                                        </div>
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                        <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-gray-100 shadow-inner">
                                             <ImageIcon className="w-10 h-10" />
                                         </div>
                                     )}
-                                    <div className="absolute top-2 right-2">
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleToggle(product); }}
-                                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase shadow-sm backdrop-blur-md transition-colors
-                                                ${product.isAvailable
-                                                    ? 'bg-emerald-500 text-white'
-                                                    : 'bg-gray-800 text-white'}
-                                            `}
-                                        >
-                                            {product.isAvailable ? 'In Stock' : 'Out of Stock'}
-                                        </button>
-                                    </div>
                                 </div>
 
-                                {/* Content */}
-                                <div className="p-4 flex flex-col flex-1">
-                                    <div className="flex-1">
-                                        <h3 className="font-bold text-gray-900 line-clamp-1">{product.name}</h3>
-                                        <p className="text-xs text-gray-500 mb-3">{product.category?.name || 'Item'}</p>
+                                {/* Content Section */}
+                                <div className="p-6 pt-2 flex flex-col flex-1">
+                                    <div className="flex-1 space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[8px] font-black text-emerald-600 tracking-[0.2em] uppercase leading-none px-2 py-1 bg-emerald-50 rounded-lg">
+                                                {product.category?.name || 'ITEM'}
+                                            </span>
+                                        </div>
+                                        <h3 className="font-black text-gray-900 line-clamp-1 uppercase tracking-tighter text-base group-hover:text-emerald-600 transition-colors">
+                                            {product.name}
+                                        </h3>
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-relaxed line-clamp-1">
+                                            {product.description || 'No description available'}
+                                        </p>
                                     </div>
 
-                                    <div className="flex items-center justify-between mt-2 pt-3 border-t border-gray-50">
-                                        <p className="font-bold text-lg text-gray-900">₹{product.price}</p>
+                                    {/* Action Bar */}
+                                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100">
+                                        <div className="flex flex-col">
+                                            <p className="text-[8px] font-black text-gray-300 uppercase tracking-widest leading-none mb-1">Price</p>
+                                            <p className="font-black text-xl text-gray-900 tracking-tight">₹{product.price}</p>
+                                        </div>
                                         <button
                                             onClick={() => setSelectedProduct(product)}
-                                            className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-brand-primary transition-colors"
+                                            className="px-6 py-3 bg-gray-50 text-gray-400 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 hover:text-white hover:shadow-xl hover:shadow-emerald-200 transition-all duration-300 flex items-center gap-2"
                                         >
-                                            <Edit2 className="w-4 h-4" />
+                                            <Edit2 className="w-3.5 h-3.5" /> Edit
                                         </button>
                                     </div>
                                 </div>

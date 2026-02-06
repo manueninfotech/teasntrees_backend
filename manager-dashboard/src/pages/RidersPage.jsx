@@ -24,139 +24,126 @@ const RiderDetailsModal = ({ rider, onClose, onApprove }) => {
     if (!rider) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-md">
             <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-white"
             >
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 flex justify-between items-start sticky top-0 bg-white z-10">
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-2xl font-bold">
+                <div className="p-8 border-b border-gray-50 flex justify-between items-center sticky top-0 bg-white/50 backdrop-blur-md z-10 transition-all">
+                    <div className="flex items-center gap-6">
+                        <div className="w-20 h-20 rounded-[1.8rem] bg-gray-50 flex items-center justify-center text-gray-400 text-3xl font-black uppercase tracking-tighter shadow-inner border border-gray-100">
                             {rider.name?.charAt(0) || 'R'}
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">{rider.name}</h2>
-                            <p className="text-sm text-gray-500 flex items-center gap-1">
-                                <Phone className="w-3.5 h-3.5" /> {rider.mobile}
+                            <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] leading-none mb-1 block">Rider Info</span>
+                            <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tighter leading-none">{rider.name}</h2>
+                            <p className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5 mt-2 uppercase tracking-widest">
+                                <Phone className="w-3.5 h-3.5" /> +91 {rider.mobile}
                             </p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <X className="w-5 h-5 text-gray-500" />
+                    <button onClick={onClose} className="p-4 hover:bg-white rounded-2xl transition-all shadow-sm">
+                        <X className="w-6 h-6 text-gray-400" />
                     </button>
                 </div>
 
                 {/* Content */}
-                <div className="p-6 space-y-6">
+                <div className="p-8 space-y-8 overflow-y-auto no-scrollbar">
                     {/* Status Section */}
-                    <div className="flex gap-4">
-                        <div className={`flex-1 p-4 rounded-xl border ${rider.isOnline ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}>
-                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Status</p>
+                    <div className="flex gap-6">
+                        <div className={`flex-1 p-6 rounded-[2rem] border-2 shadow-sm ${rider.isOnline ? 'bg-emerald-50/50 border-emerald-100 ring-4 ring-emerald-500/5' : 'bg-gray-50/50 border-gray-100'}`}>
+                            <p className="text-[9px] font-black text-gray-400 font-bold uppercase tracking-[0.2em] mb-2 leading-none">Online Status</p>
                             <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${rider.isOnline ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                                <span className={`font-bold ${rider.isOnline ? 'text-emerald-700' : 'text-gray-600'}`}>
+                                <div className={`w-2.5 h-2.5 rounded-full ${rider.isOnline ? 'bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse' : 'bg-gray-400'}`} />
+                                <span className={`text-lg font-black uppercase tracking-tight ${rider.isOnline ? 'text-emerald-700' : 'text-gray-600'}`}>
                                     {rider.isOnline ? 'Online' : 'Offline'}
                                 </span>
                             </div>
                         </div>
-                        <div className="flex-1 p-4 rounded-xl bg-orange-50 border border-orange-100">
-                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Current Activity</p>
-                            <span className="font-bold text-orange-700">
-                                {rider.isBusy ? 'On Delivery' : 'Idle'}
-                            </span>
+                        <div className="flex-1 p-6 rounded-[2rem] bg-orange-50/50 border-2 border-orange-100 shadow-sm">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 leading-none">Work Status</p>
+                            <div className="flex items-center gap-2">
+                                <div className={`w-2.5 h-2.5 rounded-full ${rider.isBusy ? 'bg-orange-500 animate-pulse' : 'bg-emerald-500'}`} />
+                                <span className="text-lg font-black uppercase tracking-tight text-orange-700">
+                                    {rider.isBusy ? 'Delivering' : 'Ready'}
+                                </span>
+                            </div>
                         </div>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                            <TrendingUp className="w-4 h-4 text-brand-primary mb-2" />
-                            <p className="text-xs text-gray-500">Total Deliveries</p>
-                            <p className="text-lg font-bold text-gray-900">{rider.totalDeliveries || 0}</p>
-                        </div>
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                            <CreditCard className="w-4 h-4 text-brand-primary mb-2" />
-                            <p className="text-xs text-gray-500">Earnings</p>
-                            <p className="text-lg font-bold text-gray-900">₹{rider.totalEarnings || 0}</p>
-                        </div>
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                            <Star className="w-4 h-4 text-yellow-500 mb-2" />
-                            <p className="text-xs text-gray-500">Rating</p>
-                            <p className="text-lg font-bold text-gray-900">{rider.averageRating?.toFixed(1) || 'N/A'}</p>
-                        </div>
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                            <Clock className="w-4 h-4 text-blue-500 mb-2" />
-                            <p className="text-xs text-gray-500">Joined</p>
-                            <p className="text-sm font-bold text-gray-900">
-                                {new Date(rider.createdAt).toLocaleDateString()}
-                            </p>
-                        </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {[
+                            { label: 'DELIVERIES', value: rider.totalDeliveries || 0, icon: TrendingUp, color: 'text-brand-primary', bg: 'bg-emerald-50' },
+                            { label: 'WALLET', value: `₹${rider.totalEarnings || 0}`, icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
+                            { label: 'RATING', value: rider.averageRating?.toFixed(1) || 'N/A', icon: Star, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+                            { label: 'TENURE', value: new Date(rider.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }), icon: Clock, color: 'text-purple-600', bg: 'bg-purple-50' }
+                        ].map((stat, i) => (
+                            <div key={i} className="p-5 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-md transition-all">
+                                <stat.icon className={`w-5 h-5 ${stat.color} mb-3`} />
+                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1 text-center">{stat.label}</p>
+                                <p className="text-lg font-black text-gray-900 uppercase tracking-tight text-center">{stat.value}</p>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Vehicle Details */}
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <Bike className="w-4 h-4" /> Vehicle Information
+                    <div className="p-8 bg-gray-50/50 rounded-[2.5rem] border border-gray-100 shadow-inner">
+                        <h3 className="text-[10px] font-black text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+                            <Bike className="w-5 h-5" /> Vehicle Logistics
                         </h3>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div className="p-3 border border-gray-100 rounded-lg">
-                                <p className="text-xs text-gray-500">Model</p>
-                                <p className="font-medium">{rider.vehicleModel || 'N/A'}</p>
-                            </div>
-                            <div className="p-3 border border-gray-100 rounded-lg">
-                                <p className="text-xs text-gray-500">Vehicle Number</p>
-                                <p className="font-medium">{rider.vehicleNumber || 'N/A'}</p>
-                            </div>
-                            <div className="p-3 border border-gray-100 rounded-lg">
-                                <p className="text-xs text-gray-500">Type</p>
-                                <p className="font-medium capitalize">{rider.vehicleType || 'N/A'}</p>
-                            </div>
-                            <div className="p-3 border border-gray-100 rounded-lg">
-                                <p className="text-xs text-gray-500">License Number</p>
-                                <p className="font-medium">{rider.licenseNumber || 'N/A'}</p>
-                            </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            {[
+                                { l: 'VEHICLE', v: rider.vehicleModel || 'N/A' },
+                                { l: 'BIKE NUMBER', v: rider.vehicleNumber || 'N/A' },
+                                { l: 'VEHICLE TYPE', v: rider.vehicleType || 'N/A' },
+                                { l: 'LICENSE NUMBER', v: rider.licenseNumber || 'N/A' }
+                            ].map((d, i) => (
+                                <div key={i} className="p-4 bg-white border border-gray-100 rounded-2xl shadow-sm">
+                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{d.l}</p>
+                                    <p className="text-sm font-black text-gray-800 uppercase tracking-tight">{d.v}</p>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
                     {/* Bank Details */}
-                    <div>
-                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <CreditCard className="w-4 h-4" /> Bank Details
+                    <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-lg shadow-gray-100/50">
+                        <h3 className="text-[10px] font-black text-gray-900 mb-6 flex items-center gap-2 uppercase tracking-[0.2em]">
+                            <CreditCard className="w-5 h-5" /> Bank Details
                         </h3>
-                        <div className="p-4 bg-gray-50 rounded-xl space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">Account Holder</span>
-                                <span className="font-medium">{rider.accountHolderName || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">Account Number</span>
-                                <span className="font-medium">{rider.bankAccountNumber || 'N/A'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-gray-500">IFSC Code</span>
-                                <span className="font-medium">{rider.ifscCode || 'N/A'}</span>
-                            </div>
+                        <div className="space-y-4">
+                            {[
+                                { l: 'ACCOUNT NAME', v: rider.accountHolderName || 'N/A' },
+                                { l: 'ACCOUNT NUMBER', v: rider.bankAccountNumber || 'N/A' },
+                                { l: 'IFSC CODE', v: rider.ifscCode || 'N/A' }
+                            ].map((d, i) => (
+                                <div key={i} className="flex justify-between items-center p-4 bg-gray-50/50 rounded-2xl border border-gray-50">
+                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">{d.l}</span>
+                                    <span className="text-xs font-black text-gray-800 uppercase tracking-tight">{d.v}</span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex justify-end gap-3">
+                <div className="p-8 border-t border-gray-100 bg-gray-50 rounded-b-[2.5rem] flex justify-end gap-4">
                     <button
                         onClick={onClose}
-                        className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-lg transition"
+                        className="px-8 py-4 text-[10px] font-black tracking-widest text-gray-400 uppercase hover:bg-white rounded-2xl transition-all border border-transparent hover:border-gray-100"
                     >
                         Close
                     </button>
                     {!rider.isApproved && (
                         <button
                             onClick={() => { onApprove(rider._id); onClose(); }}
-                            className="px-6 py-2 bg-brand-primary text-white text-sm font-bold rounded-lg hover:bg-brand-primary/90 flex items-center gap-2 shadow-lg shadow-brand-primary/20"
+                            className="px-10 py-4 bg-brand-primary text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-brand-secondary transition-all shadow-xl shadow-brand-primary/20 flex items-center gap-2"
                         >
-                            <ShieldCheck className="w-4 h-4" /> Approve Rider
+                            <ShieldCheck className="w-5 h-5" /> Approve Rider
                         </button>
                     )}
                 </div>
@@ -298,20 +285,19 @@ const RidersPage = () => {
 
     return (
         <div className="h-full flex flex-col space-y-6 relative">
-            {/* Header & Stats */}
-            <div className="flex justify-between items-end">
+            <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Rider Management</h1>
-                    <p className="text-gray-500 text-sm">Monitor fleet and approvals</p>
+                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Riders</h1>
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Manage riders and new signups</p>
                 </div>
                 <div className="flex gap-4">
-                    <div className="bg-white px-4 py-2 rounded-xl border border-gray-100 shadow-sm flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600">
-                            <Bike className="w-5 h-5" />
+                    <div className="bg-white px-8 py-5 rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/50 flex items-center gap-6 group hover:-translate-y-1 transition-all">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-emerald-50 flex items-center justify-center text-emerald-600 shadow-sm shadow-emerald-100 group-hover:scale-110 transition-transform duration-500">
+                            <Bike className="w-8 h-8" />
                         </div>
                         <div>
-                            <p className="text-xs text-gray-500 font-medium">Online</p>
-                            <p className="text-lg font-bold text-gray-900">{stats.online}/{stats.total}</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-2">Riders Online</p>
+                            <p className="text-3xl font-black text-gray-900 tracking-tighter leading-none">{stats.online} <span className="text-gray-200 text-xl mx-1">/</span> {stats.total}</p>
                         </div>
                     </div>
                 </div>
@@ -324,7 +310,7 @@ const RidersPage = () => {
                     className={`px-6 py-3 text-sm font-medium transition-colors relative ${activeTab === 'active' ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
-                    Active Fleet
+                    Active Riders
                     {activeTab === 'active' && (
                         <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary" />
                     )}
@@ -334,7 +320,7 @@ const RidersPage = () => {
                     className={`px-6 py-3 text-sm font-medium transition-colors relative flex items-center gap-2 ${activeTab === 'pending' ? 'text-brand-primary' : 'text-gray-500 hover:text-gray-700'
                         }`}
                 >
-                    Pending Approval
+                    New Signups
                     {stats.pending > 0 && (
                         <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                             {stats.pending}
@@ -353,7 +339,7 @@ const RidersPage = () => {
                         <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin" />
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <AnimatePresence mode="popLayout">
                             {displayedRiders.map(rider => (
                                 <RiderCard
@@ -395,83 +381,82 @@ const RidersPage = () => {
 const RiderCard = ({ rider, isPending, onApprove, onReject, onViewDetails }) => (
     <motion.div
         layout
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all group"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`bg-white p-8 rounded-[2.5rem] border-2 shadow-sm transition-all group relative overflow-hidden
+            ${!rider.isApproved ? 'border-amber-200 bg-amber-50/10' : 'border-gray-50 hover:border-emerald-600/30 hover:shadow-2xl hover:shadow-emerald-600/10 hover:-translate-y-1'}
+        `}
     >
-        <div className="flex items-start justify-between mb-3">
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 overflow-hidden">
-                    {/* Avatar placeholder or image if available */}
-                    <User className="w-5 h-5" />
-                </div>
-                <div>
-                    <h3 className="font-bold text-gray-900 leading-tight">{rider.name}</h3>
-                    <p className="text-xs text-gray-500 flex items-center gap-1">
-                        <Phone className="w-3 h-3" /> {rider.mobile}
-                    </p>
-                </div>
+        {/* Connection Status Indicator */}
+        {!isPending && (
+            <div className={`absolute top-6 right-6 px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-2 border shadow-sm backdrop-blur-md
+                ${rider.isOnline ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-400 border-gray-100'}
+            `}>
+                <div className={`w-1.5 h-1.5 rounded-full ${rider.isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+                {rider.isOnline ? 'Online' : 'Offline'}
             </div>
-            {!isPending && (
-                <div className={`px-2 py-1 rounded-full text-[10px] font-bold flex items-center gap-1
-                    ${rider.isOnline ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}
-                `}>
-                    <div className={`w-1.5 h-1.5 rounded-full ${rider.isOnline ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                    {rider.isOnline ? 'Online' : 'Offline'}
-                </div>
-            )}
+        )}
+
+        {/* Profile Section */}
+        <div className="flex items-center gap-4 mb-6">
+            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 font-black uppercase shadow-inner border border-gray-100 group-hover:scale-110 transition-transform duration-500">
+                {rider.name?.charAt(0) || 'R'}
+            </div>
+            <div>
+                <h3 className="font-black text-gray-900 uppercase tracking-tighter text-base leading-none group-hover:text-emerald-600 transition-colors uppercase">
+                    {rider.name}
+                </h3>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1.5 flex items-center gap-1">
+                    <Phone className="w-3 h-3" /> {rider.mobile}
+                </p>
+            </div>
         </div>
 
-        {/* Details - Updated with correct fields */}
-        <div className="space-y-2 mb-4 bg-gray-50/50 p-3 rounded-lg border border-gray-50 text-xs">
-            <div className="flex justify-between">
-                <span className="text-gray-500">Vehicle</span>
-                <span className="font-medium text-gray-800">{rider.vehicleModel || 'N/A'}</span>
+        {/* Logistics Summary */}
+        <div className="space-y-4 mb-8 bg-gray-50/50 p-6 rounded-[2rem] border border-gray-50/50">
+            <div className="flex justify-between items-center transition-all group-hover:translate-x-1">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Work Status</span>
+                <span className={`text-[11px] font-black uppercase tracking-tight flex items-center gap-2 ${rider.isBusy ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full ${rider.isBusy ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                    {rider.isBusy ? 'Delivering' : 'Ready'}
+                </span>
             </div>
-            <div className="flex justify-between">
-                <span className="text-gray-500">License</span>
-                <span className="font-medium text-gray-800">{rider.vehicleNumber || 'N/A'}</span>
+            <div className="flex justify-between items-start transition-all group-hover:translate-x-1">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Vehicle</span>
+                <span className="text-[11px] font-black text-gray-800 uppercase tracking-tight text-right flex-1 ml-4 leading-tight">{rider.vehicleModel || 'N/A'}</span>
             </div>
-            {!isPending && (
-                <div className="flex justify-between">
-                    <span className="text-gray-500">Status</span>
-                    <span className={`font-bold ${rider.isBusy ? 'text-orange-600' : 'text-emerald-600'}`}>
-                        {rider.isBusy ? 'Busy (Delivering)' : 'Available'}
-                    </span>
-                </div>
-            )}
+            <div className="flex justify-between items-center transition-all group-hover:translate-x-1">
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plate No.</span>
+                <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest bg-white px-3 py-1 rounded-lg border border-gray-100 shadow-sm">{rider.vehicleNumber || 'N/A'}</span>
+            </div>
         </div>
 
-        {/* Actions */}
-        {isPending ? (
-            <div className="flex gap-2">
+        {/* Controls */}
+        <div className="flex gap-3">
+            {isPending ? (
+                <>
+                    <button
+                        onClick={() => onReject(rider._id)}
+                        className="flex-1 py-4 bg-rose-50 text-rose-600 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-rose-600 hover:text-white transition-all order-2"
+                    >
+                        Reject
+                    </button>
+                    <button
+                        onClick={() => onApprove(rider._id)}
+                        className="flex-[1.5] py-4 bg-brand-primary text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-brand-secondary transition-all shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2 order-1"
+                    >
+                        <ShieldCheck className="w-4 h-4" /> Approve
+                    </button>
+                </>
+            ) : (
                 <button
                     onClick={() => onViewDetails(rider)}
-                    className="flex-1 py-2 bg-gray-100 text-gray-700 text-xs font-bold rounded-lg hover:bg-gray-200"
+                    className="w-full py-4 bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-emerald-600 hover:text-white hover:shadow-xl hover:shadow-emerald-200 transition-all border border-transparent hover:border-emerald-600"
                 >
-                    View
+                    View Details
                 </button>
-                <button
-                    onClick={() => onReject(rider._id)}
-                    className="flex-1 py-2 bg-red-50 text-red-600 text-xs font-bold rounded-lg hover:bg-red-100 flex items-center justify-center gap-2"
-                >
-                    Reject
-                </button>
-                <button
-                    onClick={() => onApprove(rider._id)}
-                    className="flex-1 py-2 bg-brand-primary text-white text-xs font-bold rounded-lg hover:bg-brand-primary/90 flex items-center justify-center gap-2"
-                >
-                    <ShieldCheck className="w-3 h-3" /> Approve
-                </button>
-            </div>
-        ) : (
-            <button
-                onClick={() => onViewDetails(rider)}
-                className="w-full py-2 bg-gray-50 text-gray-600 text-xs font-bold rounded-lg hover:bg-gray-100 border border-transparent hover:border-gray-200 transition-colors"
-            >
-                View Details
-            </button>
-        )}
+            )}
+        </div>
     </motion.div>
 );
 

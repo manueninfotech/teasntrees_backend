@@ -1,108 +1,100 @@
-import { Outlet, NavLink } from 'react-router-dom';
-import { Home, ShoppingBag, Truck, Users, BarChart2, Menu, Bell, Navigation } from 'lucide-react'; // Added Navigation
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import {
+    LayoutDashboard,
+    Package,
+    ShoppingCart,
+    Users,
+    Bike,
+    LogOut,
+    Settings,
+    User,
+    Truck
+} from 'lucide-react';
+import logo from '../../assets/logo_teasntrees.png';
 
-import logo from '../../assets/logo_teasntrees.png'; // Import Logo
+export default function DashboardLayout() {
+    const { logout } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
 
-const NAV_ITEMS = [
-    { icon: Home, label: 'Overview', path: '/' },
-    { icon: ShoppingBag, label: 'Orders', path: '/orders' },
-    { icon: Truck, label: 'Riders', path: '/riders' },
-    { icon: Navigation, label: 'Deliveries', path: '/deliveries' },
-    { icon: Users, label: 'Customers', path: '/customers' },
-    { icon: ShoppingBag, label: 'Products', path: '/products' },
-];
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
-const DesktopSidebar = () => (
-    <aside className="hidden lg:flex flex-col w-64 glass-panel border-r border-glass-border h-screen fixed left-0 top-0 z-50 bg-white/80 backdrop-blur-xl">
-        <div className="p-6 flex flex-col items-center"> {/* Centered Logo */}
-            <img src={logo} alt="Teas N Trees" className="h-16 w-auto object-contain mb-2" />
-            <p className="text-xs text-brand-primary tracking-widest uppercase font-bold">Manager</p>
-        </div>
+    const navItems = [
+        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
+        { icon: Package, label: 'Products', path: '/products' },
+        { icon: ShoppingCart, label: 'Orders', path: '/orders' },
+        { icon: Bike, label: 'Riders', path: '/riders' },
+        { icon: Truck, label: 'Deliveries', path: '/deliveries' },
+        { icon: Users, label: 'Customers', path: '/customers' },
+        // { icon: Settings, label: 'Settings', path: '/settings' },
+        // { icon: User, label: 'My Profile', path: '/profile' },
+    ];
 
-        <nav className="flex-1 px-4 space-y-2 mt-4">
-            {NAV_ITEMS.map((item) => (
-                <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) => `
-            flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200
-            ${isActive
-                            ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
-                            : 'text-gray-600 hover:bg-gray-100 hover:text-brand-primary'
-                        }
-          `}
-                >
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
-                </NavLink>
-            ))}
-        </nav>
+    const isActive = (path) => {
+        return location.pathname === path;
+    };
 
-        <div className="p-4 border-t border-gray-100">
-            <div className="flex items-center gap-3 px-4 py-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-brand-primary to-blue-500 overflow-hidden shadow-md">
-                    {/* Avatar Placeholder */}
-                    <img src="https://ui-avatars.com/api/?name=Manager&background=00A67E&color=fff" alt="" />
-                </div>
-                <div>
-                    <p className="text-sm font-bold text-gray-800">Store Manager</p>
-                    <p className="text-xs text-green-600 font-medium">Online</p>
-                </div>
-            </div>
-        </div>
-    </aside>
-);
-
-const MobileBottomNav = () => (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-gray-200 bg-white/90 backdrop-blur-md pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="flex justify-around items-center p-2">
-            {NAV_ITEMS.slice(0, 5).map((item) => (
-                <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={({ isActive }) => `
-           flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 min-w-[60px]
-           ${isActive
-                            ? 'text-brand-primary font-bold'
-                            : 'text-gray-400 hover:text-gray-600'
-                        }
-         `}
-                >
-                    <item.icon className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">{item.label}</span>
-                </NavLink>
-            ))}
-        </div>
-    </div>
-);
-
-const DashboardLayout = () => {
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900 selection:bg-brand-primary/30">
-            <DesktopSidebar />
-
-            {/* Main Content Area */}
-            <main className="lg:ml-64 min-h-screen pb-24 lg:pb-0 relative">
-
-                {/* Mobile Header */}
-                <div className="lg:hidden p-4 flex items-center justify-between glass-panel sticky top-0 z-40 mb-4 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
-                    <div className="flex items-center gap-2">
-                        <img src={logo} alt="Teas N Trees" className="h-8 w-auto object-contain" />
-                        <span className="font-bold text-lg text-gray-800">Manager Pnl</span>
+        <div className="min-h-screen bg-gray-50/50 flex selection:bg-emerald-600 selection:text-white font-sans text-gray-900">
+            {/* Sidebar */}
+            <aside className="w-80 bg-white border-r border-gray-100 my-5 ml-5 rounded-[2.5rem] shadow-2xl shadow-gray-200/50 flex flex-col h-[calc(100vh-40px)] sticky top-5 overflow-hidden z-20">
+                {/* Logo Area */}
+                <div className="p-8 border-b border-gray-50 bg-white">
+                    <div className="flex flex-col items-center gap-2">
+                        <img
+                            src={logo}
+                            alt="Teas N Trees Logo"
+                            className="h-16 w-auto object-contain"
+                        />
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.25em]">Manager Dashboard</p>
                     </div>
-                    <Bell className="w-6 h-6 text-gray-600" />
                 </div>
 
-                <div className="p-4 lg:p-8 max-w-[1920px] mx-auto">
+                {/* Navigation */}
+                <nav className="p-6 flex-1 overflow-y-auto space-y-2 no-scrollbar">
+                    {navItems.map((item) => {
+                        const active = isActive(item.path);
+                        return (
+                            <Link
+                                key={item.path}
+                                to={item.path}
+                                className={`
+                                    flex items-center gap-4 px-6 py-4 rounded-2xl transition-all group duration-300
+                                    ${active
+                                        ? 'bg-emerald-600 text-white shadow-xl shadow-emerald-200 scale-[1.02]'
+                                        : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 hover:pl-7'
+                                    }
+                                `}
+                            >
+                                <item.icon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${active ? 'text-white' : 'text-gray-400 group-hover:text-emerald-600'}`} />
+                                <span className="font-black uppercase text-[10px] tracking-[0.2em]">{item.label}</span>
+                            </Link>
+                        );
+                    })}
+                </nav>
+
+                {/* Logout Button */}
+                <div className="p-6 border-t border-gray-50 bg-gray-50/30">
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-4 px-6 py-4 rounded-2xl bg-red-50 text-red-500 transition-all hover:bg-red-600 hover:text-white group w-full hover:shadow-lg hover:shadow-red-200"
+                    >
+                        <LogOut className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+                        <span className="font-black uppercase text-[10px] tracking-[0.2em]">Logout Session</span>
+                    </button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main className="flex-1 p-10 overflow-x-hidden overflow-y-auto h-screen scroll-smooth">
+                <div className="max-w-[1600px] mx-auto pb-10">
                     <Outlet />
                 </div>
             </main>
-
-            <MobileBottomNav />
         </div>
     );
-};
-
-export default DashboardLayout;
+}

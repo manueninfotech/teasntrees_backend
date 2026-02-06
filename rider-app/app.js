@@ -2,8 +2,15 @@ const API_BASE = 'http://localhost:5000/api/rider';
 const token = localStorage.getItem('riderToken');
 
 // Auth Check
-if (!token) {
-    window.location.href = 'login.html';
+const isValidToken = token && token !== 'undefined' && token !== 'null';
+const isDashboardPage = document.getElementById('riderName') !== null;
+
+console.log('App Auth Check:', { isValidToken, isDashboardPage });
+
+if (!isValidToken && isDashboardPage) {
+    console.log('No valid token on dashboard, replacing with login.html');
+    localStorage.removeItem('riderToken');
+    window.location.replace('login.html');
 }
 
 // Global Headers
