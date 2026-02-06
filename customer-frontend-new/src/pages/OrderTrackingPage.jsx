@@ -17,31 +17,156 @@ const steps = [
     { status: 'delivered', label: 'Delivered', icon: CheckCircle }
 ];
 
+const LIVE_STATUSES = new Set([
+    'assigned',
+    'accepted',
+    'heading_to_pickup',
+    'arrived_at_pickup',
+    'picked_up',
+    'out-for-delivery',
+    'out_for_delivery',
+    'in_transit',
+    'arrived'
+]);
+
+const DELIVERY_AWARE_STATUSES = new Set([
+    'preparing',
+    'ready',
+    'waiting_for_rider',
+    'assigned',
+    'picked_up',
+    'out-for-delivery',
+    'out_for_delivery',
+    'in_transit',
+    'arrived'
+]);
+
 const OrderTrackingPage = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
     const { socket } = useSocket();
     const [order, setOrder] = useState(null);
+    const [deliveryInfo, setDeliveryInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
     const [isDownloading, setIsDownloading] = useState(false);
+    const [etaMinutes, setEtaMinutes] = useState(null);
+
+    const fetchDeliveryByOrder = useCallback(async (id) => {
+        try {
+            const delivery = await orderService.getDeliveryByOrder(id || orderId);
+            setDeliveryInfo(delivery);
+        } catch (err) {
+            // If delivery is not ready yet, just ignore
+            setDeliveryInfo(null);
+        }
+    }, [orderId]);
 
     const fetchOrder = useCallback(async () => {
         try {
             const data = await orderService.getOrderById(orderId);
             setOrder(data);
+            if (data && DELIVERY_AWARE_STATUSES.has(data.status)) {
+                await fetchDeliveryByOrder(data._id);
+            } else {
+                setDeliveryInfo(null);
+                setEtaMinutes(null);
+            }
         } catch (err) {
             console.error("Failed to fetch order", err);
             setError('Failed to load order details');
         } finally {
             setLoading(false);
         }
-    }, [orderId]);
+    }, [orderId, fetchDeliveryByOrder]);
+
+    const calculateEtaFromRider = useCallback(() => {
+        if (!deliveryInfo?.rider?.location?.coordinates) return null;
+        const coords = deliveryInfo.rider.location.coordinates;
+        const riderLng = coords[0];
+        const riderLat = coords[1];
+
+        const deliveryCoords = deliveryInfo.deliveryAddress?.location?.coordinates
+            || order?.deliveryAddress?.location?.coordinates;
+
+        if (!deliveryCoords || deliveryCoords.length !== 2) return null;
+        const destLng = deliveryCoords[0];
+        const destLat = deliveryCoords[1];
+
+        // Haversine distance helper
+        const getDistKm = (lat1, lon1, lat2, lon2) => {
+            const toRad = (v) => (v * Math.PI) / 180;
+            const R = 6371;
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        };
+
+        const status = deliveryInfo.status || order.status;
+        let totalDistanceKm = 0;
+
+        // Multi-Leg Logic:
+        // Statuses before pickup: leg 1 (Rider to Outlet) + leg 2 (Outlet to Customer)
+        const isBeforePickup = ['assigned', 'accepted', 'heading_to_pickup', 'arrived_at_pickup'].includes(status);
+
+        if (isBeforePickup && deliveryInfo.pickupLocation?.coordinates) {
+            const outletLng = deliveryInfo.pickupLocation.coordinates[0];
+            const outletLat = deliveryInfo.pickupLocation.coordinates[1];
+
+            // Leg 1: Rider -> Outlet
+            const leg1 = getDistKm(riderLat, riderLng, outletLat, outletLng);
+            // Leg 2: Outlet -> Customer
+            const leg2 = getDistKm(outletLat, outletLng, destLat, destLng);
+
+            totalDistanceKm = leg1 + leg2;
+        } else {
+            // After pickup: Rider -> Customer
+            totalDistanceKm = getDistKm(riderLat, riderLng, destLat, destLng);
+        }
+
+        // Simple average speed estimate (25 km/h)
+        const avgSpeedKmh = 25;
+        const minutes = Math.max(1, Math.round((totalDistanceKm / avgSpeedKmh) * 60));
+        return minutes;
+    }, [deliveryInfo, order]);
 
     useEffect(() => {
         if (orderId) fetchOrder();
     }, [orderId, fetchOrder]);
+
+    useEffect(() => {
+        if (!order) return;
+        const statusForEta = deliveryInfo?.status || order.status;
+        if (!LIVE_STATUSES.has(statusForEta)) {
+            setEtaMinutes(null);
+            return;
+        }
+        const minutes = calculateEtaFromRider();
+        if (minutes !== null) {
+            setEtaMinutes(minutes);
+        } else if (statusForEta === 'assigned') {
+            setEtaMinutes(10);
+        } else {
+            setEtaMinutes(null);
+        }
+    }, [order, deliveryInfo, calculateEtaFromRider]);
+
+    // Poll rider location after pickup to keep ETA fresh
+    useEffect(() => {
+        if (!order || !DELIVERY_AWARE_STATUSES.has(order.status)) return;
+
+        fetchDeliveryByOrder(order._id);
+        const interval = setInterval(() => {
+            fetchDeliveryByOrder(order._id);
+        }, 20000);
+
+        return () => clearInterval(interval);
+    }, [order, fetchDeliveryByOrder]);
 
     // Socket Listener for Real-time Updates
     useEffect(() => {
@@ -55,6 +180,9 @@ const OrderTrackingPage = () => {
                 console.log('socket update received:', data);
                 // toast.success(`Order updated: ${data.status.replace('_', ' ')}`); // Optional: don't spam toasts
                 fetchOrder(); // Refresh full data
+                if (order?.status && DELIVERY_AWARE_STATUSES.has(order.status)) {
+                    fetchDeliveryByOrder(orderId);
+                }
             }
         };
 
@@ -149,12 +277,22 @@ const OrderTrackingPage = () => {
     const activeIndex = order ? getStepIndex(order.status) : 0;
 
     // Calculate Estimated Time
-    // Priority: 1. Delivery Model Estimate, 2. Order Model Estimate, 3. Default (Created + 45m)
-    const estimatedTime = order.delivery?.estimatedTime
-        ? new Date(Date.now() + order.delivery.estimatedTime * 60000)
-        : order.estimatedDeliveryTime
-            ? new Date(order.estimatedDeliveryTime)
-            : new Date(new Date(order.createdAt).getTime() + 45 * 60000);
+    // Priority: 1. Live rider ETA (assigned or after pickup), 2. Delivery Model Estimate, 3. Order Model Estimate, 4. Default (Created + 45m)
+    let rawEstimatedTime = etaMinutes
+        ? new Date(Date.now() + etaMinutes * 60000)
+        : order.delivery?.estimatedTime
+            ? new Date(Date.now() + order.delivery.estimatedTime * 60000)
+            : order.estimatedDeliveryTime
+                ? new Date(order.estimatedDeliveryTime)
+                : new Date(new Date(order.createdAt).getTime() + 45 * 60000);
+
+    // Common Sense Safeguard: If order is active but estimate is in the past, shift it forward
+    const isTerminal = ['delivered', 'cancelled'].includes(order.status);
+    if (!isTerminal && rawEstimatedTime < new Date()) {
+        rawEstimatedTime = new Date(Date.now() + 15 * 60000); // Default to +15 mins from now
+    }
+
+    const estimatedTime = rawEstimatedTime;
 
     // Get OTP from Delivery Model (exposed by backend only when active)
     const deliveryOtp = order.delivery?.deliveryOtp;

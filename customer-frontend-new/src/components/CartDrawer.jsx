@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
+import { X, Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { cn } from '../lib/utils';
@@ -74,9 +74,9 @@ const CartDrawer = () => {
                                             toggleCart();
                                             navigate('/menu');
                                         }}
-                                        className="text-cafe-emerald hover:underline text-sm"
+                                        className="px-8 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center gap-2"
                                     >
-                                        Browse Menu
+                                        Browse Menu <ArrowRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             ) : (

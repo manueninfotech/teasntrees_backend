@@ -37,5 +37,11 @@ export const orderService = {
             responseType: 'blob' // Important for handling binary data
         });
         return response.data;
+    },
+
+    // Get delivery info by order ID (for live rider location)
+    getDeliveryByOrder: async (orderId) => {
+        const response = await api.get(`/customer/deliveries/order/${orderId}`);
+        return response.data.data;
     }
 };
