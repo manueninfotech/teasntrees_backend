@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Mail, MapPin, Send, Clock, Instagram, Facebook } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, Clock, Instagram, Facebook, Twitter, Loader2 } from 'lucide-react';
+import settingsService from '../services/settingsService';
 
 const ContactPage = () => {
     const [formData, setFormData] = useState({
@@ -9,6 +10,24 @@ const ContactPage = () => {
         message: ''
     });
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [settings, setSettings] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchSettings = async () => {
+            try {
+                const res = await settingsService.getSettings();
+                if (res.success) {
+                    setSettings(res.data);
+                }
+            } catch (error) {
+                console.error("Failed to fetch contact settings:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchSettings();
+    }, []);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -23,28 +42,39 @@ const ContactPage = () => {
         {
             icon: Phone,
             title: "Phone",
-            text: "+91 72868 33999",
-            link: "tel:+917286833999",
+            text: settings?.contactPhone || "+91 72868 33999",
+            link: `tel:${settings?.contactPhone?.replace(/\s/g, '') || "+917286833999"}`,
             color: "text-blue-500",
             bg: "bg-blue-50"
         },
         {
             icon: Mail,
             title: "Email",
-            text: "hello@teasntrees.in",
-            link: "mailto:hello@teasntrees.in",
+            text: settings?.contactEmail || "hello@teasntrees.in",
+            link: `mailto:${settings?.contactEmail || "hello@teasntrees.in"}`,
             color: "text-purple-500",
             bg: "bg-purple-50"
         },
         {
             icon: MapPin,
             title: "Location",
-            text: "Laxmipuram, Guntur, Andhra Pradesh",
+            text: settings?.address || "Laxmipuram, Guntur, Andhra Pradesh",
             link: "https://goo.gl/maps/TeasNTreesLink",
             color: "text-red-500",
             bg: "bg-red-50"
         }
     ];
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen pt-24 pb-20 bg-slate-50 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="w-10 h-10 text-cafe-emerald animate-spin" />
+                    <p className="text-slate-500 font-medium">Loading contact details...</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen pt-24 pb-20 bg-slate-50">
@@ -100,23 +130,42 @@ const ContactPage = () => {
                                 <Clock className="w-5 h-5 text-cafe-emerald" /> Opening Hours
                             </h3>
                             <ul className="space-y-3 mb-8">
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-slate-500">Monday - Friday</span>
-                                    <span className="font-bold text-slate-800">11:00 AM - 11:00 PM</span>
-                                </li>
-                                <li className="flex justify-between text-sm">
-                                    <span className="text-slate-500">Saturday - Sunday</span>
-                                    <span className="font-bold text-slate-800">10:00 AM - 11:30 PM</span>
-                                </li>
+                                {settings?.operatingHours ? (
+                                    (() => {
+                                        const openDay = Object.values(settings.operatingHours).find(d => d.isOpen);
+                                        return openDay ? (
+                                            <li className="flex justify-between text-sm">
+                                                <span className="text-slate-500">Open Daily</span>
+                                                <span className="font-bold text-slate-800">{openDay.open} - {openDay.close}</span>
+                                            </li>
+                                        ) : (
+                                            <li className="text-sm text-slate-500">Temporarily Closed</li>
+                                        );
+                                    })()
+                                ) : (
+                                    <li className="flex justify-between text-sm">
+                                        <span className="text-slate-500">Open Daily</span>
+                                        <span className="font-bold text-slate-800">11:00 AM - 11:30 PM</span>
+                                    </li>
+                                )}
                             </ul>
 
                             <div className="flex gap-4">
-                                <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-pink-500 hover:shadow-md transition-all">
-                                    <Instagram className="w-5 h-5" />
-                                </a>
-                                <a href="#" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:shadow-md transition-all">
-                                    <Facebook className="w-5 h-5" />
-                                </a>
+                                {settings?.socialMedia?.instagram && (
+                                    <a href={settings.socialMedia.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-pink-500 hover:shadow-md transition-all">
+                                        <Instagram className="w-5 h-5" />
+                                    </a>
+                                )}
+                                {settings?.socialMedia?.facebook && (
+                                    <a href={settings.socialMedia.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-blue-600 hover:shadow-md transition-all">
+                                        <Facebook className="w-5 h-5" />
+                                    </a>
+                                )}
+                                {settings?.socialMedia?.twitter && (
+                                    <a href={settings.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-400 hover:text-sky-500 hover:shadow-md transition-all">
+                                        <Twitter className="w-5 h-5" />
+                                    </a>
+                                )}
                             </div>
                         </motion.div>
                     </div>
