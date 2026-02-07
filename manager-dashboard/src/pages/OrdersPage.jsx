@@ -14,7 +14,10 @@ import {
     Package,
     Navigation,
     UserCheck,
-    ClipboardCheck
+    ClipboardCheck,
+    Search,
+    ChevronDown,
+    Check
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
@@ -142,6 +145,9 @@ const OrdersPage = () => {
     const { token } = useAuth();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [visibleStages, setVisibleStages] = useState(COLUMNS.map(c => c.id));
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
     // Fetch Initial Orders
     useEffect(() => {
@@ -216,21 +222,94 @@ const OrdersPage = () => {
         </div>
     );
 
+    const filteredOrders = orders.filter(o => {
+        const matchesSearch =
+            (o.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (o.customerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+        return matchesSearch;
+    });
+
+    const activeColumns = COLUMNS.filter(col => visibleStages.includes(col.id));
+
     return (
         <div className="h-full flex flex-col space-y-4 overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-2 mb-6">
+            <div className="flex items-center justify-between px-2 mb-6 gap-4">
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Live Orders</h1>
                     <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Track order progress here</p>
                 </div>
-                <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 hover:shadow-lg transition-all">
-                        <Filter className="w-5 h-5" /> Filter Stages
-                    </button>
-                    <button className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-200 hover:scale-105 transition-all">
-                        <ShoppingBag className="w-5 h-5" /> New Order
-                    </button>
+
+                <div className="flex gap-3 items-center flex-1 max-w-2xl justify-end">
+                    {/* Search Bar */}
+                    <div className="relative group flex-1 max-w-md">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-emerald-500 transition-colors" />
+                        <input
+                            type="text"
+                            placeholder="Search Order ID / Customer..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-11 pr-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-500/50 transition-all shadow-sm"
+                        />
+                    </div>
+
+                    {/* Filter Stages Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 hover:shadow-lg transition-all shadow-sm active:scale-95"
+                        >
+                            <Filter className="w-4 h-4" />
+                            <span>Stages ({visibleStages.length}/{COLUMNS.length})</span>
+                            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${showFilterDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        <AnimatePresence>
+                            {showFilterDropdown && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    className="absolute right-0 mt-3 w-64 bg-white rounded-3xl shadow-2xl border border-gray-50 z-[100] max-h-[400px] overflow-hidden flex flex-col"
+                                >
+                                    <div className="p-4 border-b border-gray-50 bg-gray-50/50">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Filter Stages</span>
+                                            <button
+                                                onClick={() => setVisibleStages(visibleStages.length === COLUMNS.length ? [] : COLUMNS.map(c => c.id))}
+                                                className="text-[9px] font-black uppercase text-emerald-600 hover:text-emerald-700"
+                                            >
+                                                {visibleStages.length === COLUMNS.length ? 'Clear All' : 'Select All'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="overflow-y-auto custom-scrollbar p-2 space-y-1">
+                                        {COLUMNS.map(col => (
+                                            <button
+                                                key={col.id}
+                                                onClick={() => {
+                                                    setVisibleStages(prev =>
+                                                        prev.includes(col.id)
+                                                            ? prev.filter(id => id !== col.id)
+                                                            : [...prev, col.id]
+                                                    );
+                                                }}
+                                                className={`w-full flex items-center justify-between p-3 rounded-2xl transition-all ${visibleStages.includes(col.id) ? 'bg-emerald-50 text-emerald-700' : 'hover:bg-gray-50 text-gray-500'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`p-1.5 rounded-lg ${visibleStages.includes(col.id) ? 'bg-emerald-100' : 'bg-gray-100'}`}>
+                                                        <col.icon className="w-3.5 h-3.5" />
+                                                    </div>
+                                                    <span className="text-[10px] font-black uppercase tracking-tight">{col.label}</span>
+                                                </div>
+                                                {visibleStages.includes(col.id) && <Check className="w-4 h-4" />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </div>
 
@@ -240,11 +319,11 @@ const OrdersPage = () => {
                    Width Calculation: 
                    12 columns * 280px min-width = ~3360px. 
                 */}
-                <div className="flex h-full min-w-[3400px] p-2 gap-3">
-                    {COLUMNS.map(col => {
+                <div className="flex h-full min-w-max p-2 gap-3" style={{ minWidth: `${activeColumns.length * 280}px` }}>
+                    {activeColumns.map(col => {
                         // Strict filtering: Only show orders exactly matching the column ID
                         // This ensures every stage is distinct as requested
-                        const colOrders = orders.filter(o => o.status === col.id);
+                        const colOrders = filteredOrders.filter(o => o.status === col.id);
 
                         return (
                             <div key={col.id} className="flex-1 flex flex-col min-w-[280px] bg-gray-50/50 rounded-xl border border-gray-200/60 h-full">
