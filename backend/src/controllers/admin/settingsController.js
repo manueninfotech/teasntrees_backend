@@ -10,7 +10,6 @@ export const getSettings = async (req, res) => {
             settings = await Settings.create({
                 deliveryCharge: 20,
                 maxDeliveryDistance: 10,
-                taxRate: 5,
                 gstRate: 5,
                 minOrderAmount: 100
             });
@@ -34,7 +33,6 @@ export const updateSettings = async (req, res) => {
         const {
             deliveryCharge,
             maxDeliveryDistance,
-            taxRate,
             gstRate,
             minOrderAmount,
             serviceAreas,
@@ -56,7 +54,6 @@ export const updateSettings = async (req, res) => {
             // Update existing settings
             if (deliveryCharge !== undefined) settings.deliveryCharge = deliveryCharge;
             if (maxDeliveryDistance !== undefined) settings.maxDeliveryDistance = maxDeliveryDistance;
-            if (taxRate !== undefined) settings.taxRate = taxRate;
             if (gstRate !== undefined) settings.gstRate = gstRate;
             if (minOrderAmount !== undefined) settings.minOrderAmount = minOrderAmount;
             if (serviceAreas !== undefined) settings.serviceAreas = serviceAreas;

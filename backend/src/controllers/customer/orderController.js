@@ -48,8 +48,10 @@ export const createOrder = async (req, res) => {
             });
         }
 
-        const deliveryCharge = 50;
-        const tax = subtotal * 0.05;
+        const settings = await import('../../models/Settings.js').then(m => m.default.findOne());
+        const deliveryCharge = settings ? settings.deliveryCharge : 50;
+        const gstRate = settings ? settings.gstRate : 5;
+        const tax = subtotal * (gstRate / 100);
         const total = subtotal + deliveryCharge + tax;
 
         const order = await Order.create({

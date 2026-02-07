@@ -355,8 +355,9 @@ export const checkoutCart = async (req, res) => {
         const subtotal = cart.subtotal;
         // Fetch dynamic delivery charge (and other settings like tax if needed)
         const settings = await Settings.findOne();
-        const deliveryCharge = settings ? settings.deliveryCharge : 20; // Fallback to 20
-        const tax = subtotal * 0.05;
+        const deliveryCharge = settings ? settings.deliveryCharge : 50; // Fallback to 20
+        const gstRate = settings ? settings.gstRate : 5; // Fallback to 5%
+        const tax = subtotal * (gstRate / 100);
         const total = subtotal + deliveryCharge + tax;
 
         // --- NEW: Atomic Geocoding with Diagnostics ---

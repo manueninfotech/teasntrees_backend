@@ -192,16 +192,6 @@ const GeneralSettings = () => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Tax Rate (%)</label>
-                        <input
-                            type="number"
-                            name="taxRate"
-                            value={settings.taxRate}
-                            onChange={handleChange}
-                            className="w-full px-6 py-4 rounded-[1.2rem] border border-gray-100 bg-gray-50/30 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all font-black text-sm"
-                        />
-                    </div>
-                    <div className="space-y-2">
                         <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">GST Rate (%)</label>
                         <input
                             type="number"
