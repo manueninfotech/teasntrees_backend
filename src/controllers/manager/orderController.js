@@ -1,7 +1,9 @@
 import Order from '../../models/Order.js';
 import Delivery from '../../models/Delivery.js';
 import User from '../../models/User.js';
+import Settings from '../../models/Settings.js';
 import { riderAssignmentService } from '../../services/riderAssignmentService.js';
+import { getDistance } from '../../utils/geoUtils.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import activityLogService from '../../services/activityLogService.js';
 
@@ -71,8 +73,14 @@ export const updateOrderStatus = async (req, res) => {
         const previousStatus = order.status;
         let finalStatus = status;
         if (status === 'ready') {
-            // Stay in waiting_for_rider until the rider accepts (Delivery sync will move to assigned)
-            finalStatus = 'waiting_for_rider';
+            // If rider already accepted (or already moving), show assigned; else waiting_for_rider
+            const delivery = await Delivery.findOne({ orderId: order._id }).select('status');
+            if (delivery && ['accepted', 'heading_to_pickup', 'arrived_at_pickup', 'assigned'].includes(delivery.status)) {
+                finalStatus = 'assigned';
+                order.$locals.allowDeliverySync = true;
+            } else {
+                finalStatus = 'waiting_for_rider';
+            }
         }
 
         order.status = finalStatus;
@@ -84,6 +92,48 @@ export const updateOrderStatus = async (req, res) => {
         });
 
         await order.save();
+
+        // Auto-assign only AFTER confirming.
+        // Confirmed should advance to preparing automatically.
+        if (status === 'confirmed') {
+            order.status = 'preparing';
+            await order.save();
+
+            const coords = order.deliveryAddress?.location?.coordinates;
+            if (coords && coords.length === 2) {
+                const OUTLET = { lat: 16.3090716, lng: 80.4308257 };
+                const distance = getDistance(
+                    OUTLET.lat,
+                    OUTLET.lng,
+                    coords[1],
+                    coords[0]
+                );
+
+                const settings = (await Settings.findOne()) || {};
+                const base = settings.riderBaseEarning || 20;
+                const rate = settings.distanceBonusPerKm || 5;
+
+                await riderAssignmentService.assignRiderWithRetry(
+                    order,
+                    req.app.get('io'),
+                    {
+                        orderId: order._id,
+                        customerId: order.customerId,
+                        pickupLocation: {
+                            type: 'Point',
+                            coordinates: [OUTLET.lng, OUTLET.lat],
+                            address: 'Teas N Trees Outlet'
+                        },
+                        deliveryLocation: order.deliveryAddress.location,
+                        distance,
+                        baseEarning: base,
+                        totalEarning: Math.round(base + (distance / 1000) * rate),
+                        pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
+                        deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
+                    }
+                );
+            }
+        }
 
         const io = req.app.get('io');
         if (io) {
@@ -107,10 +157,18 @@ export const updateOrderStatus = async (req, res) => {
             details: { previousStatus, newStatus: status }
         });
 
-        res.json({ success: true, data: order });
+        // Re-fetch to return latest state (Delivery hook may have updated it)
+        const updatedOrder = await Order.findById(order._id);
+
+        res.json({ success: true, data: updatedOrder });
 
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Status update failed' });
+        console.error('[Manager updateOrderStatus ERROR]', error);
+        res.status(500).json({
+            success: false,
+            message: 'Status update failed',
+            error: error.message
+        });
     }
 };
 

@@ -12,6 +12,7 @@ router.use(isManager);
 router.get('/', getOrders); // View orders
 router.get('/:orderId', getOrderDetails); // View details
 router.put('/:orderId/status', updateOrderStatus); // Update status
+router.patch('/:orderId/status', updateOrderStatus); // Update status (alias)
 router.put('/:orderId/assign-rider', assignRider); // Assign rider
 
 export default router;
