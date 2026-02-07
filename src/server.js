@@ -25,8 +25,10 @@ import customerAddressRoutes from './routes/customer/addressRoutes.js';
 import customerWishlistRoutes from './routes/customer/wishlistRoutes.js';
 import customerSettingsRoutes from './routes/customer/settingsRoutes.js';
 import customerUploadRoutes from './routes/customer/uploadRoutes.js';
+import customerContactRoutes from './routes/customer/contactRoutes.js';
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
+import adminContactRoutes from './routes/admin/contactRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 import riderAuthRoutes from './routes/rider/authRoutes.js';
 import riderDeliveryRoutes from './routes/rider/deliveryRoutes.js';
@@ -131,11 +133,13 @@ app.use('/api/customer/address', customerAddressRoutes);   // Address Book
 app.use('/api/customer/wishlist', customerWishlistRoutes); // Wishlist
 app.use('/api/customer/settings', customerSettingsRoutes); // App Settings (Delivery Charge etc.)
 app.use('/api/customer/upload', customerUploadRoutes);     // Image Upload
+app.use('/api/v1/contact', customerContactRoutes);         // Contact Form (Public/v1)
 
 
 // Admin Routes  
 app.use('/api/admin/auth', adminAuthRoutes);           // Admin authentication
 app.use('/api/admin/profile', adminProfileRoutes);     // Admin profile
+app.use('/api/v1/admin/contact', adminContactRoutes);  // Contact Management (v1)
 app.use('/api/admin', adminRoutes);                    // Admin CRUD operations (includes Payouts)
 
 // Rider Routes
