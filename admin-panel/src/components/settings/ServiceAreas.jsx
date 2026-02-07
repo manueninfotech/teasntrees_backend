@@ -184,8 +184,8 @@ const ServiceAreas = () => {
                         <MapPin className="w-10 h-10 text-emerald-900" />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Geo-Fencing</h2>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Spatial Delivery logic</p>
+                        <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Delivery Zones</h2>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Manage Areas</p>
                     </div>
                 </div>
                 <button
@@ -194,7 +194,7 @@ const ServiceAreas = () => {
                     className="flex items-center gap-3 px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200 disabled:opacity-70 hover:scale-105 active:scale-95"
                 >
                     <Save className="w-4 h-4" />
-                    {saving ? 'Syncing...' : 'Commit Zones'}
+                    {saving ? 'Syncing...' : 'Save Zones'}
                 </button>
             </div>
 
@@ -278,10 +278,10 @@ const ServiceAreas = () => {
                     <AlertCircle className="w-6 h-6 text-emerald-900" />
                 </div>
                 <div>
-                    <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-2">Operational Guide</h4>
+                    <h4 className="text-xs font-black text-gray-900 uppercase tracking-widest mb-2">How to use</h4>
                     <p className="text-sm text-gray-500 font-medium leading-relaxed">
-                        Utilize the <strong className="text-emerald-900">Polygon Tool</strong> (Top-Right) to demarcate new zones.
-                        The <strong className="text-emerald-900">Dotted Perimeter</strong> defines the standard operational radius. Zones exterior to this boundary allow for custom surcharge calibration.
+                        Use the <strong className="text-emerald-900">Polygon Tool</strong> (Top-Right) to draw new zones.
+                        The <strong className="text-emerald-900">Dotted Circle</strong> shows your standard delivery range. You can add extra charges for zones outside this area.
                     </p>
                 </div>
             </div>
@@ -290,14 +290,14 @@ const ServiceAreas = () => {
             {showModal && (
                 <div className="fixed inset-0 bg-emerald-900/40 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 animate-in fade-in zoom-in duration-200 border border-gray-100">
-                        <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight mb-8">Define New Sector</h3>
+                        <h3 className="text-2xl font-black text-gray-900 uppercase tracking-tight mb-8">Add New Zone</h3>
 
                         <div className="space-y-6">
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Sector Designation</label>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Zone Name</label>
                                 <input
                                     type="text"
-                                    placeholder="e.g. NORTH_QUADRANT"
+                                    placeholder="e.g. North Area"
                                     value={zoneForm.name}
                                     onChange={(e) => setZoneForm({ ...zoneForm, name: e.target.value })}
                                     className="w-full px-6 py-4 rounded-[1.5rem] border border-gray-100 bg-gray-50/50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-600 transition-all font-black text-sm uppercase placeholder:text-gray-300"
@@ -305,7 +305,7 @@ const ServiceAreas = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Logistics Fee (₹)</label>
+                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Delivery Fee (₹)</label>
                                 <input
                                     type="number"
                                     placeholder="00"
@@ -321,14 +321,14 @@ const ServiceAreas = () => {
                                 onClick={handleModalCancel}
                                 className="flex-1 px-6 py-4 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200"
                             >
-                                Abort
+                                Cancel
                             </button>
                             <button
                                 onClick={handleModalSave}
                                 disabled={!zoneForm.name || !zoneForm.deliveryCharge}
                                 className="flex-1 px-6 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-95"
                             >
-                                Initialize
+                                Create Zone
                             </button>
                         </div>
                     </div>

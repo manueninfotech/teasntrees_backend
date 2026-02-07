@@ -122,14 +122,14 @@ const GeneralSettings = () => {
                             <Building className="w-6 h-6 text-emerald-900" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Store Core</h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Physical Node Configuration</p>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Store Info</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Basic Details</p>
                         </div>
                     </div>
                 </div>
                 <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="col-span-2 space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Store Spatial Address</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Store Address</label>
                         <textarea
                             name="address"
                             rows="3"
@@ -139,7 +139,7 @@ const GeneralSettings = () => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Voice Channel</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Phone Number</label>
                         <div className="relative">
                             <Phone className="w-4 h-4 text-gray-400 absolute left-6 top-1/2 -translate-y-1/2" />
                             <input
@@ -152,7 +152,7 @@ const GeneralSettings = () => {
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Digital Mailbox</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Email Address</label>
                         <div className="relative">
                             <Mail className="w-4 h-4 text-gray-400 absolute left-6 top-1/2 -translate-y-1/2" />
                             <input
@@ -175,14 +175,14 @@ const GeneralSettings = () => {
                             <DollarSign className="w-6 h-6 text-emerald-900" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Fiscal Logic</h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Parameters & Thresholds</p>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Taxes & Fees</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Charges & Rates</p>
                         </div>
                     </div>
                 </div>
                 <div className="p-10 grid grid-cols-1 md:grid-cols-4 gap-8">
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Transit Fee (₹)</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Delivery Fee (₹)</label>
                         <input
                             type="number"
                             name="deliveryCharge"
@@ -192,7 +192,7 @@ const GeneralSettings = () => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Gov Surcharge (%)</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Tax Rate (%)</label>
                         <input
                             type="number"
                             name="taxRate"
@@ -202,7 +202,7 @@ const GeneralSettings = () => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">GST Vector (%)</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">GST Rate (%)</label>
                         <input
                             type="number"
                             name="gstRate"
@@ -212,7 +212,7 @@ const GeneralSettings = () => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Min Threshold (₹)</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Min Order (₹)</label>
                         <input
                             type="number"
                             name="minOrderAmount"
@@ -222,7 +222,7 @@ const GeneralSettings = () => {
                         />
                     </div>
                     <div className="col-span-full md:col-span-2 space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Max Spatial Radius (KM)</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Max Delivery Range (KM)</label>
                         <input
                             type="number"
                             name="maxDeliveryDistance"
@@ -242,14 +242,14 @@ const GeneralSettings = () => {
                             <Bike className="w-6 h-6 text-emerald-900" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Personnel Compensation</h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Earning Calibration</p>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Rider Earnings</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Pay Structure</p>
                         </div>
                     </div>
                 </div>
                 <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-10">
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Base Earning Buffer (₹)</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Base Pay (₹)</label>
                         <input
                             type="number"
                             name="riderBaseEarning"
@@ -259,7 +259,7 @@ const GeneralSettings = () => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Distance Multiplier (₹/KM)</label>
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Distance Bonus (₹/KM)</label>
                         <input
                             type="number"
                             name="distanceBonusPerKm"
@@ -279,8 +279,8 @@ const GeneralSettings = () => {
                             <Clock className="w-6 h-6 text-emerald-900" />
                         </div>
                         <div>
-                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Temporal Window</h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Uptime Protocols</p>
+                            <h2 className="text-xl font-black text-gray-900 uppercase tracking-tight">Opening Hours</h2>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">Store Schedule</p>
                         </div>
                     </div>
                 </div>

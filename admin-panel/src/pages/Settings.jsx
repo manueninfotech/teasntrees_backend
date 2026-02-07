@@ -7,8 +7,8 @@ const Settings = () => {
     const [activeTab, setActiveTab] = useState('general');
 
     const tabs = [
-        { id: 'general', label: 'General Settings', icon: LayoutGrid },
-        { id: 'zones', label: 'Service Areas', icon: Map },
+        { id: 'general', label: 'General', icon: LayoutGrid },
+        { id: 'zones', label: 'Delivery Zones', icon: Map },
     ];
 
     return (
@@ -16,8 +16,8 @@ const Settings = () => {
             <div className="flex items-center gap-4 mb-10">
                 <SettingsIcon className="w-10 h-10 text-black p-2 bg-gray-100 rounded-2xl" />
                 <div>
-                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tight">System Settings</h1>
-                    <p className="text-gray-500 mt-1 font-bold">Configure platform rules and service zones</p>
+                    <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tight">App Control</h1>
+                    <p className="text-gray-500 mt-1 font-bold">Manage your app rules and delivery areas</p>
                 </div>
             </div>
 
