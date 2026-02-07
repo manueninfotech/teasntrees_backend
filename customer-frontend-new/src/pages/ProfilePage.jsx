@@ -209,7 +209,6 @@ const ProfilePage = () => {
         if (!socket) return;
 
         const handleOrderUpdate = (data) => {
-            console.log('[Profile] Order update received:', data);
 
             // Refresh orders if on orders tab
             if (activeTabRef.current === 'orders') {
@@ -993,7 +992,6 @@ const ProfilePage = () => {
                                                     <div className="text-center py-12 text-slate-400">No reviews found.</div>
                                                 ) : reviews.map(review => {
                                                     // Debug log
-                                                    console.log('Rendering Review:', review);
                                                     const displayName = review.productId
                                                         ? review.productId.name
                                                         : `Order #${review.orderId?.orderNumber || (typeof review.orderId === 'string' ? review.orderId : 'Unknown')}`;
@@ -1286,8 +1284,6 @@ const ProfilePage = () => {
                                         {activeTab === 'settings' && (
                                             <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
                                                 <h2 className="text-xl font-bold text-slate-800 mb-6">Preferences</h2>
-                                                {console.log('[SETTINGS TAB] profileData:', profileData)}
-                                                {console.log('[SETTINGS TAB] notificationPreferences:', profileData?.notificationPreferences)}
 
                                                 <div className="space-y-6">
                                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">

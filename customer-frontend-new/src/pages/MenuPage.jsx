@@ -38,7 +38,6 @@ const MenuPage = () => {
     // 3. EXCLUSIVITY LOGIC: If Global search (q) comes in, clear Local
     useEffect(() => {
         if (queryQ) {
-            console.log('🌊 Global Search clearing Local');
             setSearchTerm('');
             setActiveCategory('all');
 
@@ -56,12 +55,11 @@ const MenuPage = () => {
         const urlSearch = searchParams.get('search') || '';
 
         if (debouncedSearch !== urlSearch) {
-            console.log('🔍 Local Search clearing Global');
             const newParams = Object.fromEntries(searchParams);
 
             if (debouncedSearch) {
                 newParams.search = debouncedSearch;
-                delete newParams.q; // 🎯 Clear Global when searching locally
+                delete newParams.q;
             } else {
                 delete newParams.search;
             }

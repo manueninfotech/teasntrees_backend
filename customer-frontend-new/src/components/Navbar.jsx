@@ -17,7 +17,6 @@ const Navbar = () => {
     const handleSearch = (e) => {
         if (e) e.preventDefault();
         const term = searchTerm.trim();
-        console.log('🌍 Global Search (Navbar):', term);
 
         if (term) {
             navigate(`/menu?q=${encodeURIComponent(term)}`);

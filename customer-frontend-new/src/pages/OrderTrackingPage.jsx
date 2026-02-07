@@ -177,7 +177,6 @@ const OrderTrackingPage = () => {
 
         const handleUpdate = (data) => {
             if (data.orderId === orderId) {
-                console.log('socket update received:', data);
                 // toast.success(`Order updated: ${data.status.replace('_', ' ')}`); // Optional: don't spam toasts
                 fetchOrder(); // Refresh full data
                 if (order?.status && DELIVERY_AWARE_STATUSES.has(order.status)) {

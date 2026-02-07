@@ -10,10 +10,8 @@ const SocketListener = () => {
     useEffect(() => {
         if (!socket) return;
 
-        console.log('[SocketListener] Listening for global events');
 
         const handleStatusUpdate = (data) => {
-            console.log('[Socket] Status Update:', data);
 
             // Don't show toast if we are already on the tracking page for this order?
             // Actually, showing a toast is always good feedback.

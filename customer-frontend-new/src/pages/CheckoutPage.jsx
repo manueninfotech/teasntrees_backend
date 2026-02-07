@@ -127,11 +127,9 @@ const CheckoutPage = () => {
 
         navigator.geolocation.getCurrentPosition(async (position) => {
             const { latitude, longitude } = position.coords;
-            console.log("Got Coordinates:", latitude, longitude);
 
             try {
                 const res = await userService.reverseGeocode(latitude, longitude);
-                console.log("Geocode Response:", res);
 
                 if (res.success && res.data) {
                     const { details, formattedAddress } = res.data;
