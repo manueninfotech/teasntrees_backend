@@ -10,76 +10,125 @@ import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 
 const updateRiderRating = async (riderId) => {
     if (!riderId) return;
-    const stats = await Review.aggregate([
-        {
-            $match: {
-                riderId: new mongoose.Types.ObjectId(riderId),
-                riderRating: { $exists: true, $ne: null }
+    try {
+        const stats = await Review.aggregate([
+            {
+                $match: {
+                    riderId: new mongoose.Types.ObjectId(riderId),
+                    riderRating: { $exists: true, $ne: null }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avg: { $avg: '$riderRating' },
+                    count: { $sum: 1 }
+                }
             }
-        },
-        {
-            $group: {
-                _id: null,
-                avg: { $avg: '$riderRating' },
-                count: { $sum: 1 }
-            }
-        }
-    ]);
+        ]);
 
-    const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
-    const count = stats.length > 0 ? stats[0].count : 0;
+        const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
+        const count = stats.length > 0 ? stats[0].count : 0;
 
-    await Rider.findByIdAndUpdate(riderId, {
-        averageRating: avg,
-        ratingsCount: count
-    });
+        await Rider.findByIdAndUpdate(riderId, {
+            averageRating: avg,
+            ratingsCount: count
+        });
+    } catch (error) {
+        logger.error('Error updating rider rating:', error);
+    }
 };
 
 const updateProductRating = async (productId) => {
     if (!productId) return;
-    const stats = await Review.aggregate([
-        {
-            $match: {
-                productId: new mongoose.Types.ObjectId(productId),
-                $or: [
-                    { productRating: { $exists: true, $ne: null } },
-                    { foodRating: { $exists: true, $ne: null } }
-                ]
+    try {
+        const stats = await Review.aggregate([
+            {
+                $match: {
+                    productId: new mongoose.Types.ObjectId(productId),
+                    $or: [
+                        { productRating: { $exists: true, $ne: null } },
+                        { foodRating: { $exists: true, $ne: null } }
+                    ]
+                }
+            },
+            {
+                $project: {
+                    rating: { $ifNull: ['$productRating', '$foodRating'] }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avg: { $avg: '$rating' },
+                    count: { $sum: 1 }
+                }
             }
-        },
-        {
-            $project: {
-                rating: { $ifNull: ['$productRating', '$foodRating'] }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                avg: { $avg: '$rating' },
-                count: { $sum: 1 }
-            }
-        }
-    ]);
+        ]);
 
-    const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
-    const count = stats.length > 0 ? stats[0].count : 0;
+        const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
+        const count = stats.length > 0 ? stats[0].count : 0;
 
-    await Product.findByIdAndUpdate(productId, {
-        averageRating: avg,
-        totalRatings: count
-    });
+        await Product.findByIdAndUpdate(productId, {
+            averageRating: avg,
+            totalRatings: count
+        });
+    } catch (error) {
+        logger.error('Error updating product rating:', error);
+    }
 };
 
-// Submit review for order
+// Submit review for order or site
 export const createReview = async (req, res) => {
     try {
         const customerId = req.user.userId;
-        const { orderId, foodRating, riderRating, review, images } = req.body;
+        const { orderId, foodRating, riderRating, review, images, rating, comment } = req.body;
 
-        console.log('Creating Review Payload:', { customerId, orderId, foodRating, riderRating });
+        // If no orderId is provided, it's a general site review
+        if (!orderId) {
+            const finalRating = foodRating || rating;
+            const finalReview = review || comment;
 
-        // verify order belongs to customer and is delivered
-        // verify order belongs to customer
+            if (!finalRating) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Rating is required'
+                });
+            }
+
+            const newReview = await Review.create({
+                customerId,
+                foodRating: finalRating,
+                review: finalReview,
+                images: images || [],
+                type: 'site',
+                isApproved: false
+            });
+
+            logger.info('General site review submitted', {
+                reviewId: newReview._id,
+                customerId
+            });
+
+            // Notify Admin
+            const io = req.app.get('io');
+            if (io) {
+                io.to(SOCKET_ROOMS.role('admin')).emit('notification:new', {
+                    title: 'New Site Review',
+                    message: `A new general review was submitted by a customer`,
+                    type: 'review',
+                    data: { reviewId: newReview._id }
+                });
+            }
+
+            return res.status(201).json({
+                success: true,
+                message: 'Thank you for your feedback!',
+                data: newReview
+            });
+        }
+
+        // --- EXISTING ORDER REVIEW LOGIC ---
         const order = await Order.findOne({
             _id: orderId,
             customerId
@@ -102,22 +151,14 @@ export const createReview = async (req, res) => {
         // check if review already exists
         const existingReview = await Review.findOne({ orderId });
         if (existingReview) {
-            // Update existing review
             existingReview.foodRating = foodRating;
             existingReview.riderRating = riderRating;
             existingReview.review = review;
             if (images) existingReview.images = images;
-
-            // Fix missing fields if needed
-            if (!existingReview.riderId && order.riderId) existingReview.riderId = order.riderId;
-            if (!existingReview.productId && order.items && order.items.length > 0) {
-                existingReview.productId = order.items[0].product;
-            }
-
-            existingReview.isApproved = false; // Reset approval checking
+            existingReview.type = 'order';
+            existingReview.isApproved = false;
             await existingReview.save();
 
-            // Sync with Order
             order.foodRating = foodRating;
             order.riderRating = riderRating;
             order.review = review;
@@ -133,7 +174,6 @@ export const createReview = async (req, res) => {
             });
         }
 
-        // create new review
         const newReview = await Review.create({
             orderId,
             customerId,
@@ -143,10 +183,10 @@ export const createReview = async (req, res) => {
             riderRating,
             review,
             images: images || [],
+            type: 'order',
             isApproved: false
         });
 
-        // update order with ratings
         order.foodRating = foodRating;
         order.riderRating = riderRating;
         order.review = review;
@@ -155,12 +195,6 @@ export const createReview = async (req, res) => {
         await updateRiderRating(newReview.riderId);
         await updateProductRating(newReview.productId);
 
-        logger.info('Review submitted', {
-            reviewId: newReview._id,
-            orderId,
-            customerId
-        });
-        // Emit Socket.io event for real-time admin/manager updates DIRECTLY
         const io = req.app.get('io');
         if (io) {
             const socketData = {
@@ -172,27 +206,10 @@ export const createReview = async (req, res) => {
                 review,
                 customerId
             };
-
-            // Broadcast to Admin/Manager Roles
             io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.REVIEW_NEW, socketData);
             io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.REVIEW_NEW, socketData);
-
-            // Notify Admin of review for moderation
-            io.to(SOCKET_ROOMS.role('admin')).emit('notification:new', {
-                title: 'New Review Submitted',
-                message: `New review for Order #${order.orderNumber}`,
-                type: 'review',
-                data: { reviewId: newReview._id, orderId }
-            });
-            io.to(SOCKET_ROOMS.role('manager')).emit('notification:new', {
-                title: 'New Review Submitted',
-                message: `New review for Order #${order.orderNumber}`,
-                type: 'review',
-                data: { reviewId: newReview._id, orderId }
-            });
         }
 
-        // Push Notification to Admin/Manager
         try {
             const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
             await notificationService.sendPushToMany(admins, {
@@ -211,7 +228,6 @@ export const createReview = async (req, res) => {
         });
     } catch (error) {
         logger.error('Error creating review', { error: error.message });
-        console.error('Error in createReview:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to submit review: ' + error.message,
@@ -224,37 +240,34 @@ export const rateProduct = async (req, res) => {
     try {
         const customerId = req.user.userId;
         const { productId, rating, review, orderId } = req.body;
-        // verify customer ordered this product
+
         const order = await Order.findOne({
             _id: orderId,
             customerId,
             'items.product': productId
         });
+
         if (!order) {
             return res.status(404).json({
                 success: false,
                 message: 'You have not ordered this product'
             });
         }
-        // create/update product review
-        const productReview = await Review.findOneAndUpdate({ orderId, productId, customerId },
+
+        const productReview = await Review.findOneAndUpdate(
+            { orderId, productId, customerId },
             {
                 orderId,
                 customerId,
                 productId,
                 productRating: rating,
                 review,
-                isApproved: false // Reset to pending on update
+                isApproved: false,
+                type: 'product'
             },
             { upsert: true, new: true }
         );
-        logger.info('Product rated', {
-            productId,
-            rating,
-            customerId
-        });
 
-        // Emit Socket.io event DIRECTLY
         const io = req.app.get('io');
         if (io) {
             io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.REVIEW_NEW, {
@@ -266,6 +279,7 @@ export const rateProduct = async (req, res) => {
                 type: 'product'
             });
         }
+
         res.json({
             success: true,
             message: 'Product rated successfully',
@@ -273,7 +287,6 @@ export const rateProduct = async (req, res) => {
         });
     } catch (error) {
         logger.error('Error rating product', { error: error.message });
-        console.error("Error in rateProduct:", error);
         res.status(500).json({
             success: false,
             message: 'Failed to rate product'
@@ -292,27 +305,37 @@ export const getProductReviews = async (req, res) => {
             isApproved: true,
             productRating: { $exists: true }
         };
+
         if (rating) {
             query.productRating = parseInt(rating);
         }
+
         const skip = (page - 1) * limit;
         const reviews = await Review.find(query)
             .populate('customerId', 'name')
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
             .skip(skip);
+
         const total = await Review.countDocuments(query);
-        // calculate average rating (ONLY for approved reviews)
+
         const avgResult = await Review.aggregate([
             {
                 $match: {
                     productId: new mongoose.Types.ObjectId(productId),
                     productRating: { $exists: true },
-                    isApproved: true // FIX: Only include approved reviews in average
+                    isApproved: true
                 }
             },
-            { $group: { _id: null, avgRating: { $avg: '$productRating' }, count: { $sum: 1 } } }
+            {
+                $group: {
+                    _id: null,
+                    avgRating: { $avg: '$productRating' },
+                    count: { $sum: 1 }
+                }
+            }
         ]);
+
         const avgRating = avgResult.length > 0 ? avgResult[0].avgRating.toFixed(1) : 0;
         const reviewCount = avgResult.length > 0 ? avgResult[0].count : 0;
 
@@ -331,7 +354,6 @@ export const getProductReviews = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error in getProductReviews:", error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch product reviews'
@@ -345,20 +367,6 @@ export const getMyReviews = async (req, res) => {
         const customerId = new mongoose.Types.ObjectId(req.user.userId);
         const { page = 1, limit = 10 } = req.query;
 
-        console.log('---------------- DEBUG REVIEW FETCH ----------------');
-        console.log('Target Customer ID:', customerId.toString());
-
-        // Check total DB count
-        const allReviewsCount = await Review.countDocuments({});
-        console.log('Total Reviews in DB (ALL USERS):', allReviewsCount);
-
-        // Check if this user has any reviews ignoring population
-        const userRawReviews = await Review.find({ customerId });
-        console.log(`Found ${userRawReviews.length} raw reviews for this user.`);
-        if (userRawReviews.length > 0) {
-            console.log('Sample User Review:', JSON.stringify(userRawReviews[0], null, 2));
-        }
-
         const skip = (page - 1) * limit;
 
         const reviews = await Review.find({ customerId })
@@ -368,7 +376,6 @@ export const getMyReviews = async (req, res) => {
             .limit(parseInt(limit))
             .skip(skip);
 
-        console.log('Populated Reviews length:', reviews.length);
         const total = await Review.countDocuments({ customerId });
 
         res.json({
@@ -383,12 +390,50 @@ export const getMyReviews = async (req, res) => {
                 }
             }
         });
-
     } catch (error) {
-        console.error('Error in getMyReviews:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch your reviews'
+        });
+    }
+};
+
+// Get site reviews (general feedback)
+export const getSiteReviews = async (req, res) => {
+    try {
+        const { page = 1, limit = 10 } = req.query;
+
+        const query = {
+            type: 'site',
+            isApproved: true,
+            foodRating: { $gte: 4 }
+        };
+
+        const skip = (page - 1) * limit;
+        const reviews = await Review.find(query)
+            .populate('customerId', 'name')
+            .sort({ createdAt: -1 })
+            .limit(parseInt(limit))
+            .skip(skip);
+
+        const total = await Review.countDocuments(query);
+
+        res.json({
+            success: true,
+            data: {
+                reviews,
+                pagination: {
+                    currentPage: parseInt(page),
+                    totalPages: Math.ceil(total / limit),
+                    total,
+                    limit: parseInt(limit)
+                }
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch reviews'
         });
     }
 };

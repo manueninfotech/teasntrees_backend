@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, MapPin, MessageSquarePlus, Quote, ThumbsUp, Send, CheckCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-const reviews = [
+const reviewsData = [
     {
         id: 1,
         name: "Sai Sandhya",
@@ -38,12 +38,30 @@ import { reviewService } from '../services/reviewService';
 import toast from 'react-hot-toast';
 
 const ReviewsPage = () => {
+    const [dynamicReviews, setDynamicReviews] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [rating, setRating] = useState(0);
     const [hoverRating, setHoverRating] = useState(0);
     const [name, setName] = useState('');
     const [comment, setComment] = useState('');
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => {
+        fetchReviews();
+    }, []);
+
+    const fetchReviews = async () => {
+        setIsLoading(true);
+        try {
+            const res = await reviewService.getSiteReviews(1, 4);
+            setDynamicReviews(res.reviews || []);
+        } catch (error) {
+            console.error("Failed to fetch reviews", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -56,10 +74,9 @@ const ReviewsPage = () => {
                 comment
             });
             setIsSubmitted(true);
-            toast.success("Review submitted successfully!");
+            toast.success("Review submitted! It will appear after approval.");
         } catch (error) {
             console.error("Review failed", error);
-            // Check if it's 401 (not logged in)
             if (error.response?.status === 401) {
                 toast.error("Please login to submit a review");
             } else {
@@ -97,44 +114,83 @@ const ReviewsPage = () => {
                 </div>
 
                 {/* Reviews Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 max-w-5xl mx-auto mb-20">
-                    {reviews.map((review, idx) => (
-                        <motion.div
-                            key={review.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: idx * 0.1 }}
-                            className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative hover:shadow-lg transition-all"
-                        >
-                            <Quote className="absolute top-8 right-8 w-10 h-10 text-cafe-emerald/10" />
-
-                            <div className="flex items-center gap-1 mb-4">
-                                {[...Array(review.rating)].map((_, i) => (
-                                    <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                ))}
-                            </div>
-
-                            <p className="text-slate-600 text-lg leading-relaxed mb-6 italic">
-                                "{review.text}"
-                            </p>
-
-                            <div className="flex items-center justify-between mt-auto">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">
-                                        {review.name[0]}
+                <div className="max-w-5xl mx-auto mb-20">
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                            <div className="w-12 h-12 border-4 border-cafe-emerald border-t-transparent rounded-full animate-spin mb-4" />
+                            <p className="text-slate-500 font-medium">Fetching the latest reviews...</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                            {/* Static Reviews first for established social proof */}
+                            {reviewsData.map((review, idx) => (
+                                <motion.div
+                                    key={`static-${review.id}`}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: idx * 0.1 }}
+                                    className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative hover:shadow-lg transition-all flex flex-col h-full"
+                                >
+                                    <Quote className="absolute top-8 right-8 w-10 h-10 text-cafe-emerald/10" />
+                                    <div className="flex items-center gap-1 mb-4">
+                                        {[...Array(review.rating)].map((_, i) => (
+                                            <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                        ))}
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-800 text-sm">{review.name}</h4>
-                                        <span className="text-xs text-slate-400">{review.platform}</span>
+                                    <p className="text-slate-600 text-lg leading-relaxed mb-6 italic flex-grow">
+                                        "{review.text}"
+                                    </p>
+                                    <div className="flex items-center justify-between mt-auto">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center font-bold text-slate-500">
+                                                {review.name[0]}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 text-sm">{review.name}</h4>
+                                                <span className="text-xs text-slate-400">{review.platform}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-1 text-slate-400 text-sm">
-                                    <ThumbsUp className="w-4 h-4" /> Helpful
-                                </div>
-                            </div>
-                        </motion.div>
-                    ))}
+                                </motion.div>
+                            ))}
+
+                            {/* Dynamic Reviews from Backend */}
+                            {dynamicReviews.map((review, idx) => (
+                                <motion.div
+                                    key={review._id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: (idx + reviewsData.length) * 0.1 }}
+                                    className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative hover:shadow-lg transition-all flex flex-col h-full"
+                                >
+                                    <Quote className="absolute top-8 right-8 w-10 h-10 text-cafe-emerald/10" />
+                                    <div className="flex items-center gap-1 mb-4">
+                                        {[...Array(review.foodRating || 5)].map((_, i) => (
+                                            <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                        ))}
+                                    </div>
+                                    <p className="text-slate-600 text-lg leading-relaxed mb-6 italic flex-grow">
+                                        "{review.review}"
+                                    </p>
+                                    <div className="flex items-center justify-between mt-auto">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-cafe-emerald/10 flex items-center justify-center font-bold text-cafe-emerald">
+                                                {(review.customerId?.name || 'Customer')[0]}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-slate-800 text-sm">{review.customerId?.name || 'Verified Customer'}</h4>
+                                                <span className="text-xs text-slate-400">
+                                                    {new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 {/* Internal Review Form */}
@@ -164,7 +220,7 @@ const ReviewsPage = () => {
                                     <CheckCircle className="w-10 h-10 text-green-600" />
                                 </div>
                                 <h3 className="text-2xl font-bold text-slate-800 mb-2">Thank You!</h3>
-                                <p className="text-slate-500">Your review has been submitted successfully.</p>
+                                <p className="text-slate-500">Your review has been submitted successfully and will appear on our page once approved by our team.</p>
                                 <button
                                     onClick={() => {
                                         setIsSubmitted(false);

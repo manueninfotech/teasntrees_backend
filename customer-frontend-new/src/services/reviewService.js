@@ -1,28 +1,33 @@
 import api from './api';
 
 export const reviewService = {
-    // Create a new general review (for the site)
+    // Create or update review for an order
     createReview: async (reviewData) => {
-        // reviewData: { rating, comment }
         const response = await api.post('/customer/reviews', reviewData);
         return response.data;
     },
 
-    // Rate a specific product
-    rateProduct: async (productId, rating, comment) => {
-        const response = await api.post('/customer/reviews/product', { productId, rating, comment });
+    // Rate specific product
+    rateProduct: async (productData) => {
+        const response = await api.post('/customer/reviews/product', productData);
         return response.data;
     },
 
-    // Get my reviews
-    getMyReviews: async () => {
-        const response = await api.get('/customer/reviews/my-reviews');
-        return response.data.data.reviews; // Extract reviews array from { data: { reviews, pagination } }
+    // Get customer's own reviews
+    getMyReviews: async (page = 1, limit = 10) => {
+        const response = await api.get('/customer/reviews/my-reviews', { params: { page, limit } });
+        return response.data.data;
     },
 
     // Get reviews for a product (public)
     getProductReviews: async (productId) => {
         const response = await api.get(`/customer/reviews/product/${productId}`);
+        return response.data.data;
+    },
+
+    // Get site reviews (public)
+    getSiteReviews: async (page = 1, limit = 10) => {
+        const response = await api.get('/customer/reviews/site', { params: { page, limit } });
         return response.data.data;
     }
 };
