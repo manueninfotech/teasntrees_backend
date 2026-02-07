@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -22,6 +23,7 @@ import CartAnalytics from './pages/CartAnalytics.jsx';
 import Deliveries from './pages/Deliveries.jsx';
 import Payouts from './pages/Payouts.jsx';
 import Managers from './pages/Managers.jsx';
+import MessagesPage from './pages/MessagesPage.jsx';
 
 function ProtectedRoute({ children }) {
   const { user } = useAuth();
@@ -44,6 +46,7 @@ function App() {
       <AuthProvider>
         <SocketProvider>
           <BrowserRouter>
+            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route
@@ -63,6 +66,7 @@ function App() {
                 <Route path="orders" element={<Orders />} />
                 <Route path="riders" element={<Riders />} />
                 <Route path="customers" element={<Customers />} />
+                <Route path="messages" element={<MessagesPage />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="reviews" element={<Reviews />} />
                 <Route path="profile" element={<Profile />} />

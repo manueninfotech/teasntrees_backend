@@ -17,7 +17,8 @@ import {
     Shield,
     History,
     Truck,
-    UserCog
+    UserCog,
+    Mail
 } from 'lucide-react';
 import logo from '../assets/logoteasntrees.png';
 
@@ -42,6 +43,7 @@ export default function Layout() {
         { icon: Truck, label: 'Deliveries', path: '/deliveries' },
         { icon: Wallet, label: 'Payouts', path: '/payouts' },
         { icon: Users, label: 'Customers', path: '/customers' },
+        { icon: Mail, label: 'Messages', path: '/messages' },
         { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
         { icon: ShoppingCart, label: 'Cart Insights', path: '/cart-analytics' },
         { icon: Shield, label: 'All Accounts', path: '/users' },

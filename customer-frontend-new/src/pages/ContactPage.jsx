@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Phone, Mail, MapPin, Send, Clock, Instagram, Facebook, Twitter, Loader2 } from 'lucide-react';
+import { Phone, Mail, MapPin, Send, Loader2, Instagram, Facebook, Twitter, Clock } from 'lucide-react';
+import contactService from '../services/contactService';
 import settingsService from '../services/settingsService';
 
 const ContactPage = () => {
     const [formData, setFormData] = useState({
-        name: '',
+        firstName: '',
+        lastName: '',
         email: '',
+        subject: '',
         message: ''
     });
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState('');
     const [settings, setSettings] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -29,13 +34,22 @@ const ContactPage = () => {
         fetchSettings();
     }, []);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Simulate form submission
-        setTimeout(() => {
-            setIsSubmitted(true);
-            setFormData({ name: '', email: '', message: '' });
-        }, 1000);
+        setIsSubmitting(true);
+        setError('');
+
+        try {
+            const res = await contactService.submitContactForm(formData);
+            if (res.success) {
+                setIsSubmitted(true);
+                setFormData({ firstName: '', lastName: '', email: '', subject: '', message: '' });
+            }
+        } catch (err) {
+            setError(err || 'Failed to send message. Please try again.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const contactInfo = [
@@ -199,32 +213,67 @@ const ContactPage = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Name</label>
+                                        <label htmlFor="firstName" className="text-sm font-medium text-slate-700">First Name</label>
                                         <input
                                             type="text"
+                                            id="firstName"
                                             required
                                             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none"
-                                            placeholder="Your name"
-                                            value={formData.name}
-                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            placeholder="John"
+                                            value={formData.firstName}
+                                            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-sm font-medium text-slate-700">Email</label>
+                                        <label htmlFor="lastName" className="text-sm font-medium text-slate-700">Last Name</label>
                                         <input
-                                            type="email"
+                                            type="text"
+                                            id="lastName"
                                             required
                                             className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none"
-                                            placeholder="john@example.com"
-                                            value={formData.email}
-                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            placeholder="Doe"
+                                            value={formData.lastName}
+                                            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-700">Message</label>
+                                    <label htmlFor="email" className="text-sm font-medium text-slate-700">Email</label>
+                                    <input
+                                        type="email"
+                                        id="email"
+                                        required
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none"
+                                        placeholder="john@example.com"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="subject" className="text-sm font-medium text-slate-700">Subject</label>
+                                    <select
+                                        id="subject"
+                                        required
+                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none bg-white"
+                                        value={formData.subject}
+                                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                    >
+                                        <option value="" disabled>Select a subject</option>
+                                        <option value="General Inquiry">General Inquiry</option>
+                                        <option value="Reservation">Table Reservation</option>
+                                        <option value="Event Booking">Event Booking</option>
+                                        <option value="Feedback">Feedback</option>
+                                        <option value="Support">Support</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label htmlFor="message" className="text-sm font-medium text-slate-700">Message</label>
                                     <textarea
+                                        id="message"
                                         required
                                         rows={6}
                                         className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none resize-none"
@@ -234,11 +283,26 @@ const ContactPage = () => {
                                     />
                                 </div>
 
+                                {error && (
+                                    <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm mb-4">
+                                        {error}
+                                    </div>
+                                )}
+
                                 <button
                                     type="submit"
-                                    className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                                    disabled={isSubmitting}
+                                    className="w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
-                                    <Send className="w-5 h-5" /> Send Message
+                                    {isSubmitting ? (
+                                        <>
+                                            <Loader2 className="w-5 h-5 animate-spin" /> Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Send className="w-5 h-5" /> Send Message
+                                        </>
+                                    )}
                                 </button>
                             </form>
                         )}
