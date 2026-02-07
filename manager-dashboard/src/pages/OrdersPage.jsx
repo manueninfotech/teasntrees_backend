@@ -26,12 +26,10 @@ import { useAuth } from '../context/AuthContext';
 const COLUMNS = [
     { id: 'pending', label: 'Pending', icon: AlertCircle, color: 'amber' },
     { id: 'confirmed', label: 'Confirmed', icon: ClipboardCheck, color: 'blue' },
-    { id: 'accepted', label: 'Accepted', icon: CheckCircle, color: 'indigo' },
     { id: 'preparing', label: 'Preparing', icon: ChefHat, color: 'orange' },
     { id: 'ready', label: 'Ready', icon: Package, color: 'emerald' },
     { id: 'waiting_for_rider', label: 'Waiting for Rider', icon: Navigation, color: 'cyan' },
     { id: 'assigned', label: 'Assigned', icon: UserCheck, color: 'cyan' },
-    { id: 'picked_up', label: 'Picked Up', icon: ShoppingBag, color: 'teal' },
     { id: 'out-for-delivery', label: 'Out for Delivery', icon: Truck, color: 'purple' },
     { id: 'in_transit', label: 'In Transit', icon: Navigation, color: 'violet' },
     { id: 'delivered', label: 'Delivered', icon: CheckCircle, color: 'green' },
