@@ -10,6 +10,7 @@ import { generateToken, generateRefreshToken } from '../../utils/jwtHelper.js';
 import { isValidMobile, isValidEmail, isValidRole, isValidOTP, sanitizeString } from '../../utils/validators.js';
 import otpConfig from '../../config/otp.js';
 import logger from '../../config/logger.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Send OTP to mobile number
 
@@ -412,6 +413,14 @@ const completeProfile = async (req, res) => {
 
         // Delete OTP after profile completion
         await OTP.deleteOne({ _id: otpDoc._id });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'complete_profile',
+            resource: 'user',
+            resourceId: user._id,
+            details: { name: user.name, role: user.role }
+        });
 
         return res.status(201).json({
             success: true,

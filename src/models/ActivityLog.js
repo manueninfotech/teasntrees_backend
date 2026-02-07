@@ -13,13 +13,20 @@ const activityLogSchema = new mongoose.Schema({
             'create', 'update', 'delete',
             'activate', 'deactivate',
             'login', 'logout',
-            'assign', 'cancel'
+            'assign', 'cancel',
+            'approve', 'reject',
+            'accept', 'update_status',
+            'upload', 'process',
+            'complete_profile',
+            'accept_delivery', 'reject_delivery',
+            'upload_proof', 'toggle_availability',
+            'update_payment', 'cancel_order', 'assign_rider'
         ]
     },
     resource: {
         type: String,
         required: true,
-        enum: ['user', 'product', 'category', 'order', 'delivery', 'settings', 'auth']
+        enum: ['user', 'product', 'category', 'order', 'delivery', 'settings', 'auth', 'image', 'payout', 'review', 'rider', 'manager', 'customer']
     },
     resourceId: {
         type: mongoose.Schema.Types.ObjectId

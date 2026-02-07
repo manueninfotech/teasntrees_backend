@@ -111,7 +111,22 @@ export const suspendRider = async (req, res) => {
 
         await rider.save();
 
-        // Log and socket...
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'deactivate',
+            resource: 'user',
+            resourceId: rider._id,
+            details: { name: rider.name, role: 'rider', reason }
+        });
+
+        // Emit Socket Event
+        const io = req.app.get('io');
+        if (io) {
+            io.to(SOCKET_ROOMS.user(rider._id)).emit(SOCKET_EVENTS.USER_DEACTIVATED, {
+                message: `Your account has been suspended. Reason: ${reason || 'No reason provided'}`
+            });
+        }
+
         res.status(200).json({ success: true, message: 'Rider suspended' });
 
     } catch (error) {

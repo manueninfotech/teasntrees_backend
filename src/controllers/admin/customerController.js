@@ -242,9 +242,9 @@ export const toggleCustomerStatus = async (req, res) => {
         // Log Activity
         await activityLogService.log(req, {
             action: customer.isActive ? 'activate' : 'deactivate',
-            resource: 'user',
+            resource: 'customer',
             resourceId: customer._id,
-            details: { name: customer.name, role: 'customer' }
+            details: { name: customer.name }
         });
 
         res.status(200).json({
@@ -303,9 +303,9 @@ export const deleteCustomer = async (req, res) => {
         // Log Activity
         await activityLogService.log(req, {
             action: 'delete',
-            resource: 'user',
+            resource: 'customer',
             resourceId: customer._id,
-            details: { name: customer.name, role: 'customer' }
+            details: { name: customer.name }
         });
 
         res.status(200).json({

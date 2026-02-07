@@ -124,6 +124,7 @@ export const updateOrderStatus = async (req, res) => {
             }
         }
 
+        const previousStatus = order.status;
         order.status = finalStatus;
 
         if (status === 'confirmed') {
@@ -205,7 +206,7 @@ export const updateOrderStatus = async (req, res) => {
             action: 'update_status',
             resource: 'order',
             resourceId: updatedOrder._id,
-            details: { status: updatedOrder.status }
+            details: { previousStatus, newStatus: updatedOrder.status }
         });
 
         return res.json({
@@ -261,6 +262,14 @@ export const updatePaymentStatus = async (req, res) => {
             data: order
         });
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update_status',
+            resource: 'order',
+            resourceId: order._id,
+            details: { type: 'payment', paymentStatus }
+        });
+
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -290,6 +299,14 @@ export const assignDeliveryRider = async (req, res) => {
             success: true,
             message: 'Rider assigned successfully',
             data: order
+        });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'assign',
+            resource: 'order',
+            resourceId: order._id,
+            details: { riderId, riderName: rider.name }
         });
 
     } catch (error) {
@@ -323,6 +340,14 @@ export const cancelOrder = async (req, res) => {
             success: true,
             message: 'Order cancelled successfully',
             data: order
+        });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'cancel',
+            resource: 'order',
+            resourceId: order._id,
+            details: { reason: order.cancelReason }
         });
 
     } catch (error) {

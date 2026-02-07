@@ -1,4 +1,5 @@
 import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../../utils/imageUpload.js";
+import activityLogService from '../../services/activityLogService.js';
 
 // Upload single image
 export const uploadImage = async (req, res) => {
@@ -14,17 +15,27 @@ export const uploadImage = async (req, res) => {
         const folder = req.query.folder || 'teasntrees';
         // upload to cloudinary
         const result = await uploadToCloudinary(req.file.buffer, folder);
+
         // return result
+        const responseData = {
+            url: result.url,
+            publicId: result.publicId,
+            width: result.width,
+            height: result.height,
+            format: result.format,
+        };
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'upload',
+            resource: 'image',
+            details: { folder, publicId: result.publicId }
+        });
+
         return res.status(200).json({
             success: true,
             message: 'Image uploaded successfully',
-            data: {
-                url: result.url,
-                publicId: result.publicId,
-                width: result.width,
-                height: result.height,
-                format: result.format,
-            }
+            data: responseData
         });
     } catch (error) {
         console.error('Upload error', error)
@@ -57,6 +68,13 @@ export const deleteImage = async (req, res) => {
                 success: true,
                 message: 'Image deleted successfully'
             });
+
+            // Log Activity
+            await activityLogService.log(req, {
+                action: 'delete',
+                resource: 'image',
+                details: { publicId: imagePublicId }
+            });
         } else {
             res.status(404).json({
                 success: false,
@@ -87,16 +105,25 @@ export const uploadMultipleImages = async (req, res) => {
         // Upload all images to cloudinary
         const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer, folder));
         const results = await Promise.all(uploadPromises);
+        const responseData = results.map(result => ({
+            url: result.url,
+            publicId: result.publicId,
+            width: result.width,
+            height: result.height,
+            format: result.format,
+        }));
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'upload',
+            resource: 'image',
+            details: { folder, count: results.length }
+        });
+
         return res.status(200).json({
             success: true,
             message: `${results.length} Images uploaded successfully`,
-            data: results.map(result => ({
-                url: result.url,
-                publicId: result.publicId,
-                width: result.width,
-                height: result.height,
-                format: result.format,
-            }))
+            data: responseData
         });
     } catch (error) {
         console.error('Upload error', error)

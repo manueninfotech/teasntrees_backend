@@ -101,9 +101,9 @@ export const approveManager = async (req, res) => {
         // Log Activity
         await activityLogService.log(req, {
             action: 'approve',
-            resource: 'user',
+            resource: 'manager',
             resourceId: manager._id,
-            details: { name: manager.name, role: 'manager' }
+            details: { name: manager.name }
         });
 
         // Socket Notification
@@ -156,9 +156,9 @@ export const rejectManager = async (req, res) => {
         // Log Activity
         await activityLogService.log(req, {
             action: 'reject',
-            resource: 'user',
+            resource: 'manager',
             resourceId: manager._id,
-            details: { name: manager.name, role: 'manager', reason }
+            details: { name: manager.name, reason }
         });
 
         // Socket Notification
@@ -206,9 +206,9 @@ export const toggleManagerStatus = async (req, res) => {
 
         await activityLogService.log(req, {
             action: isActive ? 'activate' : 'deactivate',
-            resource: 'user',
+            resource: 'manager',
             resourceId: manager._id,
-            details: { name: manager.name, role: 'manager' }
+            details: { name: manager.name }
         });
 
         res.status(200).json({
@@ -238,9 +238,9 @@ export const deleteManager = async (req, res) => {
 
         await activityLogService.log(req, {
             action: 'delete',
-            resource: 'user',
+            resource: 'manager',
             resourceId: id,
-            details: { name: manager.name, role: 'manager' }
+            details: { name: manager.name }
         });
 
         res.status(200).json({
