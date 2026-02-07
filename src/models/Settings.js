@@ -17,7 +17,7 @@ const settingsSchema = new mongoose.Schema({
         type: Number,
         default: 100
     },
-    taxPercentage: {
+    gstRate: {
         type: Number,
         default: 5
     },
