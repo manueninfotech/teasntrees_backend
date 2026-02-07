@@ -31,7 +31,7 @@ export default function DashboardLayout() {
         { icon: Truck, label: 'Deliveries', path: '/deliveries' },
         { icon: Users, label: 'Customers', path: '/customers' },
         // { icon: Settings, label: 'Settings', path: '/settings' },
-        // { icon: User, label: 'My Profile', path: '/profile' },
+        { icon: User, label: 'My Profile', path: '/profile' },
     ];
 
     const isActive = (path) => {

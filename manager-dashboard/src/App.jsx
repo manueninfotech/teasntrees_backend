@@ -8,7 +8,8 @@ import OrdersPage from './pages/OrdersPage';
 import RidersPage from './pages/RidersPage';
 import DeliveriesPage from './pages/DeliveriesPage';
 import CustomersPage from './pages/CustomersPage';
-import ProductsPage from './pages/ProductsPage'; // Import // Import // Import
+import ProductsPage from './pages/ProductsPage';
+import ProfilePage from './pages/ProfilePage';
 
 // Protected Route Wrapper
 const ProtectedRoute = ({ children }) => {
@@ -37,6 +38,7 @@ const AppRoutes = () => {
         <Route path="deliveries" element={<DeliveriesPage />} />
         <Route path="customers" element={<CustomersPage />} />
         <Route path="products" element={<ProductsPage />} />
+        <Route path="profile" element={<ProfilePage />} />
       </Route>
     </Routes>
   );
