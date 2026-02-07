@@ -9,13 +9,16 @@ import {
     ShoppingBag,
     ChevronRight,
     Clock,
-    MapPin,
     X,
-    Filter
+    MapPin,
+    Filter,
+    CreditCard,
+    ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import OrderDetailsModal from '../components/OrderDetailsModal';
 
-const CustomerDetailsModal = ({ customer, onClose, orders }) => {
+const CustomerDetailsModal = ({ customer, onClose, orders, onOrderClick }) => {
     if (!customer) return null;
 
     // Calculate Stats
@@ -101,7 +104,11 @@ const CustomerDetailsModal = ({ customer, onClose, orders }) => {
                         ) : (
                             <div className="space-y-4">
                                 {orders.map(order => (
-                                    <div key={order._id} className="p-5 bg-white border border-gray-100 rounded-[1.8rem] hover:border-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/5 transition-all flex justify-between items-center group cursor-pointer border-2">
+                                    <div
+                                        key={order._id}
+                                        onClick={() => onOrderClick(order)}
+                                        className="p-5 bg-white border border-gray-100 rounded-[1.8rem] hover:border-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/5 transition-all flex justify-between items-center group cursor-pointer border-2"
+                                    >
                                         <div className="flex items-center gap-5">
                                             <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-colors">
                                                 <ShoppingBag className="w-5 h-5" />
@@ -162,6 +169,10 @@ const CustomersPage = () => {
     const [customerOrders, setCustomerOrders] = useState([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
 
+    // Order Details Modal State
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+
     // Fetch Customers
     const fetchCustomers = async (page = 1, searchQuery = '') => {
         setLoading(true);
@@ -221,7 +232,7 @@ const CustomersPage = () => {
 
     return (
         <div className="h-full flex flex-col space-y-6 relative">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Customers</h1>
                     <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">View customer info and orders</p>
@@ -295,7 +306,30 @@ const CustomersPage = () => {
                 )}
             </div>
 
-            {/* Pagination controls could go here */}
+            {/* Pagination Controls */}
+            {!loading && pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8 pb-10">
+                    <button
+                        onClick={() => fetchCustomers(pagination.current - 1, search)}
+                        disabled={pagination.current === 1}
+                        className="px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 hover:border-emerald-100 disabled:opacity-30 disabled:hover:text-gray-400 transition-all shadow-sm flex items-center gap-2"
+                    >
+                        <ChevronLeft className="w-4 h-4" /> Previous
+                    </button>
+
+                    <div className="flex items-center px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm text-[10px] font-black uppercase tracking-widest text-gray-900">
+                        Page {pagination.current} of {pagination.totalPages}
+                    </div>
+
+                    <button
+                        onClick={() => fetchCustomers(pagination.current + 1, search)}
+                        disabled={pagination.current === pagination.totalPages}
+                        className="px-6 py-3 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-emerald-600 hover:border-emerald-100 disabled:opacity-30 disabled:hover:text-gray-400 transition-all shadow-sm flex items-center gap-2"
+                    >
+                        Next <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
 
             {/* Details Modal */}
             <AnimatePresence>
@@ -304,9 +338,21 @@ const CustomersPage = () => {
                         customer={selectedCustomer}
                         orders={customerOrders}
                         onClose={() => setSelectedCustomer(null)}
+                        onOrderClick={(order) => {
+                            setSelectedOrder(order);
+                            setIsOrderModalOpen(true);
+                        }}
                     />
                 )}
             </AnimatePresence>
+
+            {/* Order Details Modal Overlay */}
+            <OrderDetailsModal
+                isOpen={isOrderModalOpen}
+                onClose={() => setIsOrderModalOpen(false)}
+                order={selectedOrder}
+                token={token}
+            />
         </div>
     );
 };
