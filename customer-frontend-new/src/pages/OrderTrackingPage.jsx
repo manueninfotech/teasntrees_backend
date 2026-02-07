@@ -295,7 +295,7 @@ const OrderTrackingPage = () => {
     const estimatedTime = rawEstimatedTime;
 
     // Get OTP from Delivery Model (exposed by backend only when active)
-    const deliveryOtp = order.delivery?.deliveryOtp;
+    const deliveryOtp = deliveryInfo?.deliveryOtp || order.delivery?.deliveryOtp;
 
     return (
         <div className="min-h-screen pt-24 pb-12 px-4 bg-slate-50">

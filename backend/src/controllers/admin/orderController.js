@@ -1,6 +1,7 @@
 import Order from "../../models/Order.js";
 import User from "../../models/User.js";
 import Settings from "../../models/Settings.js";
+import Delivery from "../../models/Delivery.js";
 
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
 import { getDistance } from "../../utils/geoUtils.js";
@@ -112,8 +113,15 @@ export const updateOrderStatus = async (req, res) => {
         // Business status update (admin only)
         let finalStatus = status;
         if (status === 'ready') {
-            // Stay in waiting_for_rider until the rider accepts (Delivery sync will move to assigned)
-            finalStatus = 'waiting_for_rider';
+            // If rider already accepted, show assigned; else waiting_for_rider
+            const delivery = await Delivery.findOne({ orderId: order._id }).select('status');
+            if (delivery && ['accepted', 'heading_to_pickup', 'arrived_at_pickup'].includes(delivery.status)) {
+                finalStatus = 'assigned';
+                // Allow system-side logistics update
+                order.$locals.allowDeliverySync = true;
+            } else {
+                finalStatus = 'waiting_for_rider';
+            }
         }
 
         order.status = finalStatus;

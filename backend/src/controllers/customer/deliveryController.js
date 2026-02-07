@@ -84,7 +84,7 @@ export const getMyDeliveries = async (req, res) => {
 
                 // OTP only when rider is near
                 deliveryOtp:
-                    ['in_transit', 'arrived'].includes(delivery.status)
+                    ['picked_up', 'in_transit', 'arrived', 'out-for-delivery', 'out_for_delivery'].includes(delivery.status)
                         ? delivery.deliveryOtp
                         : null
             };
@@ -144,7 +144,7 @@ export const trackDelivery = async (req, res) => {
                 },
 
                 deliveryOtp:
-                    ['in_transit', 'arrived'].includes(delivery.status)
+                    ['picked_up', 'in_transit', 'arrived', 'out-for-delivery', 'out_for_delivery'].includes(delivery.status)
                         ? delivery.deliveryOtp
                         : null
             }
@@ -202,7 +202,7 @@ export const getDeliveryByOrder = async (req, res) => {
                 deliveryAddress: order.deliveryAddress,
 
                 deliveryOtp:
-                    ['in_transit', 'arrived'].includes(delivery.status)
+                    ['picked_up', 'in_transit', 'arrived', 'out-for-delivery', 'out_for_delivery'].includes(delivery.status)
                         ? delivery.deliveryOtp
                         : null
             }
