@@ -51,7 +51,7 @@ export const getDashboardStats = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5)
             .populate('customerId', 'name mobile') // Get customer details
-            .select('orderNumber items total status createdAt paymentStatus customerId'); // Select correct fields
+            .select('orderNumber items total subtotal status createdAt paymentStatus paymentMethod deliveryAddress specialInstructions customerId'); // Select correct fields
 
         // 7. Active Riders List (Limit 5)
         const activeRidersList = await Rider.find({ isApproved: true, isActive: true })

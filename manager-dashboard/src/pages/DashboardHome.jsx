@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, ShoppingBag, Clock, AlertTriangle, ChevronRight, User } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import OrderDetailsModal from '../components/OrderDetailsModal';
 
 // --- Components ---
 
@@ -59,11 +61,12 @@ const StatCard = ({ title, value, change, icon: Icon, color }) => {
     );
 };
 
-const OrderItem = ({ order }) => (
+const OrderItem = ({ order, onClick }) => (
     <motion.div
         layout
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
+        onClick={() => onClick(order)}
         className="group relative flex items-center justify-between p-6 bg-white rounded-[2rem] border border-gray-100 hover:shadow-xl hover:shadow-gray-100 transition-all duration-300 cursor-pointer"
     >
         <div className="flex items-center gap-6">
@@ -103,7 +106,7 @@ const OrderItem = ({ order }) => (
     </motion.div>
 );
 
-const RecentOrders = ({ orders, loading }) => (
+const RecentOrders = ({ orders, loading, onOrderClick, onClickViewAll }) => (
     <div className="glass-card p-6 h-[500px] flex flex-col bg-white border border-gray-100 shadow-sm col-span-2 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand-primary/5 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none" />
         <div className="flex justify-between items-center mb-6 relative z-10">
@@ -117,7 +120,10 @@ const RecentOrders = ({ orders, loading }) => (
                     <p className="text-xs font-medium text-gray-500">Real-time feed</p>
                 </div>
             </div>
-            <button className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-4 py-2.5 rounded-xl hover:bg-brand-primary hover:text-white transition-all duration-300 shadow-sm hover:shadow-brand-primary/25">
+            <button
+                onClick={() => onClickViewAll()}
+                className="text-xs font-bold text-brand-primary bg-brand-primary/10 px-4 py-2.5 rounded-xl hover:bg-brand-primary hover:text-white transition-all duration-300 shadow-sm hover:shadow-brand-primary/25"
+            >
                 View All Orders
             </button>
         </div>
@@ -133,7 +139,7 @@ const RecentOrders = ({ orders, loading }) => (
                 <AnimatePresence mode="popLayout">
                     {orders && orders.length > 0 ? (
                         orders.map((order) => (
-                            <OrderItem key={order._id || order.id} order={order} />
+                            <OrderItem key={order._id || order.id} order={order} onClick={onOrderClick} />
                         ))
                     ) : (
                         <motion.div
@@ -159,6 +165,7 @@ const RecentOrders = ({ orders, loading }) => (
 const DashboardHome = () => {
     const { socket, isConnected } = useSocket();
     const { token } = useAuth();
+    const navigate = useNavigate();
 
     // 1. Initialize with COMPLETE DEFAULT OBJECT (No nulls)
     const [stats, setStats] = useState({
@@ -167,6 +174,9 @@ const DashboardHome = () => {
         inventory: { lowStock: 0 },
         recentOrders: []
     });
+
+    const [selectedOrder, setSelectedOrder] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // 2. Explicit Loading State for initial fetch
     const [isLoading, setIsLoading] = useState(true);
@@ -331,7 +341,15 @@ const DashboardHome = () => {
             {/* Content Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-                <RecentOrders orders={stats.recentOrders} loading={isLoading} />
+                <RecentOrders
+                    orders={stats.recentOrders}
+                    loading={isLoading}
+                    onOrderClick={(order) => {
+                        setSelectedOrder(order);
+                        setIsModalOpen(true);
+                    }}
+                    onClickViewAll={() => navigate('/orders')}
+                />
 
                 {/* Side Widget (Riders) */}
                 <div className="glass-card p-6 h-[500px] bg-white border border-gray-100 shadow-sm overflow-hidden flex flex-col">
@@ -383,6 +401,13 @@ const DashboardHome = () => {
                     </div>
                 </div>
             </div>
+
+            <OrderDetailsModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                order={selectedOrder}
+                token={token}
+            />
         </div>
     );
 };

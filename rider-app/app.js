@@ -227,7 +227,7 @@ window.handleAction = async (action, id) => {
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        await fetchActiveDelivery();
+        location.reload();
     } catch (err) {
         alert(err.message);
     }
