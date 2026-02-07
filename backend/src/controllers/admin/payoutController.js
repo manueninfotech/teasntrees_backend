@@ -51,7 +51,7 @@ export const getPayoutStats = async (req, res) => {
 // Mark deliveries as paid for a rider
 export const processPayout = async (req, res) => {
     try {
-        const { riderId } = req.body;
+        const { riderId, payoutReference } = req.body;
 
         if (!riderId) {
             return res.status(400).json({ success: false, message: 'Rider ID is required' });
@@ -66,7 +66,8 @@ export const processPayout = async (req, res) => {
             {
                 $set: {
                     isPaid: true,
-                    paidAt: new Date()
+                    paidAt: new Date(),
+                    payoutReference: payoutReference || null
                 }
             }
         );

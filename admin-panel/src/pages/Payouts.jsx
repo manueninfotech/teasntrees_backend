@@ -18,7 +18,9 @@ const TableSkeleton = () => (
 
 const Payouts = () => {
     const queryClient = useQueryClient();
-    const [processingId, setProcessingId] = useState(null);
+    const [selectedRider, setSelectedRider] = useState(null);
+    const [payoutReference, setPayoutReference] = useState('');
+    const [isConfirming, setIsConfirming] = useState(false);
     const [notification, setNotification] = useState(null);
     const { socket } = useSocket();
 
@@ -55,19 +57,34 @@ const Payouts = () => {
 
     const isSyncing = isFetching;
 
-    const handleProcessPayout = async (riderId) => {
-        setProcessingId(riderId);
+    const handleInitiatePayout = (rider) => {
+        setSelectedRider(rider);
+        setPayoutReference('');
+    };
+
+    const handleConfirmPayout = async () => {
+        if (!selectedRider || !payoutReference.trim()) {
+            showNotification('error', 'Please enter a transaction reference number');
+            return;
+        }
+
+        setIsConfirming(true);
         try {
-            const response = await api.post('/admin/payouts/process', { riderId });
+            const response = await api.post('/admin/payouts/process', {
+                riderId: selectedRider.riderId,
+                payoutReference: payoutReference
+            });
+
             if (response.data.success) {
                 showNotification('success', response.data.message);
                 queryClient.invalidateQueries({ queryKey: ['payouts-stats'] });
+                setSelectedRider(null);
             }
         } catch (error) {
             console.error('Error processing payout:', error);
             showNotification('error', error.response?.data?.message || 'Failed to process payout');
         } finally {
-            setProcessingId(null);
+            setIsConfirming(false);
         }
     };
 
@@ -80,7 +97,7 @@ const Payouts = () => {
     const activeRiders = stats.length;
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 relative">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Rider Payments</h1>
@@ -158,12 +175,11 @@ const Payouts = () => {
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <button
-                                                    onClick={() => handleProcessPayout(rider.riderId)}
-                                                    disabled={processingId === rider.riderId}
+                                                    onClick={() => handleInitiatePayout(rider)}
                                                     className="inline-flex items-center gap-2 px-8 py-4 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-indigo-600 shadow-xl shadow-black/10 disabled:opacity-50 group/btn active:scale-95"
                                                 >
-                                                    {processingId === rider.riderId ? <Loader2 className="w-4 h-4 animate-spin" /> : <IndianRupee className="w-4 h-4" />}
-                                                    Process <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                                    <IndianRupee className="w-4 h-4" />
+                                                    Pay <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                                 </button>
                                             </td>
                                         </tr>
@@ -172,9 +188,73 @@ const Payouts = () => {
                             </tbody>
                         </table>
                     </div>
-
                 </div>
             </div>
+
+            {/* Confirmation Modal */}
+            {selectedRider && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-8 border-b border-gray-50 bg-gray-50/50">
+                            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Confirm Payout</h3>
+                            <p className="text-sm text-gray-500 mt-1 font-medium">Verify payment details before processing</p>
+                        </div>
+
+                        <div className="p-8 space-y-6">
+                            <div className="flex items-center gap-4 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+                                <div className="p-3 bg-white rounded-xl text-indigo-600 shadow-sm">
+                                    <User className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Beneficiary</p>
+                                    <p className="text-lg font-bold text-gray-900">{selectedRider.riderName}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                <div className="p-3 bg-white rounded-xl text-emerald-600 shadow-sm">
+                                    <IndianRupee className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Amount Payable</p>
+                                    <p className="text-2xl font-black text-gray-900">₹{selectedRider.totalAmount.toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Transaction Ref / UTR No.</label>
+                                <input
+                                    type="text"
+                                    value={payoutReference}
+                                    onChange={(e) => setPayoutReference(e.target.value)}
+                                    placeholder="Enter bank transaction ID..."
+                                    className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-gray-900 focus:outline-none focus:border-black focus:ring-0 transition-all placeholder:text-gray-300"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    onClick={() => setSelectedRider(null)}
+                                    className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-bold hover:bg-gray-200 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmPayout}
+                                    disabled={isConfirming || !payoutReference.trim()}
+                                    className="flex-1 py-4 bg-black text-white rounded-2xl font-bold hover:bg-gray-900 transition-all shadow-xl shadow-black/10 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isConfirming ? (
+                                        <><Loader2 className="w-5 h-5 animate-spin" /> Processing...</>
+                                    ) : (
+                                        <>Confirm Transfer</>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

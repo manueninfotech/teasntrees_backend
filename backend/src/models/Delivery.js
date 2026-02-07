@@ -95,6 +95,7 @@ const deliverySchema = new mongoose.Schema({
 
     isPaid: { type: Boolean, default: false },
     paidAt: Date,
+    payoutReference: String, // Transaction ID/UTR
 
     rating: { type: Number, min: 1, max: 5 },
     feedback: String,
