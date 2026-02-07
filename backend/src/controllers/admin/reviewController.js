@@ -1,10 +1,8 @@
-// Admin Review Management Controller
-// For moderating and managing customer reviews
-
 import Review from '../../models/Review.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Get all reviews with filters
 export const getAllReviews = async (req, res) => {
@@ -160,6 +158,14 @@ export const approveReview = async (req, res) => {
             data: review
         });
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'approve',
+            resource: 'review',
+            resourceId: review._id,
+            details: { productId: review.productId, rating: review.productRating }
+        });
+
     } catch (error) {
         logger.error('Error approving review', { error: error.message });
         console.error('Error in approveReview:', error);
@@ -217,6 +223,14 @@ export const rejectReview = async (req, res) => {
             data: review
         });
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'reject',
+            resource: 'review',
+            resourceId: review._id,
+            details: { productId: review.productId }
+        });
+
     } catch (error) {
         logger.error('Error rejecting review', { error: error.message });
         console.error('Error in rejectReview:', error);
@@ -249,6 +263,13 @@ export const deleteReview = async (req, res) => {
         res.json({
             success: true,
             message: 'Review deleted successfully'
+        });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'delete',
+            resource: 'review',
+            resourceId: reviewId
         });
 
         // Broadcast to Admin/Manager DIRECTLY

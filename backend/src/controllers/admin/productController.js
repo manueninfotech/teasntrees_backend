@@ -354,6 +354,14 @@ export const toggleProductAvailability = async (req, res) => {
         product.isAvailable = !product.isAvailable;
         await product.save();
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: product.isAvailable ? 'activate' : 'deactivate',
+            resource: 'product',
+            resourceId: product._id,
+            details: { name: product.name }
+        });
+
         res.status(200).json({
             success: true,
             message: `Product ${product.isAvailable ? 'enabled' : 'disabled'} successfully`,
@@ -398,6 +406,18 @@ export const bulkUpdateProducts = async (req, res) => {
             });
         }
         const result = await Product.updateMany({ _id: { $in: productIds } }, { $set: updates });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'product',
+            details: {
+                type: 'bulk_update',
+                count: result.modifiedCount,
+                updates,
+                productIds: productIds.slice(0, 5)
+            }
+        });
         res.status(200).json({
             success: true,
             message: `Successfully updated ${result.modifiedCount} products`,
@@ -492,10 +512,23 @@ export const updateProductSeason = async (req, res) => {
         }
 
         if (availableMonths !== undefined) {
-            product.availableMonths = availableMonths;
+            product.availableMonths = availableMonths || product.availableMonths;
         }
 
         await product.save();
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'product',
+            resourceId: product._id,
+            details: {
+                type: 'seasonal_settings',
+                name: product.name,
+                isSeasonal: product.isSeasonal,
+                availableMonths: product.availableMonths
+            }
+        });
 
         const updatedProduct = await Product.findById(id)
             .populate('category', 'name icon');

@@ -1,5 +1,7 @@
 import Delivery from '../../models/Delivery.js';
+import User from '../../models/User.js';
 import logger from '../../config/logger.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Get payout summary (Amount owed to each rider)
 export const getPayoutStats = async (req, res) => {
@@ -74,9 +76,11 @@ export const processPayout = async (req, res) => {
         }
 
         // --- NEW: Notifications ---
+        let riderName = 'Rider';
         try {
             const rider = await User.findById(riderId);
             if (rider) {
+                riderName = rider.name;
                 // Socket.io update
                 const socketService = req.app.get('socketService');
                 if (socketService) {
@@ -97,6 +101,17 @@ export const processPayout = async (req, res) => {
         } catch (notifError) {
             logger.error('Failed to send payout notification:', notifError);
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'process_payout',
+            resource: 'payout',
+            details: {
+                riderId,
+                riderName,
+                deliveriesUpdated: result.modifiedCount
+            }
+        });
 
         res.json({
             success: true,

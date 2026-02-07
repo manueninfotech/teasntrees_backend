@@ -6,6 +6,7 @@ import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import logger from "../../config/logger.js";
 import { uploadToCloudinary } from "../../utils/imageUpload.js";
 import { riderMetricsService } from "../../services/riderMetricsService.js";
+import activityLogService from "../../services/activityLogService.js";
 
 /* ======================================================
    DELIVERY STATE MACHINE (STRICT)
@@ -108,6 +109,13 @@ export const acceptDelivery = async (req, res) => {
 
         emitDeliveryStatus(delivery, req);
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'accept_delivery',
+            resource: 'delivery',
+            resourceId: delivery._id,
+        });
+
         res.json({
             success: true,
             message: 'Delivery accepted',
@@ -145,6 +153,14 @@ export const rejectDelivery = async (req, res) => {
         delivery.rejectedAt = new Date();
         delivery.rejectionReason = reason || 'No reason provided';
         await delivery.save();
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'reject_delivery',
+            resource: 'delivery',
+            resourceId: delivery._id,
+            details: { reason: delivery.rejectionReason }
+        });
 
         // Release rider
         await Rider.findByIdAndUpdate(req.user.userId, {
@@ -237,8 +253,17 @@ export const updateDeliveryStatus = async (req, res) => {
             riderMetricsService.updateMetrics(req.user.userId);
         }
 
+        const previousStatus = delivery.status;
         delivery.status = status;
         await delivery.save();
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update_status',
+            resource: 'delivery',
+            resourceId: delivery._id,
+            details: { previousStatus, newStatus: status }
+        });
 
         emitDeliveryStatus(delivery, req);
 
@@ -356,6 +381,13 @@ export const uploadDeliveryProof = async (req, res) => {
 
         delivery.deliveryProof = result.secure_url;
         await delivery.save();
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'upload_proof',
+            resource: 'delivery',
+            resourceId: delivery._id
+        });
 
         res.json({
             success: true,

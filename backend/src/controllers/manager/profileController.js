@@ -1,5 +1,5 @@
-import Manager from '../../models/Manager.js';
 import User from '../../models/User.js';
+import activityLogService from '../../services/activityLogService.js';
 
 export const getProfile = async (req, res) => {
     try {
@@ -40,6 +40,14 @@ export const updateProfile = async (req, res) => {
                 message: 'Manager not found'
             });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update_profile',
+            resource: 'user',
+            resourceId: updatedManager._id,
+            details: { name: updatedManager.name, role: 'manager' }
+        });
 
         res.status(200).json({
             success: true,

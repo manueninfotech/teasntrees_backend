@@ -186,10 +186,10 @@ export const approveRider = async (req, res) => {
 
         // Log Activity
         await activityLogService.log(req, {
-            action: 'activate',
-            resource: 'user', // Treat rider as user resource
+            action: 'approve',
+            resource: 'rider',
             resourceId: rider._id,
-            details: { name: rider.name, role: 'rider', type: 'approval' }
+            details: { name: rider.name }
         });
 
         res.json({
@@ -242,10 +242,10 @@ export const rejectRider = async (req, res) => {
 
         // Log Activity
         await activityLogService.log(req, {
-            action: 'deactivate',
-            resource: 'user',
+            action: 'reject',
+            resource: 'rider',
             resourceId: rider._id,
-            details: { name: rider.name, role: 'rider', type: 'rejection', reason: rider.rejectionReason }
+            details: { name: rider.name, reason: rider.rejectionReason }
         });
 
         res.json({
@@ -294,9 +294,9 @@ export const toggleRiderStatus = async (req, res) => {
         // Log Activity
         await activityLogService.log(req, {
             action: isActive ? 'activate' : 'deactivate',
-            resource: 'user',
+            resource: 'rider',
             resourceId: rider._id,
-            details: { name: rider.name, role: 'rider' }
+            details: { name: rider.name }
         });
 
         res.json({
@@ -340,9 +340,9 @@ export const deleteRider = async (req, res) => {
         // Log Activity
         await activityLogService.log(req, {
             action: 'delete',
-            resource: 'user',
+            resource: 'rider',
             resourceId: id,
-            details: { role: 'rider' }
+            details: { name: rider.name }
         });
 
         res.json({

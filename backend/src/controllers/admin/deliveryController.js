@@ -1,4 +1,5 @@
 import Delivery from '../../models/Delivery.js';
+import activityLogService from '../../services/activityLogService.js';
 
 /* ----------------------------------
    GET ALL DELIVERIES (ADMIN)
@@ -93,6 +94,14 @@ export const cancelDelivery = async (req, res) => {
             success: true,
             message: 'Delivery cancelled successfully',
             data: delivery
+        });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'cancel',
+            resource: 'delivery',
+            resourceId: delivery._id,
+            details: { reason: delivery.cancelReason }
         });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });

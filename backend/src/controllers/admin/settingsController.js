@@ -1,4 +1,5 @@
 import Settings from '../../models/Settings.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Get application settings
 export const getSettings = async (req, res) => {
@@ -81,6 +82,13 @@ export const updateSettings = async (req, res) => {
             });
         }
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'settings',
+            details: { updatedFields: Object.keys(req.body) }
+        });
+
         res.status(200).json({
             success: true,
             message: 'Settings updated successfully',
@@ -153,6 +161,13 @@ export const updateDeliveryZones = async (req, res) => {
                 message: 'Delivery zones have been updated'
             });
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update_zones',
+            resource: 'settings',
+            details: { zonesCount: serviceAreas.length }
+        });
 
         res.status(200).json({
             success: true,

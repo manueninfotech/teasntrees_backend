@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import logger from '../../config/logger.js';
 import { riderAssignmentService } from '../../services/riderAssignmentService.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Register a new Rider
 export const registerRider = async (req, res) => {
@@ -321,6 +322,14 @@ export const completeProfile = async (req, res) => {
 
         await rider.save();
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'complete_profile',
+            resource: 'user',
+            resourceId: rider._id,
+            details: { name: rider.name, role: 'rider' }
+        });
+
         res.json({
             success: true,
             message: 'Profile completed successfully. Pending administrator approval.',
@@ -366,6 +375,14 @@ export const toggleAvailability = async (req, res) => {
         }
 
         await Rider.findByIdAndUpdate(rider._id, { $set: updateFields });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: isOnline ? 'activate' : 'deactivate',
+            resource: 'user',
+            resourceId: rider._id,
+            details: { name: rider.name, role: 'rider', type: 'availability' }
+        });
 
         // Emit Socket Event DIRECTLY
         try {

@@ -4,6 +4,7 @@
 
 import User from '../../models/User.js';
 import { isValidEmail, sanitizeString } from '../../utils/validators.js';
+import activityLogService from '../../services/activityLogService.js';
 
 // Get current user profile
 const getProfile = async (req, res) => {
@@ -132,6 +133,14 @@ const updateProfile = async (req, res) => {
                     updatedAt: user.updatedAt
                 }
             }
+        });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update_profile',
+            resource: 'user',
+            resourceId: user._id,
+            details: { updatedFields: Object.keys(updates) }
         });
 
     } catch (error) {

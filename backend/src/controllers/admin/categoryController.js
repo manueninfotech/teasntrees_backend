@@ -1,5 +1,6 @@
 import Category from "../../models/Category.js";
 import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
+import activityLogService from '../../services/activityLogService.js';
 
 // Get all categories
 export const getAllCategories = async (req, res) => {
@@ -90,6 +91,14 @@ export const createCategory = async (req, res) => {
             io.emit(SOCKET_EVENTS.CATEGORY_CREATED, socketData);
         }
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'create',
+            resource: 'category',
+            resourceId: category._id,
+            details: { name: category.name }
+        });
+
         res.status(200).json({
             success: true,
             message: 'Category created successfully',
@@ -143,6 +152,14 @@ export const updateCategory = async (req, res) => {
             io.emit(SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
         }
 
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'update',
+            resource: 'category',
+            resourceId: category._id,
+            details: { name: category.name }
+        });
+
         res.status(200).json({
             success: true,
             message: 'Category updated successfully',
@@ -176,6 +193,14 @@ export const deleteCategory = async (req, res) => {
         if (io) {
             io.emit(SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
         }
+
+        // Log Activity
+        await activityLogService.log(req, {
+            action: 'delete',
+            resource: 'category',
+            resourceId: categoryData.id,
+            details: { name: categoryData.name }
+        });
 
         res.status(200).json({
             success: true,
