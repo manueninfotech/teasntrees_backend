@@ -205,6 +205,10 @@ deliverySchema.post('save', async function (delivery) {
     const mappedStatus = DELIVERY_TO_ORDER_STATUS[delivery.status];
 
     if (mappedStatus && order.status !== mappedStatus) {
+        // Only show "assigned" after kitchen is ready or already waiting for rider
+        if (mappedStatus === 'assigned' && !['ready', 'waiting_for_rider', 'assigned'].includes(order.status)) {
+            return;
+        }
         order.status = mappedStatus;
         mutated = true;
 
