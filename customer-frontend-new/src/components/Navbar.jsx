@@ -15,17 +15,22 @@ const Navbar = () => {
     const navigate = useNavigate();
 
     const handleSearch = (e) => {
-        if (e.key === 'Enter' && searchTerm.trim()) {
-            // Navigate to menu page with search param
-            navigate(`/menu?search=${encodeURIComponent(searchTerm.trim())}`);
-            setIsOpen(false); // Close mobile menu if open
+        if (e) e.preventDefault();
+        const term = searchTerm.trim();
+        console.log('🌍 Global Search (Navbar):', term);
+
+        if (term) {
+            navigate(`/menu?q=${encodeURIComponent(term)}`);
+        } else {
+            navigate('/menu');
         }
+        setIsOpen(false);
     };
 
     return (
         <nav className="glass-nav transition-all duration-300">
             <div className="container mx-auto px-4 lg:px-8 h-20 flex items-center justify-between">
-                {/* Logo Section */}
+                {/* Logo */}
                 <Link to="/" className="flex items-center gap-2 group">
                     <img
                         src={Logo}
@@ -34,38 +39,33 @@ const Navbar = () => {
                     />
                 </Link>
 
-                {/* Desktop Search - 1024px+ */}
+                {/* DESKTOP SEARCH */}
                 <div className="hidden lg:flex items-center justify-center flex-1 mx-12">
-                    <div className="relative w-full max-w-md group">
+                    <form onSubmit={handleSearch} className="relative w-full max-w-md group">
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            onKeyDown={handleSearch}
                             placeholder="Search for 'Masala Chai'..."
-                            className="w-full bg-white/50 backdrop-blur-sm border-white/40 border rounded-full py-2.5 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-cafe-emerald/50 transition-all shadow-sm group-hover:shadow-md group-hover:bg-white/70"
+                            className="w-full bg-white/50 backdrop-blur-sm border border-white/40 rounded-full py-2.5 pl-12 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-cafe-emerald/50 transition-all shadow-sm hover:shadow-md hover:bg-white/70"
+                            autoComplete="off"
                         />
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 group-hover:text-cafe-emerald transition-colors" />
-                    </div>
+                        <button
+                            type="submit"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-cafe-emerald transition-colors"
+                        >
+                            <Search className="w-4 h-4" />
+                        </button>
+                    </form>
                 </div>
 
                 {/* Desktop Actions */}
                 <div className="hidden lg:flex items-center gap-6">
-                    <Link to="/menu" className="text-sm font-medium hover:text-cafe-emerald transition-colors">
-                        Menu
-                    </Link>
-                    <Link to="/about" className="text-sm font-medium hover:text-cafe-emerald transition-colors">
-                        About
-                    </Link>
-                    <Link to="/gallery" className="text-sm font-medium hover:text-cafe-emerald transition-colors">
-                        Gallery
-                    </Link>
-                    <Link to="/reviews" className="text-sm font-medium hover:text-cafe-emerald transition-colors">
-                        Reviews
-                    </Link>
-                    <Link to="/contact" className="text-sm font-medium hover:text-cafe-emerald transition-colors">
-                        Contact
-                    </Link>
+                    <Link to="/menu" className="text-sm font-medium hover:text-cafe-emerald transition-colors">Menu</Link>
+                    <Link to="/about" className="text-sm font-medium hover:text-cafe-emerald transition-colors">About</Link>
+                    <Link to="/gallery" className="text-sm font-medium hover:text-cafe-emerald transition-colors">Gallery</Link>
+                    <Link to="/reviews" className="text-sm font-medium hover:text-cafe-emerald transition-colors">Reviews</Link>
+                    <Link to="/contact" className="text-sm font-medium hover:text-cafe-emerald transition-colors">Contact</Link>
 
                     <Link to="/wishlist" className="relative group">
                         <div className={cn(
@@ -105,7 +105,7 @@ const Navbar = () => {
                 </button>
             </div>
 
-            {/* Mobile Menu */}
+            {/* MOBILE MENU */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -114,15 +114,20 @@ const Navbar = () => {
                         exit={{ opacity: 0, height: 0 }}
                         className="lg:hidden overflow-hidden bg-white/95 backdrop-blur-xl border-t border-slate-100"
                     >
-                        <div className="p-4 flex flex-col gap-4">
-                            <input
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                onKeyDown={handleSearch}
-                                placeholder="Search..."
-                                className="w-full bg-slate-50 border-none rounded-xl p-3 text-sm"
-                            />
+                        <div className="p-6 flex flex-col gap-4">
+                            <form onSubmit={handleSearch} className="relative">
+                                <input
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    placeholder="Search..."
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                />
+                                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2">
+                                    <Search className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </form>
+
                             <Link to="/menu" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
                                 <Coffee className="w-5 h-5 text-cafe-emerald" />
                                 <span className="font-medium">Menu</span>
@@ -131,39 +136,40 @@ const Navbar = () => {
                                 <Users className="w-5 h-5 text-blue-500" />
                                 <span className="font-medium">About Us</span>
                             </Link>
-                            <Link to="/gallery" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
-                                <ZoomIn className="w-5 h-5 text-purple-500" />
-                                <span className="font-medium">Gallery</span>
+                            <Link to="/gallery" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                                <ZoomIn className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform" />
+                                <span className="font-semibold text-base">Gallery</span>
                             </Link>
-                            <Link to="/reviews" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
-                                <Star className="w-5 h-5 text-yellow-500" />
-                                <span className="font-medium">Reviews</span>
+                            <Link to="/reviews" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                                <Star className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
+                                <span className="font-semibold text-base">Reviews</span>
                             </Link>
-                            <Link to="/contact" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
-                                <Phone className="w-5 h-5 text-blue-500" />
-                                <span className="font-medium">Contact</span>
+                            <Link to="/contact" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                                <Phone className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform" />
+                                <span className="font-semibold text-base">Contact</span>
                             </Link>
-                            <Link to="/wishlist" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
-                                <Heart className="w-5 h-5 text-red-500" />
-                                <span className="font-medium">Wishlist</span>
+                            <Link to="/wishlist" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                                <Heart className="w-6 h-6 text-red-500 group-hover:scale-110 transition-transform" />
+                                <span className="font-semibold text-base">Wishlist ({wishlistItems.length})</span>
                             </Link>
                             <button
+                                type="button"
                                 onClick={() => { setIsOpen(false); toggleCart(); }}
-                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 w-full text-left"
+                                className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group w-full text-left"
                             >
-                                <ShoppingCart className="w-5 h-5 text-cafe-orange" />
-                                <span className="font-medium">Cart ({cartCount})</span>
+                                <ShoppingCart className="w-6 h-6 text-cafe-orange group-hover:scale-110 transition-transform" />
+                                <span className="font-semibold text-base">Cart ({cartCount})</span>
                             </button>
-                            <Link to="/profile" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
-                                <User className="w-5 h-5 text-cafe-teal" />
-                                <span className="font-medium">Profile</span>
+                            <Link to="/profile" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                                <User className="w-6 h-6 text-cafe-teal group-hover:scale-110 transition-transform" />
+                                <span className="font-semibold text-base">Profile</span>
                             </Link>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
         </nav>
-    )
-}
+    );
+};
 
 export default Navbar;

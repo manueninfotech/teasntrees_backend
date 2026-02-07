@@ -2,11 +2,12 @@ import api from './api';
 
 export const productService = {
     // Get all products with filters
-    getAllProducts: async ({ category = '', search = '', page = 1, limit = 20 } = {}) => {
+    getAllProducts: async ({ category = '', search = '', q = '', page = 1, limit = 20 } = {}) => {
         const params = new URLSearchParams();
         // If category is 'all', don't send it to backend so it fetches everything
         if (category && category !== 'all') params.append('category', category);
         if (search) params.append('search', search);
+        if (q) params.append('q', q);
         params.append('page', page);
         params.append('limit', limit);
 

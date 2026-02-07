@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '../context/SocketContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2 } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom'; // URL Sync
+import { Search, Loader2, XCircle } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import CategoryTabs from '../components/CategoryTabs';
 import MenuCard from '../components/MenuCard';
 import { productService } from '../services/productService';
@@ -24,31 +24,57 @@ const useDebounce = (value, delay) => {
 
 const MenuPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const initialSearch = searchParams.get('search') || '';
+
+    // 1. URL Source of Truth
+    const queryQ = searchParams.get('q') || ''; // From Navbar
+    const querySearch = searchParams.get('search') || ''; // From local Menu bar
 
     const [activeCategory, setActiveCategory] = useState('all');
-    const [searchTerm, setSearchTerm] = useState(initialSearch);
 
-    // Debounce search term to avoid hitting API on every keystroke
+    // 2. Local state for the input
+    const [searchTerm, setSearchTerm] = useState(querySearch);
     const debouncedSearch = useDebounce(searchTerm, 500);
 
-    // Sync URL with Search Term
+    // 3. EXCLUSIVITY LOGIC: If Global search (q) comes in, clear Local
     useEffect(() => {
-        if (debouncedSearch) {
-            setSearchParams({ search: debouncedSearch });
-        } else {
-            searchParams.delete('search');
-            setSearchParams(searchParams);
-        }
-    }, [debouncedSearch, setSearchParams]);
+        if (queryQ) {
+            console.log('🌊 Global Search clearing Local');
+            setSearchTerm('');
+            setActiveCategory('all');
 
-    // Update local state if URL is changed externally (e.g. from Navbar)
+            // Also ensure 'search' is removed from URL if it was there
+            if (searchParams.has('search')) {
+                const newParams = Object.fromEntries(searchParams);
+                delete newParams.search;
+                setSearchParams(newParams);
+            }
+        }
+    }, [queryQ]);
+
+    // 4. EXCLUSIVITY LOGIC: If Local search (debouncedSearch) comes in, clear Global
     useEffect(() => {
-        const querySearch = searchParams.get('search') || '';
-        if (querySearch !== searchTerm) {
+        const urlSearch = searchParams.get('search') || '';
+
+        if (debouncedSearch !== urlSearch) {
+            console.log('🔍 Local Search clearing Global');
+            const newParams = Object.fromEntries(searchParams);
+
+            if (debouncedSearch) {
+                newParams.search = debouncedSearch;
+                delete newParams.q; // 🎯 Clear Global when searching locally
+            } else {
+                delete newParams.search;
+            }
+            setSearchParams(newParams);
+        }
+    }, [debouncedSearch]);
+
+    // 5. Back/Forward button support
+    useEffect(() => {
+        if (querySearch !== searchTerm && !queryQ) {
             setSearchTerm(querySearch);
         }
-    }, [searchParams]);
+    }, [querySearch, queryQ]);
 
 
     // Fetch Categories
@@ -57,122 +83,116 @@ const MenuPage = () => {
         queryFn: productService.getCategories,
     });
 
-    // Add 'All' to the valid categories list for local UI logic
     const categories = [
         { id: 'all', name: 'All' },
         ...(rawCategories || [])
     ];
 
-    // Fetch Products
-    const { data: products, isLoading, isError } = useQuery({
-        // Include debouncedSearch in queryKey so it refetches when it changes
-        queryKey: ['products', activeCategory, debouncedSearch],
-        queryFn: () => productService.getAllProducts({
-            category: activeCategory,
-            search: debouncedSearch
-        }),
+    // Fetch Products (Backend supports both, but UI handles exclusivity)
+    const { data: products, isLoading, isError, error } = useQuery({
+        queryKey: ['products', activeCategory, queryQ, querySearch],
+        queryFn: () => {
+            return productService.getAllProducts({
+                category: activeCategory,
+                q: queryQ,
+                search: querySearch
+            });
+        },
     });
 
-    // Real-time Product Updates
-    const { socket } = useSocket();
+    // Real-time updates
     const queryClient = useQueryClient();
-
+    const { socket } = useSocket();
     useEffect(() => {
         if (!socket) return;
-
-        const handleProductUpdate = (data) => {
-            console.log('[Menu] Product update received:', data);
-            // Invalidate all product queries to strictly refresh the grid
-            queryClient.invalidateQueries({ queryKey: ['products'] });
-
-            // If we had category counts, we'd invalidate categories too
-            if (data.type === 'category' || data.category) {
-                queryClient.invalidateQueries({ queryKey: ['categories'] });
-            }
-        };
-
-        const events = [
-            'product:created',
-            'product:updated',
-            'product:deleted',
-            'category:updated' // In case category name changes
-        ];
-
-        events.forEach(event => socket.on(event, handleProductUpdate));
-
-        return () => {
-            events.forEach(event => socket.off(event, handleProductUpdate));
-        };
+        const handleUpdate = () => queryClient.invalidateQueries({ queryKey: ['products'] });
+        const events = ['product:created', 'product:updated', 'product:deleted'];
+        events.forEach(e => socket.on(e, handleUpdate));
+        return () => events.forEach(e => socket.off(e, handleUpdate));
     }, [socket, queryClient]);
 
     const displayProducts = products || [];
 
+    const clearAll = () => {
+        setSearchTerm('');
+        setSearchParams({});
+    };
+
     return (
         <div className="min-h-screen bg-slate-50/50 pb-20">
-            {/* Header Spacer */}
             <div className="h-20" />
 
-            {/* Sticky Categories */}
             <CategoryTabs
                 categories={categories}
                 activeCategory={activeCategory}
-                onSelect={setActiveCategory}
+                onSelect={(cat) => {
+                    setActiveCategory(cat);
+                }}
             />
 
-            {/* Main Content */}
             <div className="container mx-auto px-4 lg:px-8 py-8">
 
-                {/* Search / Filter Row */}
+                {/* Search Feedback Header */}
+                {(queryQ || querySearch) && (
+                    <div className="mb-6 flex flex-wrap items-center gap-3">
+                        {queryQ && (
+                            <div className="bg-cafe-emerald/10 text-cafe-emerald px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium border border-cafe-emerald/20">
+                                Global: "{queryQ}"
+                                <button onClick={() => setSearchParams({})} className="hover:text-red-500 transition-colors">
+                                    <XCircle className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                        {querySearch && (
+                            <div className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium border border-blue-100">
+                                Filtering: "{querySearch}"
+                                <button onClick={() => setSearchTerm('')} className="hover:text-red-500 transition-colors">
+                                    <XCircle className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
                     <h2 className="text-3xl font-bold text-slate-800 self-start">
                         {activeCategory === 'all' ? 'Full Menu' : 'Selected Collection'}
-                        {debouncedSearch && <span className="text-lg font-normal text-slate-500 ml-2">(Searching: "{debouncedSearch}")</span>}
                     </h2>
 
-                    {/* Inline search for menu page */}
                     <div className="relative w-full md:w-80 group">
                         <input
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search in menu..."
+                            placeholder="Filter these results..."
                             className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-cafe-emerald/50 transition-all shadow-sm"
                         />
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
 
-                        {/* Clear button if searching */}
                         {searchTerm && (
                             <button
                                 onClick={() => setSearchTerm('')}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 text-xl"
                             >
-                                <span className="sr-only">Clear</span>
                                 &times;
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* Loading State */}
                 {isLoading && (
                     <div className="flex justify-center items-center h-64">
                         <Loader2 className="w-10 h-10 text-cafe-emerald animate-spin" />
                     </div>
                 )}
 
-                {/* Error State */}
-                {isError && (
-                    <div className="text-center py-12">
-                        <p className="text-red-500 mb-2">Failed to load menu.</p>
-                        <p className="text-sm text-slate-500">Please try again later.</p>
+                {!isLoading && isError && (
+                    <div className="text-center py-12 text-red-500">
+                        Error loading products. Please try again.
                     </div>
                 )}
 
-                {/* Product Grid */}
-                <motion.div
-                    layout
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                >
+                <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <AnimatePresence mode="popLayout">
                         {displayProducts.map((product) => (
                             <MenuCard key={product._id} product={product} />
@@ -180,21 +200,15 @@ const MenuPage = () => {
                     </AnimatePresence>
                 </motion.div>
 
-                {/* Empty State */}
                 {displayProducts.length === 0 && !isLoading && (
                     <div className="text-center py-20 text-slate-500">
-                        {debouncedSearch
-                            ? `No items found matching "${debouncedSearch}".`
-                            : (activeCategory === 'all' ? "Our menu is currently being updated. Check back soon!" : "No items found in this category.")}
-
-                        {debouncedSearch && (
-                            <button
-                                onClick={() => setSearchTerm('')}
-                                className="mt-4 text-cafe-emerald hover:underline"
-                            >
-                                Clear Search
-                            </button>
-                        )}
+                        No items found.
+                        <button
+                            onClick={clearAll}
+                            className="mt-4 text-cafe-emerald hover:underline block mx-auto"
+                        >
+                            Clear All Search
+                        </button>
                     </div>
                 )}
             </div>
