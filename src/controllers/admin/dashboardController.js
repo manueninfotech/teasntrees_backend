@@ -1,7 +1,6 @@
 import Order from '../../models/Order.js';
 import User from '../../models/User.js';
 import Product from '../../models/Product.js';
-import Delivery from '../../models/Delivery.js';
 
 // Get dashboard statistics
 export const getDashboardStats = async (req, res) => {
@@ -59,11 +58,20 @@ export const getDashboardStats = async (req, res) => {
             .populate('customerId', 'name')
             .select('orderNumber items total status createdAt');
 
-        // Get top products
-        const topProducts = await Product.find()
-            .sort({ orderCount: -1 })
-            .limit(4)
-            .select('name orderCount');
+        // Get top products (Accurate Best Sellers - only delivered)
+        const topProducts = await Order.aggregate([
+            { $match: { status: 'delivered' } },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.product',
+                    name: { $first: '$items.name' },
+                    orderCount: { $sum: '$items.quantity' }
+                }
+            },
+            { $sort: { orderCount: -1 } },
+            { $limit: 4 }
+        ]);
 
         res.status(200).json({
             success: true,
@@ -142,15 +150,46 @@ export const getRevenueAnalytics = async (req, res) => {
     }
 };
 
-// Get top selling products
+// Get top selling products (Detailed list)
 export const getTopProducts = async (req, res) => {
     try {
         const { limit = 10 } = req.query;
-        const topProducts = await Product.find()
-            .sort({ orderCount: -1 })
-            .limit(parseInt(limit))
-            .select('name price orderCount averageRating image category')
-            .populate('category', 'name icon');
+
+        const topProducts = await Order.aggregate([
+            { $match: { status: 'delivered' } },
+            { $unwind: '$items' },
+            {
+                $group: {
+                    _id: '$items.product',
+                    name: { $first: '$items.name' },
+                    orderCount: { $sum: '$items.quantity' },
+                    totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+                }
+            },
+            { $sort: { orderCount: -1 } },
+            { $limit: parseInt(limit) },
+            {
+                $lookup: {
+                    from: 'products',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'productDetails'
+                }
+            },
+            { $unwind: { path: '$productDetails', preserveNullAndEmptyArrays: true } },
+            {
+                $project: {
+                    name: 1,
+                    orderCount: 1,
+                    totalRevenue: 1,
+                    price: { $ifNull: ['$productDetails.price', { $arrayElemAt: ['$productDetails.sizeOptions.price', 0] }] },
+                    image: '$productDetails.image',
+                    category: '$productDetails.category',
+                    averageRating: '$productDetails.averageRating'
+                }
+            }
+        ]);
+
         res.status(200).json({
             success: true,
             count: topProducts.length,
@@ -188,4 +227,4 @@ export const getRecentOrders = async (req, res) => {
             error: error.message
         });
     }
-}
+};
