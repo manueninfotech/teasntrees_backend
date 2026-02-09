@@ -26,6 +26,8 @@ export const getAllReviews = async (req, res) => {
             ];
         } else if (type === 'rider') {
             query.riderRating = { $exists: true };
+        } else if (type === 'site') {
+            query.type = 'site';
         }
 
         if (productId) {
@@ -377,7 +379,12 @@ export const getReviewStats = async (req, res) => {
                 pendingReviews,
                 averageFoodRating: avgFoodRating.length > 0 ? avgFoodRating[0].avg.toFixed(1) : 0,
                 averageRiderRating: avgRiderRating.length > 0 ? avgRiderRating[0].avg.toFixed(1) : 0,
-                averageProductRating: avgProductRating.length > 0 ? avgProductRating[0].avg.toFixed(1) : 0
+                averageProductRating: avgProductRating.length > 0 ? avgProductRating[0].avg.toFixed(1) : 0,
+                averageSiteRating: (await Review.aggregate([
+                    { $match: { type: 'site' } },
+                    { $group: { _id: null, avg: { $avg: '$foodRating' } } }
+                ]))[0]?.avg?.toFixed(1) || 0,
+                totalSiteReviews: await Review.countDocuments({ type: 'site' })
             }
         });
 
