@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Clock,
@@ -145,6 +145,7 @@ const OrdersPage = () => {
     const { tick } = useRefresh();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const initialLoadRef = useRef(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [visibleStages, setVisibleStages] = useState(COLUMNS.map(c => c.id));
     const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -165,8 +166,12 @@ const OrdersPage = () => {
                 console.error("Failed to fetch orders", err);
             } finally {
                 setLoading(false);
+                initialLoadRef.current = false;
             }
         };
+        if (initialLoadRef.current) {
+            setLoading(true);
+        }
         fetchOrders();
     }, [token, tick]);
 

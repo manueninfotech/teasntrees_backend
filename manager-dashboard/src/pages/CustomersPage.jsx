@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
@@ -163,6 +163,7 @@ const CustomersPage = () => {
     // State
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const initialLoadRef = useRef(true);
     const [search, setSearch] = useState('');
     const [pagination, setPagination] = useState({ current: 1, totalPages: 1 });
 
@@ -177,7 +178,9 @@ const CustomersPage = () => {
 
     // Fetch Customers
     const fetchCustomers = async (page = 1, searchQuery = '') => {
-        setLoading(true);
+        if (initialLoadRef.current) {
+            setLoading(true);
+        }
         try {
             const params = new URLSearchParams({
                 page,
@@ -196,6 +199,7 @@ const CustomersPage = () => {
             console.error("Failed to fetch customers", err);
         } finally {
             setLoading(false);
+            initialLoadRef.current = false;
         }
     };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     User,
@@ -163,12 +163,15 @@ const RidersPage = () => {
     const [activeTab, setActiveTab] = useState('active'); // 'active' | 'pending'
     const [riders, setRiders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const initialLoadRef = useRef(true);
     const [stats, setStats] = useState({ online: 0, total: 0, pending: 0 });
     const [selectedRider, setSelectedRider] = useState(null); // For Modal
 
     // Fetch Riders
     const fetchRiders = async () => {
-        setLoading(true);
+        if (initialLoadRef.current) {
+            setLoading(true);
+        }
         try {
             // Fetch Active
             const resActive = await fetch('http://localhost:5000/api/manager/riders?type=assigned', {
@@ -204,6 +207,7 @@ const RidersPage = () => {
             console.error("Failed to fetch riders", err);
         } finally {
             setLoading(false);
+            initialLoadRef.current = false;
         }
     };
 

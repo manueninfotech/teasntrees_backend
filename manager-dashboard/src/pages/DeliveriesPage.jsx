@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -72,6 +72,7 @@ const DeliveriesPage = () => {
     // State
     const [deliveries, setDeliveries] = useState([]);
     const [loading, setLoading] = useState(true);
+    const initialLoadRef = useRef(true);
     const [selectedDelivery, setSelectedDelivery] = useState(null);
 
     // Default Shop Location (Little H Teas n Trees - Guntur)
@@ -92,10 +93,14 @@ const DeliveriesPage = () => {
             console.error("Failed to fetch deliveries", err);
         } finally {
             setLoading(false);
+            initialLoadRef.current = false;
         }
     };
 
     useEffect(() => {
+        if (initialLoadRef.current) {
+            setLoading(true);
+        }
         fetchDeliveries();
     }, [token, tick]);
 

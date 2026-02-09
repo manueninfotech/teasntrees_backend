@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
@@ -169,6 +169,7 @@ const ProductsPage = () => {
     // State
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const initialLoadRef = useRef(true);
     const [search, setSearch] = useState('');
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [page, setPage] = useState(1);
@@ -176,7 +177,9 @@ const ProductsPage = () => {
 
     // Fetch Products
     const fetchProducts = async () => {
-        setLoading(true);
+        if (initialLoadRef.current) {
+            setLoading(true);
+        }
         try {
             const params = new URLSearchParams({
                 page,
@@ -195,6 +198,7 @@ const ProductsPage = () => {
             console.error("Failed to fetch products", err);
         } finally {
             setLoading(false);
+            initialLoadRef.current = false;
         }
     };
 

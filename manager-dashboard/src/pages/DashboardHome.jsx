@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, ShoppingBag, Clock, AlertTriangle, ChevronRight, User } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
@@ -182,6 +182,7 @@ const DashboardHome = () => {
 
     // 2. Explicit Loading State for initial fetch
     const [isLoading, setIsLoading] = useState(true);
+    const initialLoadRef = useRef(true);
     const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
@@ -205,10 +206,16 @@ const DashboardHome = () => {
             } finally {
                 // Ensure loading is set to false regardless of success/fail
                 setIsLoading(false);
+                initialLoadRef.current = false;
             }
         };
 
-        if (token) fetchStats();
+        if (token) {
+            if (initialLoadRef.current) {
+                setIsLoading(true);
+            }
+            fetchStats();
+        }
         // If no token (unlikely in this protected route), we might want to ensure 'isLoading' goes false eventually or redirect.
         // But for now, user flow guarantees token.
     }, [token, tick]);
