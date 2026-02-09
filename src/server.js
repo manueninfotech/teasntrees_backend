@@ -41,6 +41,7 @@ import { setupSocketHandlers } from './sockets/socketHandlers.js';
 import { SocketService } from './services/socketService.js';
 import { apiLimiter } from './middlewares/rateLimiter.js';
 import logger from './config/logger.js';
+import { SOCKET_EVENTS } from './sockets/socketEvents.js';
 
 // Initialize express app
 const app = express();
@@ -69,6 +70,25 @@ setupSocketHandlers(io);
 const socketService = new SocketService(io);
 app.set('io', io);
 app.set('socketService', socketService);
+
+// Global real-time invalidation for any successful write
+app.use((req, res, next) => {
+    const writeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+    if (!writeMethods.has(req.method)) return next();
+    if (req.originalUrl.startsWith('/socket.io')) return next();
+
+    res.on('finish', () => {
+        if (res.statusCode < 400) {
+            io.emit(SOCKET_EVENTS.SYSTEM_DATA_UPDATED, {
+                method: req.method,
+                path: req.originalUrl,
+                status: res.statusCode
+            });
+        }
+    });
+
+    next();
+});
 
 // CORS configuration (Moved up for preflight handling)
 const corsOptions = {
