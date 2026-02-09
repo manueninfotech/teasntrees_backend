@@ -12,7 +12,7 @@ import activityLogService from "../../services/activityLogService.js";
    DELIVERY STATE MACHINE (STRICT)
 ====================================================== */
 const VALID_TRANSITIONS = {
-    assigned: ['heading_to_pickup'],
+    accepted: ['heading_to_pickup'],
     heading_to_pickup: ['arrived_at_pickup'],
     arrived_at_pickup: ['picked_up'],
     picked_up: ['in_transit'],
@@ -83,7 +83,7 @@ export const acceptDelivery = async (req, res) => {
             });
         }
 
-        delivery.status = 'heading_to_pickup';
+        delivery.status = 'accepted';
         delivery.acceptedAt = new Date();
         await delivery.save();
 
