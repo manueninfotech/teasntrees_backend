@@ -165,7 +165,12 @@ export const approveReview = async (req, res) => {
             action: 'approve',
             resource: 'review',
             resourceId: review._id,
-            details: { productId: review.productId, rating: review.productRating }
+            details: {
+                reviewType: review.type,
+                productId: review.productId,
+                rating: review.type === 'site' ? review.foodRating : (review.productRating || review.foodRating),
+                customerId: review.customerId
+            }
         });
 
     } catch (error) {
@@ -230,7 +235,11 @@ export const rejectReview = async (req, res) => {
             action: 'reject',
             resource: 'review',
             resourceId: review._id,
-            details: { productId: review.productId }
+            details: {
+                reviewType: review.type,
+                productId: review.productId,
+                customerId: review.customerId
+            }
         });
 
     } catch (error) {
@@ -271,7 +280,11 @@ export const deleteReview = async (req, res) => {
         await activityLogService.log(req, {
             action: 'delete',
             resource: 'review',
-            resourceId: reviewId
+            resourceId: reviewId,
+            details: {
+                reviewId: reviewId,
+                note: 'Review permanently removed from system'
+            }
         });
 
         // Broadcast to Admin/Manager DIRECTLY
