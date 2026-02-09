@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Users, Clock, Search, Filter, ShieldCheck, UserCog, ArrowRight, RefreshCw } from 'lucide-react';
+import { Users, Clock, Search, Filter, ShieldCheck, UserCog, ArrowRight, RefreshCw, Eye } from 'lucide-react';
 import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import UserDetailsModal from '../components/UserDetailsModal';
 
 const CardSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
@@ -22,6 +23,8 @@ export default function Managers() {
     const [rejectReason, setRejectReason] = useState('');
     const [managerToReject, setManagerToReject] = useState(null);
     const [filters, setFilters] = useState({ status: '' });
+    const [selectedManager, setSelectedManager] = useState(null);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     // Fetch Managers
     const { data: managersData, isLoading: managersLoading, isFetching: managersFetching, refetch: managersRefetch } = useQuery({
@@ -229,11 +232,23 @@ export default function Managers() {
                                 <div className="flex gap-2">
                                     {manager.isApproved === null ? (
                                         <>
+                                            <button
+                                                onClick={() => { setSelectedManager(manager); setShowDetailsModal(true); }}
+                                                className="px-4 py-3 bg-blue-50 text-blue-600 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
                                             <button onClick={() => handleApprove(manager)} className="flex-1 bg-green-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-green-700">Approve</button>
                                             <button onClick={() => handleReject(manager)} className="flex-1 bg-red-50 text-red-600 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-red-100">Reject</button>
                                         </>
                                     ) : (
                                         <>
+                                            <button
+                                                onClick={() => { setSelectedManager(manager); setShowDetailsModal(true); }}
+                                                className="px-4 py-3 bg-blue-50 text-blue-600 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
                                             {manager.isApproved === true && (
                                                 <button onClick={() => handleToggleStatus(manager)} className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase border transition-all ${manager.isActive ? 'hover:bg-black hover:text-white border-gray-100' : 'bg-green-600 text-white hover:bg-green-700'}`}>{manager.isActive ? 'Deactivate' : 'Activate'}</button>
                                             )}
@@ -265,6 +280,16 @@ export default function Managers() {
                     </div>
                 </div>
             )}
+
+            {/* Details Modal */}
+            <UserDetailsModal
+                isOpen={showDetailsModal}
+                user={selectedManager}
+                onClose={() => {
+                    setShowDetailsModal(false);
+                    setSelectedManager(null);
+                }}
+            />
         </div>
     );
 }
