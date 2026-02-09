@@ -75,7 +75,7 @@ export const updateOrderStatus = async (req, res) => {
         if (status === 'ready') {
             // If rider already accepted (or already moving), show assigned; else waiting_for_rider
             const delivery = await Delivery.findOne({ orderId: order._id }).select('status');
-            if (delivery && ['accepted', 'heading_to_pickup', 'arrived_at_pickup', 'assigned'].includes(delivery.status)) {
+            if (delivery && ['accepted', 'heading_to_pickup', 'arrived_at_pickup'].includes(delivery.status)) {
                 finalStatus = 'assigned';
                 order.$locals.allowDeliverySync = true;
             } else {

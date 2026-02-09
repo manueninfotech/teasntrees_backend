@@ -39,7 +39,6 @@ const sendOTP = async (req, res) => {
             expiresAt: new Date(Date.now() + otpConfig.expiryMinutes * 60 * 1000)
         });
 
-        // TODO: Send OTP via SMS (Twilio integration)
         // For now, just log to console for development
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         console.log(`OTP for ${mobile}: ${otp}`);
