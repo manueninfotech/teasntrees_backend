@@ -189,7 +189,7 @@ const ProfilePage = () => {
                 setProfileData(data);
             } else if (activeTab === 'reviews') {
                 const data = await reviewService.getMyReviews();
-                setReviews(data || []);
+                setReviews(data?.reviews || []);
             }
         } catch (err) {
             console.error("Failed to load dashboard data", err);
