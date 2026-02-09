@@ -1,11 +1,13 @@
 import { useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 const SocketListener = () => {
     const { socket } = useSocket();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         if (!socket) return;
@@ -48,13 +50,17 @@ const SocketListener = () => {
         socket.on('order:status-updated', handleStatusUpdate);
         socket.on('order:rider-assigned', handleDeliveryAssigned);
         socket.on('delivery:assigned', handleDeliveryAssigned); // Legacy support
+        socket.on('system:data-updated', () => {
+            queryClient.invalidateQueries();
+        });
 
         return () => {
             socket.off('order:status-updated', handleStatusUpdate);
             socket.off('order:rider-assigned', handleDeliveryAssigned);
             socket.off('delivery:assigned', handleDeliveryAssigned);
+            socket.off('system:data-updated');
         };
-    }, [socket]);
+    }, [socket, queryClient]);
 
     return null; // Logic only component
 };

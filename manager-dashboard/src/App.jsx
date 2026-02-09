@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
+import SocketGlobalRefresh from './components/SocketGlobalRefresh';
 import DashboardLayout from './components/layout/DashboardLayout';
 import LoginPage from './pages/LoginPage';
 import DashboardHome from './pages/DashboardHome';
@@ -49,6 +50,7 @@ function App() {
     <Router>
       <AuthProvider>
         <SocketProvider>
+          <SocketGlobalRefresh />
           <AppRoutes />
         </SocketProvider>
       </AuthProvider>
@@ -57,4 +59,3 @@ function App() {
 }
 
 export default App
-

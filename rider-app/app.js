@@ -70,6 +70,11 @@ function initSocket() {
         showNotification('New Delivery Request!', 'You have a new order waiting for acceptance.');
         fetchActiveDelivery();
     });
+
+    socket.on('system:data-updated', () => {
+        fetchProfile();
+        fetchActiveDelivery();
+    });
 }
 
 function showNotification(title, body) {

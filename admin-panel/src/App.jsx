@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SocketProvider } from './context/SocketContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
+import SocketGlobalRefresh from './components/SocketGlobalRefresh';
 import Login from './pages/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -44,10 +45,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <SocketProvider>
-          <BrowserRouter>
-            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-            <Routes>
+            <SocketProvider>
+              <BrowserRouter>
+                <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+                <SocketGlobalRefresh />
+                <Routes>
               <Route path="/login" element={<Login />} />
               <Route
                 path="/"

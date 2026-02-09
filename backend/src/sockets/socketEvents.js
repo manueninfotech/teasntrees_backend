@@ -63,6 +63,7 @@ export const SOCKET_EVENTS = {
 
     // System events
     SYSTEM_MESSAGE: 'system:message',
+    SYSTEM_DATA_UPDATED: 'system:data-updated',
 
     // Activity Log events
     ACTIVITY_LOG_NEW: 'activity-log:new',
