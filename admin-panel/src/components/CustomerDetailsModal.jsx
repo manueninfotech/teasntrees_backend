@@ -74,7 +74,7 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                         </div>
                         <div>
                             <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{customerDetails.name || 'N/A'}</h2>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Customer Registry Node</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1 italic">Customer Record</p>
                         </div>
                     </div>
                     <button
@@ -95,7 +95,7 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                                 : 'text-gray-400 hover:text-gray-900'
                                 }`}
                         >
-                            General Meta
+                            General Info
                             {activeTab === 'info' && <div className="absolute bottom-0 left-0 right-0 h-1 bg-emerald-600 rounded-full" />}
                         </button>
                         <button
@@ -142,34 +142,34 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                                         <div className="p-2 bg-gray-50 rounded-lg">
                                             <User className="w-4 h-4 text-gray-400" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Profile Data</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">User Profile</h3>
                                     </div>
                                     <div className="bg-white border border-gray-100 rounded-[2.5rem] p-8 space-y-6 shadow-sm">
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Full Legal Name</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Full Name</p>
                                                 <p className="font-black text-gray-900 uppercase text-sm tracking-tight">{customerDetails.name || 'N/A'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">System Status</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Status</p>
                                                 <CustomerStatusBadge isActive={customerDetails.isActive} />
                                             </div>
                                             <div className="col-span-2">
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Mobile Contact</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Mobile Number</p>
                                                 <p className="font-black text-gray-900 text-sm tracking-tight flex items-center gap-2">
                                                     {customerDetails.mobile || 'N/A'}
                                                 </p>
                                             </div>
                                             <div className="col-span-2">
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Electronic Mail</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Email Address</p>
                                                 <p className="font-black text-gray-900 text-sm tracking-tight lowercase">{customerDetails.email || 'N/A'}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Registry Date</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Joined Date</p>
                                                 <p className="font-black text-gray-900 text-[10px]">{formatDate(customerDetails.createdAt)}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Last Synchronized</p>
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Last Updated</p>
                                                 <p className="font-black text-gray-900 text-[10px]">{formatDate(customerDetails.updatedAt)}</p>
                                             </div>
                                         </div>
@@ -182,13 +182,13 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                                         <div className="p-2 bg-gray-50 rounded-lg">
                                             <MapPin className="w-4 h-4 text-gray-400" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Deployment Sites ({customerDetails.addresses?.length || 0})</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Saved Addresses ({customerDetails.addresses?.length || 0})</h3>
                                     </div>
                                     <div className="space-y-4">
                                         {customerDetails.addresses?.map((address, index) => (
                                             <div key={index} className="bg-white border border-gray-100 rounded-[2rem] p-6 shadow-sm hover:border-emerald-600 transition-colors group">
                                                 <div className="flex items-center justify-between mb-4">
-                                                    <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{address.label || 'SITE_LOC'}</p>
+                                                    <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{address.label || 'SITE'}</p>
                                                     {address.isDefault && (
                                                         <span className="px-2 py-1 text-[8px] font-black uppercase tracking-widest rounded-md bg-emerald-600 text-white">
                                                             Primary
@@ -203,7 +203,7 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                                                 </p>
                                                 {address.landmark && (
                                                     <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
-                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">NAV_MARK:</p>
+                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Landmark:</p>
                                                         <p className="text-xs font-black text-gray-700 uppercase">{address.landmark}</p>
                                                     </div>
                                                 )}
@@ -218,12 +218,12 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                             {loading ? (
                                 <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
                                     <div className="animate-spin rounded-full h-12 w-12 border-4 border-black border-t-transparent mx-auto"></div>
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Retrieving Registry History...</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Loading Order History...</p>
                                 </div>
                             ) : orders.length === 0 ? (
                                 <div className="text-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
                                     <Package className="w-20 h-20 text-gray-200 mx-auto mb-6" />
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Zero Node Entries Found</p>
+                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">No Orders Found</p>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 gap-4">
@@ -238,15 +238,15 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                                             </div>
                                             <div className="grid grid-cols-3 gap-8">
                                                 <div>
-                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Payload Units</p>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Items</p>
                                                     <p className="font-black text-gray-900">{order.items?.length || 0}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Credit Value</p>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Amount</p>
                                                     <p className="font-black text-gray-900">{formatCurrency(order.total)}</p>
                                                 </div>
                                                 <div>
-                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Treasury State</p>
+                                                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Payment Status</p>
                                                     <span className={`text-[10px] font-black uppercase tracking-widest ${order.paymentStatus === 'paid' ? 'text-green-600' : 'text-orange-600'}`}>
                                                         {order.paymentStatus}
                                                     </span>
@@ -266,7 +266,7 @@ const CustomerDetailsModal = ({ customer, onClose, onUpdate }) => {
                         onClick={onClose}
                         className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                     >
-                        Terminate View
+                        Close Window
                     </button>
                 </div>
             </div>

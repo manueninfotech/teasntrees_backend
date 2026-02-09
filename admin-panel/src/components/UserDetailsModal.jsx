@@ -112,7 +112,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                         user.role === 'manager' ? 'text-blue-600' :
                                             'text-emerald-600'
                                     }`} />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">User Node ID: {user.role}</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 italic">Account Role: {user.role}</span>
                             </div>
                         </div>
                     </div>
@@ -129,7 +129,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-[2.5rem] border border-gray-50">
                             <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin"></div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Syncing Profile Buffer...</p>
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-6">Loading Profile...</p>
                         </div>
                     ) : (
                         <div className="space-y-10">
@@ -141,7 +141,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                     </div>
                                     <div>
                                         <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-1">State</p>
-                                        <p className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-emerald-700' : 'text-red-700'}`}>{isActive ? 'ACTIVE_NODE' : 'OFFLINE_NODE'}</p>
+                                        <p className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-emerald-700' : 'text-red-700'}`}>{isActive ? 'ACTIVE' : 'INACTIVE'}</p>
                                     </div>
                                 </div>
                                 <div className="p-6 bg-gray-50/50 rounded-[2rem] border border-gray-100 flex items-center gap-4">
@@ -149,7 +149,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                         <Calendar className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-1">Epoch</p>
+                                        <p className="text-[8px] text-gray-400 font-black uppercase tracking-widest mb-1">Created On</p>
                                         <p className="text-[10px] font-black text-gray-900 uppercase tracking-widest">{new Date(user.createdAt).toLocaleDateString()}</p>
                                     </div>
                                 </div>
@@ -161,7 +161,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                     <div className="p-2 bg-gray-50 rounded-lg">
                                         <Shield className="w-4 h-4 text-gray-400" />
                                     </div>
-                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Contact Matrix</h3>
+                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Contact Details</h3>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="flex items-center gap-4 p-6 bg-white border border-gray-100 rounded-[2rem]">
@@ -169,7 +169,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                             <Mail className="w-4 h-4" />
                                         </div>
                                         <div>
-                                            <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Electronic Mail</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Email Address</p>
                                             <p className="text-xs font-black text-gray-900">{user.email || 'N/A'}</p>
                                         </div>
                                     </div>
@@ -178,7 +178,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                             <Phone className="w-4 h-4" />
                                         </div>
                                         <div>
-                                            <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Vocal Link</p>
+                                            <p className="text-[8px] font-black text-gray-400 uppercase mb-1">Phone Number</p>
                                             <p className="text-xs font-black text-gray-900">{user.mobile || 'N/A'}</p>
                                         </div>
                                     </div>
@@ -192,7 +192,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                         <div className="p-2 bg-red-50 rounded-lg text-red-400">
                                             <Heart className="w-4 h-4" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Interest Cache ({details.wishlist.length})</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Wishlist Items ({details.wishlist.length})</h3>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         {details.wishlist.slice(0, 4).map(item => (
@@ -215,7 +215,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                         <div className="p-2 bg-orange-50 rounded-lg text-orange-400">
                                             <TrendingUp className="w-4 h-4" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Operational Overview</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Rider Performance</h3>
                                     </div>
                                     <div className="grid grid-cols-3 gap-4">
                                         {[
@@ -239,7 +239,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                         <div className="p-2 bg-indigo-50 rounded-lg text-indigo-400">
                                             <History className="w-4 h-4" />
                                         </div>
-                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Operation Logs (Recent)</h3>
+                                        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">History (Recent)</h3>
                                     </div>
                                     <div className="space-y-3">
                                         {logsLoading ? (
@@ -252,7 +252,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                             </div>
                                         ) : activityLogs.length === 0 ? (
                                             <div className="text-center py-10 bg-gray-50/50 rounded-[2.5rem] border border-dashed border-gray-200">
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Buffer Empty</p>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">No Logs Found</p>
                                             </div>
                                         ) : (
                                             activityLogs.slice(0, 5).map((log) => (
@@ -270,7 +270,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                                                             </span>
                                                         </div>
                                                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight mt-1 truncate italic">
-                                                            PTR: {log.resourceId || 'SYS_CORE'}
+                                                            ID: {log.resourceId || 'SYSTEM'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -289,7 +289,7 @@ const UserDetailsModal = ({ user, isOpen, onClose }) => {
                         onClick={onClose}
                         className="w-full py-5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-200"
                     >
-                        Terminate View
+                        Close Window
                     </button>
                 </div>
             </div>
