@@ -98,7 +98,7 @@ export default function ReviewDetailsModal({ isOpen, onClose, reviewId }) {
                             {/* Ratings Section */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                 {[
-                                    { label: 'Payload Quality', rating: review.foodRating, icon: ShoppingBag, color: 'text-orange-600', bg: 'bg-orange-50/50' },
+                                    { label: (review.type === 'site' || !review.orderId) ? 'Cafe Experience' : 'Payload Quality', rating: review.foodRating, icon: ShoppingBag, color: 'text-orange-600', bg: 'bg-orange-50/50' },
                                     { label: 'Personnel Performance', rating: review.riderRating, icon: Bike, color: 'text-blue-600', bg: 'bg-blue-50/50' },
                                     { label: 'Unit Compliance', rating: review.productRating, icon: Star, color: 'text-purple-600', bg: 'bg-purple-50/50' }
                                 ].filter(r => r.rating).map((r, i) => (

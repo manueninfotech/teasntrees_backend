@@ -121,15 +121,17 @@ const Reviews = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-5 gap-6">
                 <StatCard label="Total Reviews" value={stats?.totalReviews || 0} icon={MessageSquare} theme="blue" desc="All time reviews" loading={statsLoading} />
                 <StatCard label="Pending" value={stats?.pendingReviews || 0} icon={Star} theme="orange" desc="Need approval" loading={statsLoading} />
                 <StatCard label="Food Rating" value={stats?.averageFoodRating || '0.0'} icon={Star} theme="green" desc="Average score" loading={statsLoading} />
-                <StatCard label="Rider Rating" value={stats?.averageRiderRating || '0.0'} icon={Star} theme="purple" desc="Average score" loading={statsLoading} />
+                <StatCard label="Cafe Rating" value={stats?.averageSiteRating || '0.0'} icon={Star} theme="purple" desc="General experience" loading={statsLoading} />
+                <StatCard label="Rider Rating" value={stats?.averageRiderRating || '0.0'} icon={Star} theme="blue" desc="Average score" loading={statsLoading} />
             </div>
 
             <div className="flex gap-4 p-1.5 bg-gray-50 rounded-2xl w-fit">
                 <button onClick={() => { setReviewType('food'); setPage(1); }} className={`px-8 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-widest transition-all ${reviewType === 'food' ? 'bg-white text-indigo-600 shadow-sm border border-indigo-50' : 'text-gray-400 hover:text-gray-600'}`}>Food Items</button>
+                <button onClick={() => { setReviewType('site'); setPage(1); }} className={`px-8 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-widest transition-all ${reviewType === 'site' ? 'bg-white text-indigo-600 shadow-sm border border-indigo-50' : 'text-gray-400 hover:text-gray-600'}`}>Cafe Experience</button>
                 <button onClick={() => { setReviewType('rider'); setPage(1); }} className={`px-8 py-3 rounded-[1.25rem] text-[10px] font-black uppercase tracking-widest transition-all ${reviewType === 'rider' ? 'bg-white text-indigo-600 shadow-sm border border-indigo-50' : 'text-gray-400 hover:text-gray-600'}`}>Rider Service</button>
             </div>
 
@@ -166,15 +168,15 @@ const Reviews = () => {
                                             <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${review.isApproved ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{review.isApproved ? 'Approved' : 'Pending'}</span>
                                         </div>
                                         <div className="flex gap-4 mb-4">
-                                            {reviewType === 'food' ? (
-                                                <div className="flex gap-4 items-center">
-                                                    {review.foodRating && <div className="flex items-center gap-2"><span className="text-[10px] font-black uppercase text-gray-400">Food</span><StarRating rating={review.foodRating} /></div>}
-                                                    {review.productRating && <div className="flex items-center gap-2"><span className="text-[10px] font-black uppercase text-gray-400">Item</span><StarRating rating={review.productRating} /></div>}
-                                                </div>
-                                            ) : (
+                                            {reviewType === 'rider' ? (
                                                 <div className="flex gap-4 items-center">
                                                     <span className="text-[10px] font-black uppercase text-gray-400 shrink-0">Rider: <span className="text-gray-900">{review.riderId?.name || '---'}</span></span>
                                                     {review.riderRating && <StarRating rating={review.riderRating} />}
+                                                </div>
+                                            ) : (
+                                                <div className="flex gap-4 items-center">
+                                                    {review.foodRating && <div className="flex items-center gap-2"><span className="text-[10px] font-black uppercase text-gray-400">{review.type === 'site' || !review.orderId ? 'Cafe' : 'Food'}</span><StarRating rating={review.foodRating} /></div>}
+                                                    {review.productRating && <div className="flex items-center gap-2"><span className="text-[10px] font-black uppercase text-gray-400">Item</span><StarRating rating={review.productRating} /></div>}
                                                 </div>
                                             )}
                                         </div>

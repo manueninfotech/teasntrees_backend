@@ -1008,7 +1008,7 @@ const ProfilePage = () => {
                                                                         {/* Food Rating */}
                                                                         {review.foodRating && (
                                                                             <div className="flex items-center gap-2">
-                                                                                <span className="text-xs font-bold text-slate-500 uppercase w-16">Food</span>
+                                                                                <span className="text-xs font-bold text-slate-500 uppercase w-16">{(review.type === 'site' || !review.orderId) ? 'Cafe' : 'Food'}</span>
                                                                                 <div className="flex items-center gap-0.5">
                                                                                     {[...Array(5)].map((_, i) => (
                                                                                         <Star
