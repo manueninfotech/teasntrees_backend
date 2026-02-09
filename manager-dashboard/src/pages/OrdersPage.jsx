@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useRefresh } from '../context/RefreshContext';
 
 // --- Kanban Column Utilities ---
 const COLUMNS = [
@@ -141,6 +142,7 @@ const OrderCard = ({ order, onUpdateStatus }) => {
 const OrdersPage = () => {
     const { socket } = useSocket();
     const { token } = useAuth();
+    const { tick } = useRefresh();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -166,7 +168,7 @@ const OrdersPage = () => {
             }
         };
         fetchOrders();
-    }, [token]);
+    }, [token, tick]);
 
     // Socket Listeners
     useEffect(() => {

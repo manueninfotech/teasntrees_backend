@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
+import { useRefresh } from '../context/RefreshContext';
 
 // --- Icon Fix for React Leaflet ---
 import icon from 'leaflet/dist/images/marker-icon.png';
@@ -66,6 +67,7 @@ const MapController = ({ selectedDelivery }) => {
 const DeliveriesPage = () => {
     const { token } = useAuth();
     const { socket } = useSocket();
+    const { tick } = useRefresh();
 
     // State
     const [deliveries, setDeliveries] = useState([]);
@@ -95,7 +97,7 @@ const DeliveriesPage = () => {
 
     useEffect(() => {
         fetchDeliveries();
-    }, [token]);
+    }, [token, tick]);
 
     // Socket Listeners for Real-time Location Updates
     useEffect(() => {

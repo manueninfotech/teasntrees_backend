@@ -1,30 +1,24 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
+import { useRefresh } from '../context/RefreshContext';
 
 const SocketGlobalRefresh = () => {
     const { socket } = useSocket();
-    const timerRef = useRef(null);
+    const { bump } = useRefresh();
 
     useEffect(() => {
         if (!socket) return;
 
         const handleUpdate = () => {
-            if (timerRef.current) return;
-            timerRef.current = setTimeout(() => {
-                window.location.reload();
-            }, 300);
+            bump();
         };
 
         socket.on('system:data-updated', handleUpdate);
 
         return () => {
             socket.off('system:data-updated', handleUpdate);
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-                timerRef.current = null;
-            }
         };
-    }, [socket]);
+    }, [socket, bump]);
 
     return null;
 };

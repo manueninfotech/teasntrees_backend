@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useRefresh } from '../context/RefreshContext';
 
 // --- Rider Details Modal ---
 const RiderDetailsModal = ({ rider, onClose, onApprove }) => {
@@ -156,6 +157,7 @@ const RiderDetailsModal = ({ rider, onClose, onApprove }) => {
 const RidersPage = () => {
     const { socket } = useSocket();
     const { token } = useAuth();
+    const { tick } = useRefresh();
 
     // State
     const [activeTab, setActiveTab] = useState('active'); // 'active' | 'pending'
@@ -207,7 +209,7 @@ const RidersPage = () => {
 
     useEffect(() => {
         fetchRiders();
-    }, [token]);
+    }, [token, tick]);
 
     // Socket Listeners for Real-time Status
     useEffect(() => {

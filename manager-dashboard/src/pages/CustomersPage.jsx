@@ -16,6 +16,7 @@ import {
     ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useRefresh } from '../context/RefreshContext';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 
 const CustomerDetailsModal = ({ customer, onClose, orders, onOrderClick }) => {
@@ -157,6 +158,7 @@ const CustomerDetailsModal = ({ customer, onClose, orders, onOrderClick }) => {
 
 const CustomersPage = () => {
     const { token } = useAuth();
+    const { tick } = useRefresh();
 
     // State
     const [customers, setCustomers] = useState([]);
@@ -203,7 +205,7 @@ const CustomersPage = () => {
             fetchCustomers(1, search);
         }, 500);
         return () => clearTimeout(timer);
-    }, [search, token]);
+    }, [search, token, tick]);
 
     // Fetch Customer Orders when selected
     useEffect(() => {
@@ -228,7 +230,7 @@ const CustomersPage = () => {
         } else {
             setCustomerOrders([]);
         }
-    }, [selectedCustomer, token]);
+    }, [selectedCustomer, token, tick]);
 
     return (
         <div className="h-full flex flex-col space-y-6 relative">

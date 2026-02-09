@@ -17,6 +17,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useRefresh } from '../context/RefreshContext';
 
 const EditProductModal = ({ product, onClose, onUpdate }) => {
     const [formData, setFormData] = useState({
@@ -163,6 +164,7 @@ const EditProductModal = ({ product, onClose, onUpdate }) => {
 
 const ProductsPage = () => {
     const { token } = useAuth();
+    const { tick } = useRefresh();
 
     // State
     const [products, setProducts] = useState([]);
@@ -205,7 +207,7 @@ const ProductsPage = () => {
             fetchProducts();
         }, 500);
         return () => clearTimeout(timer);
-    }, [search, token, page]);
+    }, [search, token, page, tick]);
 
     // Handle Quick Toggle
     const handleToggle = async (product) => {

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, ShoppingBag, Clock, AlertTriangle, ChevronRight, User } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
+import { useRefresh } from '../context/RefreshContext';
 import { useNavigate } from 'react-router-dom';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 
@@ -165,6 +166,7 @@ const RecentOrders = ({ orders, loading, onOrderClick, onClickViewAll }) => (
 const DashboardHome = () => {
     const { socket, isConnected } = useSocket();
     const { token } = useAuth();
+    const { tick } = useRefresh();
     const navigate = useNavigate();
 
     // 1. Initialize with COMPLETE DEFAULT OBJECT (No nulls)
@@ -209,7 +211,7 @@ const DashboardHome = () => {
         if (token) fetchStats();
         // If no token (unlikely in this protected route), we might want to ensure 'isLoading' goes false eventually or redirect.
         // But for now, user flow guarantees token.
-    }, [token]);
+    }, [token, tick]);
 
     // Socket Event Listeners
     useEffect(() => {
