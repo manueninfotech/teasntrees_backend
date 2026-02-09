@@ -154,7 +154,14 @@ const Reviews = () => {
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <h4 className="font-black text-gray-900 uppercase text-sm">{review.customerId?.name || 'Unknown User'}</h4>
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Order #{review.orderId?.orderNumber} • {new Date(review.createdAt).toLocaleDateString()}</p>
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">
+                                                    {review.type === 'site' || !review.orderId ? (
+                                                        <span className="text-indigo-600">STAY & DINE • SITE REVIEW</span>
+                                                    ) : (
+                                                        `Order #${review.orderId?.orderNumber || '---'}`
+                                                    )}
+                                                    {' • '}{new Date(review.createdAt).toLocaleDateString()}
+                                                </p>
                                             </div>
                                             <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${review.isApproved ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{review.isApproved ? 'Approved' : 'Pending'}</span>
                                         </div>

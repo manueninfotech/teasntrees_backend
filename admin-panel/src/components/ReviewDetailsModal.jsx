@@ -73,7 +73,13 @@ export default function ReviewDetailsModal({ isOpen, onClose, reviewId }) {
                             <div className="flex items-center justify-between bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-50">
                                 <div className="space-y-1">
                                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Protocol Reference</p>
-                                    <p className="text-xl font-black text-gray-900 uppercase tracking-tight">ID: #{review.orderId?.orderNumber || 'NULL'}</p>
+                                    <p className="text-xl font-black text-gray-900 uppercase tracking-tight">
+                                        {review.type === 'site' || !review.orderId ? (
+                                            <span className="text-emerald-700">GENERAL CAFE REVIEW</span>
+                                        ) : (
+                                            `ID: #${review.orderId?.orderNumber || '---'}`
+                                        )}
+                                    </p>
                                 </div>
                                 <div className="text-right space-y-1">
                                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest flex items-center justify-end gap-2">

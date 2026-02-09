@@ -994,7 +994,7 @@ const ProfilePage = () => {
                                                     // Debug log
                                                     const displayName = review.productId
                                                         ? review.productId.name
-                                                        : `Order #${review.orderId?.orderNumber || (typeof review.orderId === 'string' ? review.orderId : 'Unknown')}`;
+                                                        : (review.type === 'site' || !review.orderId) ? "General Cafe Experience" : `Order #${review.orderId?.orderNumber || (typeof review.orderId === 'string' ? review.orderId : 'Unknown')}`;
 
                                                     return (
                                                         <div key={review._id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
