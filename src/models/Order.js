@@ -102,6 +102,10 @@ const orderSchema = new mongoose.Schema(
             default: 'pending'
         },
 
+        razorpayOrderId: { type: String, default: null },
+        razorpayPaymentId: { type: String, default: null },
+        razorpaySignature: { type: String, default: null },
+
         foodRating: { type: Number, min: 1, max: 5 },
         riderRating: { type: Number, min: 1, max: 5 },
 
