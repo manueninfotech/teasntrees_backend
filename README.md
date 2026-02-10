@@ -372,13 +372,26 @@ Import the following base URL: `http://localhost:5000`
 
 ### Authentication Endpoints
 
+
+## Admin Endpoints
+### Authentication Endpoints
 #### Send OTP
 ```http
 POST /api/auth/send-otp
 Content-Type: application/json
-
+Body:
 {
-  "mobile": "9876543210"
+  "mobile": "88888888888"
+}
+Response:
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "data": {
+    "mobile": "8888888888",
+    "expiresIn": "5 minutes",
+    "otp": "767963"
+  }
 }
 
 Rate Limit: 3 requests per hour
@@ -390,22 +403,25 @@ POST /api/auth/verify-otp
 Content-Type: application/json
 
 {
-  "mobile": "9876543210",
-  "otp": "123456"
+  "mobile": "8888888888",
+  "otp": "749360"
 }
 
 Response:
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",  # 15 min validity
-  "refreshToken": "abc123def456...",  # 90 days validity ⚡ NEW
-  "user": { ... }
+  "message": "OTP verified. Please complete your profile.",
+  "data": {
+    "mobile": "8888888888",
+    "isNewUser": true,
+    "isProfileComplete": false
+  }
 }
 
 Rate Limit: 5 requests per 15 minutes
 ```
 
-#### Refresh Access Token ⚡ **NEW**
+#### Refresh Access Token 
 ```http
 POST /api/auth/refresh-token
 Content-Type: application/json

@@ -48,6 +48,7 @@ import { SOCKET_EVENTS } from './sockets/socketEvents.js';
 
 const app = express();
 
+
 // CORS configuration
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
     .split(',')
@@ -55,7 +56,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true); // Postman / curl
+        if (!origin) return callback(null, true); 
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             return callback(null, true);
         }
@@ -68,7 +69,7 @@ app.use(cors({
     optionsSuccessStatus: 200
 }));
 
-app.options('*', cors());
+app.options(/.*/, cors());
 
 // Security and parsers
 app.use(helmet({
@@ -187,11 +188,31 @@ app.get('/health', (req, res) => {
 app.use(notFound);
 app.use(errorHandler);
 
-// Start server
-const PORT = process.env.PORT || 5000;
+import os from 'os';
 
-httpServer.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+function getLanIP() {
+    const nets = os.networkInterfaces();
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                return net.address;
+            }
+        }
+    }
+    return 'localhost';
+}
+
+// Start server
+// const PORT = process.env.PORT || 5000;
+const HOST = '0.0.0.0';
+const PORT = process.env.PORT || 5000;
+const LAN_IP = getLanIP();
+
+
+httpServer.listen(PORT, HOST, () => {
+    console.log(`Server running on:`);
+    console.log(`- Local:   http://localhost:${PORT}`);
+    console.log(`- Network: http://${LAN_IP}:${PORT}`);
     console.log(`Socket.io enabled`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
