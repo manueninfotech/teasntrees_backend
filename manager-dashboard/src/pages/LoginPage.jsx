@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Phone, Lock, ArrowRight, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo_teasntrees.png';
+import { auth } from '../config/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 const LoginPage = () => {
     const [step, setStep] = useState('MOBILE');
@@ -12,9 +14,22 @@ const LoginPage = () => {
     const [profile, setProfile] = useState({ name: '', email: '', address: '' });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [confirmationResult, setConfirmationResult] = useState(null);
 
-    const { requestOtp, verifyOtp, completeProfile } = useAuth();
+    const { verifyOtp, completeProfile } = useAuth();
     const navigate = useNavigate();
+
+    useEffect(() => {
+        // Initialize reCAPTCHA
+        if (!window.recaptchaVerifier) {
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-button', {
+                'size': 'invisible',
+                'callback': (response) => {
+                    // reCAPTCHA solved
+                }
+            });
+        }
+    }, []);
 
     const handleSendOtp = async (e) => {
         e.preventDefault();
@@ -27,14 +42,18 @@ const LoginPage = () => {
             return;
         }
 
-        const result = await requestOtp(mobile);
-
-        if (result.success) {
+        try {
+            const phoneNumber = `+91${mobile}`;
+            const appVerifier = window.recaptchaVerifier;
+            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            setConfirmationResult(result);
             setStep('OTP');
-        } else {
-            setError(result.message);
+        } catch (err) {
+            console.error('Firebase Auth Error:', err);
+            setError(err.message || 'Failed to send OTP');
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const handleVerifyOtp = async (e) => {
@@ -42,18 +61,31 @@ const LoginPage = () => {
         setIsLoading(true);
         setError('');
 
-        const result = await verifyOtp(mobile, otp);
+        try {
+            // 1. Verify OTP with Firebase
+            const result = await confirmationResult.confirm(otp);
+            const idToken = await result.user.getIdToken();
 
-        if (result.success) {
-            if (result.isLoggedIn) {
-                navigate('/');
-            } else if (result.isNewUser) {
-                setStep('PROFILE');
+            // 2. Pass ID token to backend via AuthContext
+            const authResult = await verifyOtp(mobile, idToken);
+
+            if (authResult.success) {
+                if (authResult.isLoggedIn) {
+                    navigate('/');
+                } else if (authResult.needsProfile) {
+                    setStep('PROFILE');
+                } else if (authResult.requiresApproval) {
+                    setStep('APPROVAL_PENDING');
+                }
+            } else {
+                setError(authResult.message);
             }
-        } else {
-            setError(result.message);
+        } catch (err) {
+            console.error('Verification Error:', err);
+            setError(err.message || 'Invalid OTP');
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const handleProfileSubmit = async (e) => {
@@ -157,6 +189,8 @@ const LoginPage = () => {
                                 </div>
                             </div>
                             <button
+                                type="submit"
+                                id="send-otp-button"
                                 disabled={isLoading || mobile.length < 10}
                                 className="btn-primary w-full py-5 text-[10px] font-black uppercase tracking-widest rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 shadow-xl shadow-emerald-200 hover:scale-[1.02]"
                             >

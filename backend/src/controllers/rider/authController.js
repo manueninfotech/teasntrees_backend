@@ -1,15 +1,16 @@
 import Rider from '../../models/Rider.js';
 import User from '../../models/User.js';
-import { generateOTP } from '../../utils/generateOTP.js';
 import { riderMetricsService } from "../../services/riderMetricsService.js";
 import { SOCKET_ROOMS } from "../../sockets/socketEvents.js";
-import jwt from 'jsonwebtoken';
 import { v2 as cloudinary } from 'cloudinary';
 import logger from '../../config/logger.js';
 import { riderAssignmentService } from '../../services/riderAssignmentService.js';
 import activityLogService from '../../services/activityLogService.js';
+import { verifyFirebaseToken } from '../../services/firebaseAuth.js';
+import { generateToken, generateRefreshToken } from '../../utils/jwtHelper.js';
+import RefreshToken from '../../models/RefreshToken.js';
 
-// Register a new Rider
+// Register a new Rider (Manual Onboarding)
 export const registerRider = async (req, res) => {
     try {
         const {
@@ -28,7 +29,7 @@ export const registerRider = async (req, res) => {
             });
         }
 
-        // Check for duplicate vehicle/license if needed (optional but recommended)
+        // Check for duplicate vehicle
         const existingVehicle = await Rider.findOne({ vehicleNumber });
         if (existingVehicle) {
             return res.status(400).json({
@@ -49,7 +50,7 @@ export const registerRider = async (req, res) => {
         if (!licensePhoto || !aadharPhoto) {
             return res.status(400).json({
                 success: false,
-                message: 'License and Aadhar photos are mandatory (either upload files or provide URLs)'
+                message: 'License and Aadhar photos are mandatory'
             });
         }
 
@@ -112,119 +113,7 @@ export const registerRider = async (req, res) => {
     }
 };
 
-// Send OTP (Simplified for onboarding)
-export const sendOtp = async (req, res) => {
-    try {
-        const { mobile } = req.body;
-
-        // Find existing user or just continue if new
-        const rider = await Rider.findOne({ mobile });
-
-        // If rider exists but is not approved, we might want to block login 
-        // OR allow them to see status. Let's allow login to check status.
-
-        const otp = generateOTP();
-
-        // Delete any existing OTPs for this mobile
-        const Otp = (await import('../../models/OTP.js')).default;
-        await Otp.deleteMany({ mobile });
-
-        // Create new OTP
-        await Otp.create({
-            mobile,
-            otp,
-            expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
-        });
-
-        // For dev/test:
-        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-        console.log(`Rider Auth OTP for ${mobile}: ${otp}`);
-        console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-
-        res.json({
-            success: true,
-            message: 'OTP sent successfully',
-            otpSent: true,
-            isNewUser: !rider
-        });
-
-    } catch (error) {
-        logger.error('Rider Send OTP Error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to send OTP',
-            error: error.message
-        });
-    }
-};
-
-// Verify OTP
-export const verifyOtp = async (req, res) => {
-    try {
-        const { mobile, otp } = req.body;
-        const Otp = (await import('../../models/OTP.js')).default;
-
-        let validOtp = await Otp.findOne({ mobile, otp });
-
-        // dev bypass
-        const isBypass = (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') && otp === '123456';
-
-        if (!validOtp && !isBypass) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid or expired OTP'
-            });
-        }
-
-        let rider = await Rider.findOne({ mobile });
-
-        // If it's a new rider (completely new mobile), we can create a skeleton here
-        // or wait for completeProfile. Let's create a placeholder to get an ID.
-        if (!rider) {
-            rider = new Rider({
-                mobile,
-                role: 'rider',
-                isApproved: false,
-                isProfileComplete: false,
-                vehicleType: 'bike', // default placeholder
-                vehicleNumber: 'PENDING',
-                licenseNumber: 'PENDING',
-                licenseExpiryDate: new Date(),
-                aadharNumber: 'PENDING'
-            });
-            await rider.save();
-        }
-
-        // Generate Token
-        const token = jwt.sign(
-            { userId: rider._id, role: 'rider' },
-            process.env.JWT_SECRET,
-            { expiresIn: '30d' }
-        );
-
-        // Clear OTP
-        await Otp.deleteMany({ mobile });
-
-        res.json({
-            success: true,
-            message: 'Logged in successfully',
-            token,
-            rider: {
-                _id: rider._id,
-                name: rider.name,
-                isApproved: rider.isApproved,
-                isOnline: rider.isOnline,
-                isProfileComplete: rider.isProfileComplete || false
-            }
-        });
-
-    } catch (error) {
-        logger.error('Rider Verify OTP Error:', error);
-        res.status(500).json({ success: false, message: 'Login failed' });
-    }
-};
-
-// Complete Profile
+// Complete Profile (Requires JWT)
 export const completeProfile = async (req, res) => {
     try {
         const riderId = req.user.userId;
@@ -257,7 +146,7 @@ export const completeProfile = async (req, res) => {
             }
         }
 
-        // --- NEW: Location Fallback (Geocode manual address if no GPS coordinates) ---
+        // --- Location Fallback ---
         const { geocodingService } = await import('../../services/geocodingService.js');
 
         let targetCoords = null;
@@ -265,9 +154,7 @@ export const completeProfile = async (req, res) => {
         if (parsedLocation && parsedLocation.lng && parsedLocation.lat) {
             targetCoords = [parseFloat(parsedLocation.lng), parseFloat(parsedLocation.lat)];
         } else if (rider.address || address) {
-            // No coordinates provided, try to geocode the manual address
             const searchAddress = address || rider.address;
-            console.log(`[Rider] Attempting fallback geocoding for: ${searchAddress}`);
             const coords = await geocodingService.getCoordinates(searchAddress);
             if (coords) {
                 targetCoords = [coords.lng, coords.lat];
@@ -318,8 +205,6 @@ export const completeProfile = async (req, res) => {
         }
 
         rider.isProfileComplete = true;
-        // Keep isApproved: false until admin checks
-
         await rider.save();
 
         // Log Activity
@@ -354,11 +239,10 @@ export const completeProfile = async (req, res) => {
 // Toggle Online/Offline Status
 export const toggleAvailability = async (req, res) => {
     try {
-        const { isOnline, location } = req.body; // location: { lat, lng }
-        const rider = req.rider; // From middleware
+        const { isOnline, location } = req.body;
+        const rider = req.rider;
 
         if (!rider) {
-            logger.error('Rider not found in request', { userId: req.user?.userId });
             return res.status(401).json({
                 success: false,
                 message: 'Rider not authenticated'
@@ -384,7 +268,7 @@ export const toggleAvailability = async (req, res) => {
             details: { name: rider.name, role: 'rider', type: 'availability' }
         });
 
-        // Emit Socket Event DIRECTLY
+        // Emit Socket Event
         try {
             const io = req.app.get('io');
             if (io) {
@@ -402,8 +286,7 @@ export const toggleAvailability = async (req, res) => {
             }
         }
         catch (socketError) {
-            logger.warn('Socket emission failed (non-critical):', socketError.message);
-            // Continue anyway - this is not critical
+            logger.warn('Socket emission failed:', socketError.message);
         }
 
         if (isOnline) {
@@ -413,7 +296,7 @@ export const toggleAvailability = async (req, res) => {
         res.json({
             success: true,
             message: `You are now ${isOnline ? 'Online' : 'Offline'}`,
-            data: { isOnline: rider.isOnline }
+            data: { isOnline: isOnline }
         });
 
     } catch (error) {
@@ -430,15 +313,81 @@ export const toggleAvailability = async (req, res) => {
 export const getProfile = async (req, res) => {
     try {
         const rider = req.rider;
-        res.json({
-            success: true,
-            data: {
-                ...rider.toObject(),
-                isApproved: rider.isApproved,
-                isProfileComplete: rider.isProfileComplete
-            }
-        });
+        res.json({ success: true, data: { ...rider.toObject(), isApproved: rider.isApproved, isProfileComplete: rider.isProfileComplete } });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Fetch failed' });
+    }
+};
+
+// Firebase Login
+export const firebaseLogin = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+        if (!idToken) return res.status(400).json({ success: false, message: 'ID token required' });
+
+        const decoded = await verifyFirebaseToken(idToken);
+        const mobile = decoded.phone_number.replace(/\D/g, '').slice(-10);
+
+        let rider = await Rider.findOne({ mobile });
+        let isNewUser = false;
+
+        if (!rider) {
+            isNewUser = true;
+            rider = new Rider({
+                mobile,
+                role: 'rider',
+                isApproved: false,
+                isProfileComplete: false,
+                vehicleType: 'bike',
+                vehicleNumber: 'PENDING',
+                licenseNumber: 'PENDING',
+                licenseExpiryDate: new Date(),
+                aadharNumber: 'PENDING'
+            });
+            await rider.save();
+            logger.info('New rider registered via Firebase', { mobile, userId: rider._id });
+        }
+
+        const token = generateToken({ userId: rider._id, role: 'rider' });
+        const refreshToken = generateRefreshToken();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90);
+
+        await RefreshToken.create({
+            token: refreshToken,
+            user: rider._id,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        // Log Activity
+        await activityLogService.log(req, {
+            adminId: rider._id,
+            action: 'firebase_login',
+            resource: 'user',
+            resourceId: rider._id,
+            details: { mobile: rider.mobile, role: 'rider', isNewUser }
+        });
+
+        res.json({
+            success: true,
+            message: 'Logged in successfully',
+            token,
+            refreshToken,
+            rider: {
+                id: rider._id,
+                name: rider.name,
+                mobile: rider.mobile,
+                role: 'rider',
+                isApproved: rider.isApproved,
+                isOnline: rider.isOnline,
+                isProfileComplete: rider.isProfileComplete || false
+            },
+            isNewUser
+        });
+    } catch (error) {
+        logger.error('Firebase login error (Rider):', error);
+        res.status(401).json({ success: false, message: error.message });
     }
 };

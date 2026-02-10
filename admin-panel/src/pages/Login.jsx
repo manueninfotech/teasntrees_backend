@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Coffee, ArrowRight, Sparkles, User, Mail } from 'lucide-react';
+import { auth } from '../config/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 export default function Login() {
     const [mobile, setMobile] = useState('');
@@ -9,6 +11,7 @@ export default function Login() {
     const [step, setStep] = useState('mobile'); // 'mobile', 'otp', 'profile'
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [confirmationResult, setConfirmationResult] = useState(null);
     const [profileData, setProfileData] = useState({
         name: '',
         email: '',
@@ -17,27 +20,32 @@ export default function Login() {
     const { verifyOTP, completeProfile } = useAuth();
     const navigate = useNavigate();
 
+    useEffect(() => {
+        // Initialize reCAPTCHA
+        if (!window.recaptchaVerifier) {
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-button', {
+                'size': 'invisible',
+                'callback': (response) => {
+                    // reCAPTCHA solved
+                }
+            });
+        }
+    }, []);
+
     const sendOTP = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
-            const response = await fetch('http://localhost:5000/api/admin/auth/send-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setStep('otp');
-            } else {
-                setError(data.message);
-            }
+            const phoneNumber = `+91${mobile}`;
+            const appVerifier = window.recaptchaVerifier;
+            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            setConfirmationResult(result);
+            setStep('otp');
         } catch (err) {
-            setError('Failed to send OTP');
+            console.error('Firebase Auth Error:', err);
+            setError(err.message || 'Failed to send OTP');
         } finally {
             setLoading(false);
         }
@@ -49,17 +57,21 @@ export default function Login() {
         setError('');
 
         try {
-            const result = await verifyOTP(mobile, otp);
+            // 1. Verify OTP with Firebase
+            const result = await confirmationResult.confirm(otp);
+            const idToken = await result.user.getIdToken();
 
-            if (result.needsProfile) {
-                // New user needs to complete profile
+            // 2. Pass ID token to backend via AuthContext
+            const authResult = await verifyOTP(mobile, idToken);
+
+            if (authResult.needsProfile) {
                 setStep('profile');
             } else {
-                // Existing user, redirect to dashboard
                 navigate('/');
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Invalid OTP');
+            console.error('Verification Error:', err);
+            setError(err.message || 'Invalid OTP');
         } finally {
             setLoading(false);
         }
@@ -137,6 +149,7 @@ export default function Login() {
 
                         <button
                             type="submit"
+                            id="send-otp-button"
                             disabled={loading || mobile.length !== 10}
                             className="btn-primary w-full py-3 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                         >

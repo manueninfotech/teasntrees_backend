@@ -14,61 +14,35 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, [token]);
 
-    // Step 1: Request OTP
-    const requestOtp = async (mobile) => {
+    // Step 2: Verify OTP (Now accepts idToken)
+    const verifyOtp = async (mobile, idToken) => {
         try {
-            const response = await fetch('http://localhost:5000/api/manager/auth/send-otp', {
+            console.log('Exchanging Firebase Token for Backend JWT');
+            const response = await fetch('http://localhost:5000/api/manager/auth/firebase-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile }),
-            });
-            const data = await response.json();
-            if (!data.success) throw new Error(data.message);
-            return { success: true, message: data.message };
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    };
-
-    // Step 2: Verify OTP
-    const verifyOtp = async (mobile, otp) => {
-        try {
-            console.log('Verifying OTP Payload:', { mobile, otp });
-            const response = await fetch('http://localhost:5000/api/manager/auth/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile, otp }),
+                body: JSON.stringify({ idToken }),
             });
 
             const data = await response.json();
 
-            // Backend returns 200/201 even for partial success, need to check success flag
             if (!response.ok || !data.success) {
-                // If it's a known error message, use it
-                throw new Error(`${data.message || 'OTP Verification failed'} (for ${mobile})`);
+                throw new Error(data.message || 'Firebase login failed');
             }
 
-            // Check payload structure from Controller line 190
-            let accessToken = null;
-            let userData = null;
+            if (data.data && data.data.token && data.data.user) {
+                const accessToken = data.data.token;
+                const userData = data.data.user;
 
-            if (data.data) {
-                // Happy path: Logged in
-                if (data.data.token && data.data.user) {
-                    accessToken = data.data.token;
-                    userData = data.data.user;
+                // Handle profile completion or approval requirement
+                if (!userData.isProfileComplete) {
+                    return { success: true, needsProfile: true, user: userData };
                 }
-                // Partial path: Profile not complete or New User
-                else {
-                    return {
-                        success: true,
-                        isNewUser: true,
-                        message: data.message || 'Please complete your profile.'
-                    };
-                }
-            }
 
-            if (accessToken && userData) {
+                if (!userData.isApproved) {
+                    return { success: true, requiresApproval: true, user: userData };
+                }
+
                 localStorage.setItem('manager_token', accessToken);
                 setToken(accessToken);
                 setUser(userData);
@@ -86,9 +60,13 @@ export const AuthProvider = ({ children }) => {
     // Step 3: Complete Profile
     const completeProfile = async (profileData) => {
         try {
+            const token = localStorage.getItem('manager_token'); // Might be partial token
             const response = await fetch('http://localhost:5000/api/manager/auth/complete-profile', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(profileData),
             });
 
@@ -127,7 +105,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, requestOtp, verifyOtp, completeProfile, logout, loading, isAuthenticated: !!token }}>
+        <AuthContext.Provider value={{ user, token, verifyOtp, completeProfile, logout, loading, isAuthenticated: !!token }}>
             {children}
         </AuthContext.Provider>
     );

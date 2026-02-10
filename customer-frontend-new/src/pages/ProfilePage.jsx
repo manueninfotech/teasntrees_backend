@@ -15,12 +15,15 @@ import { useCart } from '../context/CartContext';
 import { userService } from '../services/userService';
 import { orderService } from '../services/orderService';
 import { reviewService } from '../services/reviewService';
+import { auth } from '../config/firebase';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+
 
 
 const ProfilePage = () => {
     const navigate = useNavigate();
     const { socket } = useSocket();
-    const { user, isAuthenticated, logout, sendOtp, verifyOtp, completeProfile } = useAuth();
+    const { user, isAuthenticated, logout, verifyOtp, completeProfile } = useAuth();
     const { setIsCartOpen, addToCart } = useCart();
 
     // Auth State
@@ -30,6 +33,38 @@ const ProfilePage = () => {
     const [userDetails, setUserDetails] = useState({ name: '', email: '', address: '' });
     const [authLoading, setAuthLoading] = useState(false);
     const [authError, setAuthError] = useState('');
+    const [confirmationResult, setConfirmationResult] = useState(null);
+
+    // Initializations
+    useEffect(() => {
+        if (isAuthenticated) return;
+
+        const initRecaptcha = () => {
+            const container = document.getElementById('send-otp-button');
+            if (container && !window.recaptchaVerifier) {
+                try {
+                    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-button', {
+                        'size': 'invisible',
+                        'callback': () => { }
+                    });
+                } catch (err) {
+                    console.error('Recaptcha init failed:', err);
+                }
+            }
+        };
+
+        // If not authenticated, we might need recaptcha
+        // Try immediately and also when loginStep might change
+        initRecaptcha();
+
+        // Cleanup on unmount
+        return () => {
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = null;
+            }
+        };
+    }, [auth, isAuthenticated, loginStep]);
 
     // Dashboard Data State
     const [activeTab, setActiveTab] = useState('profile');
@@ -59,10 +94,14 @@ const ProfilePage = () => {
         setAuthLoading(true);
         setAuthError('');
         try {
-            await sendOtp(mobile);
+            const phoneNumber = `+91${mobile}`;
+            const appVerifier = window.recaptchaVerifier;
+            const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            setConfirmationResult(result);
             setLoginStep('otp');
         } catch (err) {
-            setAuthError(err);
+            console.error('Firebase Auth Error:', err);
+            setAuthError(err.message || 'Failed to send OTP');
         } finally {
             setAuthLoading(false);
         }
@@ -73,15 +112,22 @@ const ProfilePage = () => {
         setAuthLoading(true);
         setAuthError('');
         try {
-            const result = await verifyOtp(mobile, otp);
-            if (result.success) {
+            // 1. Verify OTP with Firebase
+            const result = await confirmationResult.confirm(otp);
+            const idToken = await result.user.getIdToken();
+
+            // 2. Exchange for backend JWT
+            const responseResult = await verifyOtp(mobile, idToken);
+            if (responseResult.success) {
                 // Logged in!
+                toast.success("Welcome back!");
             } else {
                 // Profile Incomplete
                 setLoginStep('details');
             }
         } catch (err) {
-            setAuthError(err);
+            console.error('Verification Error:', err);
+            setAuthError(err.message || 'Invalid OTP');
         } finally {
             setAuthLoading(false);
         }
@@ -559,6 +605,7 @@ const ProfilePage = () => {
                                     </div>
                                     <button
                                         disabled={authLoading}
+                                        id="send-otp-button"
                                         type="submit"
                                         className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all flex items-center justify-center gap-2"
                                     >

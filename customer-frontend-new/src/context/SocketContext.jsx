@@ -12,8 +12,8 @@ export const SocketProvider = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Base URL logic - mirroring api.js or use env
-        const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        // Socket.io should connect to the base origin, not the /api namespace
+        const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
 
         let newSocket;
 

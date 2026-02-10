@@ -27,6 +27,21 @@ async function request(url, body, method = 'POST', isFormData = false) {
 }
 
 // UI Elements
+// Firebase Configuration (Replace with your actual values from Firebase Console)
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "tnt-lh.firebaseapp.com",
+    projectId: "tnt-lh",
+    storageBucket: "tnt-lh.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// UI Elements
 const mobileStage = document.getElementById('mobileStage');
 const otpStage = document.getElementById('otpStage');
 const profileStage = document.getElementById('profileStage');
@@ -41,6 +56,15 @@ const detectLocationBtn = document.getElementById('detectLocationBtn');
 
 let currentMobile = '';
 let capturedLocation = null;
+let confirmationResult = null;
+
+// Initialize reCAPTCHA
+window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('sendOtpBtn', {
+    'size': 'invisible',
+    'callback': (response) => {
+        // reCAPTCHA solved, allow signInWithPhoneNumber.
+    }
+});
 
 // -- AUTH FLOW --
 
@@ -51,13 +75,23 @@ sendOtpBtn.onclick = async () => {
         return;
     }
 
+    const phoneNumber = `+91${mobile}`;
+    const appVerifier = window.recaptchaVerifier;
+
     try {
         setLoading(sendOtpBtn, true, 'Sending...');
-        await request(`${API_BASE}/send-otp`, { mobile });
+        confirmationResult = await auth.signInWithPhoneNumber(phoneNumber, appVerifier);
         currentMobile = mobile;
         switchStage(otpStage);
     } catch (err) {
+        console.error('Firebase Auth Error:', err);
         showError('errorMobile', err.message);
+        // Reset reCAPTCHA on error
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.render().then(widgetId => {
+                grecaptcha.reset(widgetId);
+            });
+        }
     } finally {
         setLoading(sendOtpBtn, false, 'Send OTP');
     }
@@ -72,19 +106,26 @@ verifyOtpBtn.onclick = async () => {
 
     try {
         setLoading(verifyOtpBtn, true, 'Verifying...');
-        const data = await request(`${API_BASE}/verify-otp`, { mobile: currentMobile, otp });
+
+        // 1. Verify OTP with Firebase
+        const result = await confirmationResult.confirm(otp);
+        const idToken = await result.user.getIdToken();
+
+        // 2. Exchange Firebase ID Token for Backend JWT
+        const data = await request(`${API_BASE}/firebase-login`, { idToken });
 
         localStorage.setItem('riderToken', data.token);
-        localStorage.setItem('riderProfile', JSON.stringify(data.rider));
+        localStorage.setItem('riderProfile', JSON.stringify(data.user));
 
-        if (!data.rider.isProfileComplete) {
+        if (!data.user.isProfileComplete) {
             switchStage(profileStage);
-        } else if (!data.rider.isApproved) {
+        } else if (!data.user.isApproved) {
             switchStage(pendingStage);
         } else {
             window.location.href = 'dashboard.html';
         }
     } catch (err) {
+        console.error('Verification Error:', err);
         showError('errorOtp', err.message);
     } finally {
         setLoading(verifyOtpBtn, false, 'Verify & Login');
@@ -178,7 +219,7 @@ document.getElementById('onboardingForm').onsubmit = async (e) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Submission failed');
 
-        localStorage.setItem('riderProfile', JSON.stringify(data.rider));
+        localStorage.setItem('riderProfile', JSON.stringify(data.user));
         switchStage(pendingStage);
     } catch (err) {
         alert(err.message);

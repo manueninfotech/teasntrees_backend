@@ -30,21 +30,13 @@ export const AuthProvider = ({ children }) => {
         checkAuth();
     }, []);
 
-    const sendOtp = async (mobile) => {
+    // Step 2: Verify OTP (Now accepts idToken)
+    const verifyOtp = async (mobile, idToken) => {
         try {
-            const response = await api.post('/customer/auth/send-otp', { mobile });
-            return response.data;
-        } catch (error) {
-            throw error.response?.data?.message || 'Failed to send OTP';
-        }
-    };
+            const response = await api.post('/customer/auth/firebase-login', { idToken });
+            const { token, refreshToken, user } = response.data.data;
 
-    const verifyOtp = async (mobile, otp) => {
-        try {
-            const response = await api.post('/customer/auth/verify-otp', { mobile, otp });
-            const { token, refreshToken, user, isProfileComplete } = response.data.data;
-
-            if (token) {
+            if (token && user?.isProfileComplete) {
                 // Login Success
                 localStorage.setItem('token', token);
                 localStorage.setItem('refreshToken', refreshToken);
@@ -52,7 +44,7 @@ export const AuthProvider = ({ children }) => {
                 setUser(user);
                 return { success: true, user };
             } else {
-                // Profile Incomplete - Return raw data for next step
+                // Profile Incomplete (Backend returns data without token for security)
                 return { success: false, ...response.data.data };
             }
         } catch (error) {
@@ -92,7 +84,6 @@ export const AuthProvider = ({ children }) => {
         <AuthContext.Provider value={{
             user,
             isLoading,
-            sendOtp,
             verifyOtp,
             completeProfile,
             logout,
