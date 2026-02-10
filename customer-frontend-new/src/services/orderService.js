@@ -43,5 +43,16 @@ export const orderService = {
     getDeliveryByOrder: async (orderId) => {
         const response = await api.get(`/customer/deliveries/order/${orderId}`);
         return response.data.data;
+    },
+
+    // Razorpay Payments
+    createRazorpayOrder: async (paymentData) => {
+        const response = await api.post('/customer/payments/create-order', paymentData);
+        return response.data;
+    },
+
+    verifyRazorpayPayment: async (verificationData) => {
+        const response = await api.post('/customer/payments/verify-payment', verificationData);
+        return response.data;
     }
 };

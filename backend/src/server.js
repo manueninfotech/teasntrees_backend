@@ -26,6 +26,7 @@ import customerWishlistRoutes from './routes/customer/wishlistRoutes.js';
 import customerSettingsRoutes from './routes/customer/settingsRoutes.js';
 import customerUploadRoutes from './routes/customer/uploadRoutes.js';
 import customerContactRoutes from './routes/customer/contactRoutes.js';
+import customerPaymentRoutes from './routes/customer/paymentRoutes.js';
 
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
@@ -56,7 +57,7 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin) return callback(null, true); 
+        if (!origin) return callback(null, true);
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
             return callback(null, true);
         }
@@ -154,6 +155,7 @@ app.use('/api/customer/wishlist', customerWishlistRoutes);
 app.use('/api/customer/settings', customerSettingsRoutes);
 app.use('/api/customer/upload', customerUploadRoutes);
 app.use('/api/v1/contact', customerContactRoutes);
+app.use('/api/customer/payments', customerPaymentRoutes);
 
 // Admin
 app.use('/api/admin/auth', adminAuthRoutes);

@@ -23,6 +23,7 @@ const CheckoutPage = () => {
     const [addresses, setAddresses] = useState([]);
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('COD');
+    const [isRedirecting, setIsRedirecting] = useState(false);
 
     // Address Modal State
     const [showAddressModal, setShowAddressModal] = useState(false);
@@ -62,6 +63,87 @@ const CheckoutPage = () => {
         loadData();
     }, [isAuthenticated, navigate]);
 
+    // Handle Razorpay Payment
+    const handleRazorpayPayment = async (orderId, amount) => {
+        try {
+            // 1. Create Razorpay order on backend
+            const rzpOrderResponse = await orderService.createRazorpayOrder({
+                amount,
+                orderId
+            });
+
+            if (!rzpOrderResponse.success) {
+                throw new Error(rzpOrderResponse.message || "Failed to create payment order");
+            }
+
+            const { id: rzpOrderId, key: rzpKey } = rzpOrderResponse.data;
+
+            // 2. Open Razorpay Checkout
+            const options = {
+                key: rzpKey,
+                amount: Math.round(amount * 100),
+                currency: "INR",
+                name: "Teas N Trees",
+                description: `Order #${orderId}`,
+                order_id: rzpOrderId,
+                handler: async function (response) {
+                    try {
+                        setLoading(true);
+                        // 3. Verify payment on backend
+                        const verificationData = {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            orderId: orderId
+                        };
+
+                        const verifyRes = await orderService.verifyRazorpayPayment(verificationData);
+
+                        if (verifyRes.success) {
+                            navigate(`/order-success/${orderId}`);
+                        } else {
+                            setError("Payment verification failed. Please contact support.");
+                            alert("Payment verification failed. Your order status might be pending.");
+                        }
+                    } catch (err) {
+                        console.error("Verification error", err);
+                        setError("An error occurred during payment verification.");
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+                prefill: {
+                    name: "", // Can be filled if user name available
+                    email: "",
+                    contact: ""
+                },
+                theme: {
+                    color: "#10b981" // cafe-emerald
+                },
+                modal: {
+                    ondismiss: function () {
+                        setLoading(false);
+                        setError("Payment cancelled by user. You can pay later from your order history.");
+                        // Optional: Navigate to orders page or stay on checkout
+                        setTimeout(() => navigate(`/track-order/${orderId}`), 2000);
+                    }
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.open();
+
+        } catch (err) {
+            console.error("Razorpay Error:", err);
+            setError(err.message || "Failed to initialize payment.");
+            setLoading(false);
+            // Even if payment init fails, the order is already created as pending
+            if (orderId) {
+                setTimeout(() => navigate(`/track-order/${orderId}`), 2000);
+            }
+        }
+    };
+
     // Handle Place Order
     const handlePlaceOrder = async () => {
         if (!selectedAddress) {
@@ -75,9 +157,6 @@ const CheckoutPage = () => {
         try {
             const selectedAddrObj = addresses.find(a => a._id === selectedAddress);
 
-            // Context's `checkout` handles item mapping. We just send delivery info.
-            // Backend expects deliveryAddress to be an object with structure:
-            // { address: "String address", location: { type: "Point", coordinates: [lng, lat] } }
             const checkoutData = {
                 deliveryAddress: {
                     address: selectedAddrObj.addressLine,
@@ -91,21 +170,27 @@ const CheckoutPage = () => {
             const response = await checkout(checkoutData);
 
             if (response.success) {
-                // Cart is cleared in Context
-                const orderId = response.data?.orderId || response.data?.data?.orderId;
-                navigate(`/order-success/${orderId}`);
+                setIsRedirecting(true);
+                const orderId = response.data?.orderId || response.data?.data?.orderId || response.data?._id;
+
+                if (paymentMethod === 'Online') {
+                    // Start Razorpay Flow
+                    await handleRazorpayPayment(orderId, parseFloat(calculatedGrandTotal));
+                } else {
+                    // COD success
+                    navigate(`/order-success/${orderId}`);
+                }
             } else {
                 const msg = response.message || 'Failed to place order';
                 setError(msg);
                 alert(`Order Failed: ${msg}`);
+                setLoading(false);
             }
 
         } catch (err) {
             console.error("Order error", err);
             const errorMsg = err.response?.data?.message || err.message || 'Something went wrong while placing order';
             setError(errorMsg);
-            // Alert is handled by UI error message usually, but helpful
-        } finally {
             setLoading(false);
         }
     };
@@ -225,7 +310,7 @@ const CheckoutPage = () => {
         }
     };
 
-    if (cartItems.length === 0) {
+    if (cartItems.length === 0 && !isRedirecting) {
         return (
             <div className="min-h-screen pt-24 pb-20 bg-slate-50 flex items-center justify-center p-4">
                 <div className="text-center">
@@ -316,7 +401,7 @@ const CheckoutPage = () => {
                             </h2>
 
                             <div className="space-y-3">
-                                <label className="flex items-center gap-4 p-4 rounded-xl border border-cafe-emerald bg-cafe-emerald/5 cursor-pointer">
+                                <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'COD' ? 'border-cafe-emerald bg-cafe-emerald/5' : 'border-slate-100 hover:border-slate-200'}`}>
                                     <input
                                         type="radio"
                                         name="payment"
@@ -329,15 +414,23 @@ const CheckoutPage = () => {
                                         <div className="font-bold text-slate-800">Cash on Delivery</div>
                                         <div className="text-xs text-slate-500">Pay lightly when you receive your order</div>
                                     </div>
-                                    <CreditCard className="w-6 h-6 text-cafe-emerald" />
+                                    <CreditCard className={clsx("w-6 h-6", paymentMethod === 'COD' ? "text-cafe-emerald" : "text-slate-300")} />
                                 </label>
 
-                                <label className="flex items-center gap-4 p-4 rounded-xl border border-slate-100 opacity-60 cursor-not-allowed">
-                                    <input type="radio" name="payment" disabled />
+                                <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'Online' ? 'border-cafe-emerald bg-cafe-emerald/5' : 'border-slate-100 hover:border-slate-200'}`}>
+                                    <input
+                                        type="radio"
+                                        name="payment"
+                                        value="Online"
+                                        checked={paymentMethod === 'Online'}
+                                        onChange={() => setPaymentMethod('Online')}
+                                        className="w-5 h-5 text-cafe-emerald focus:ring-cafe-emerald"
+                                    />
                                     <div className="flex-1">
                                         <div className="font-bold text-slate-800">Online Payment</div>
-                                        <div className="text-xs text-slate-500">UPI, Cards, Netbanking (Coming Soon)</div>
+                                        <div className="text-xs text-slate-500">UPI, Cards, Netbanking</div>
                                     </div>
+                                    <CheckCircle2 className={clsx("w-6 h-6", paymentMethod === 'Online' ? "text-cafe-emerald" : "text-slate-300")} />
                                 </label>
                             </div>
                         </div>
