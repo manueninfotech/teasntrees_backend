@@ -1,11 +1,10 @@
 import express from 'express';
 import {
     registerRider,
-    sendOtp,
-    verifyOtp,
     toggleAvailability,
     getProfile,
-    completeProfile
+    completeProfile,
+    firebaseLogin
 } from '../../controllers/rider/authController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 import multer from 'multer';
@@ -35,8 +34,7 @@ const riderUploads = upload.fields([
 
 // Public Routes
 router.post('/register', riderUploads, registerRider);
-router.post('/send-otp', sendOtp);
-router.post('/verify-otp', verifyOtp);
+router.post('/firebase-login', firebaseLogin);
 
 // Protected Routes
 router.post('/availability', riderAuth, isApprovedRider, toggleAvailability);

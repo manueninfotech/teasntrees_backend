@@ -11,14 +11,16 @@ import {
     downloadInvoice
 } from '../../controllers/customer/orderController.js';
 import { authenticate } from '../../middlewares/auth.js';
+import { checkProfileComplete } from '../../middlewares/profileGuard.js';
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(authenticate);
 
-// Create order
-router.post('/', createOrder);
+// Business-critical routes require complete profile
+router.post('/', checkProfileComplete, createOrder);
+router.post('/:orderId/reorder', checkProfileComplete, reorder);
 
 // Get customer's orders
 router.get('/my-orders', getMyOrders);

@@ -2,19 +2,18 @@
 // Endpoint: /api/customer/auth
 
 import express from 'express';
-import { sendOTP, verifyOTP, completeProfile, refreshAccessToken, logout } from '../../controllers/customer/authController.js';
+import { completeProfile, refreshAccessToken, logout, firebaseLogin } from '../../controllers/customer/authController.js';
 import { authenticate } from '../../middlewares/auth.js';
-import { otpLimiter, authLimiter } from '../../middlewares/rateLimiter.js';
+import { authLimiter } from '../../middlewares/rateLimiter.js';
 
 const router = express.Router();
 
 // Public routes (with rate limiting)
-router.post('/send-otp', otpLimiter, sendOTP);          // 3 req/hour
-router.post('/verify-otp', authLimiter, verifyOTP);     // 5 req/15min
+router.post('/firebase-login', authLimiter, firebaseLogin);
 router.post('/refresh-token', authLimiter, refreshAccessToken);
 
-// Public route (security handled by OTP verification)
-router.post('/complete-profile', completeProfile);
+// Protected routes (JWT required)
+router.post('/complete-profile', [authenticate, authLimiter], completeProfile);
 router.post('/logout', authenticate, logout);
 
 export default router;
