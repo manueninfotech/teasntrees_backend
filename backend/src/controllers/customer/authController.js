@@ -17,7 +17,7 @@ import { verifyFirebaseToken } from '../../services/firebaseAuth.js';
 // Complete user profile after Firebase login (requires JWT)
 const completeProfile = async (req, res) => {
     try {
-        const { name, email, address } = req.body;
+        const { name, email, address, mobile } = req.body;
 
         // 1. Identify User via JWT (Enforced by route middleware)
         if (!req.user || !req.user.userId) {
@@ -27,27 +27,52 @@ const completeProfile = async (req, res) => {
         const user = await User.findById(req.user.userId);
         if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-        const mobileNumber = user.mobile;
-
-        // Validate required fields
-        if (!name || !email || !address) {
+        // 2. Validate required fields for profile completion
+        if (!name || !address) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide all required fields: name, email, address'
+                message: 'Please provide all required fields: name, address'
             });
         }
 
-        // Validate email
-        if (!isValidEmail(email)) {
+        // For new Google users, mobile is required
+        if (!user.mobile && !mobile) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide a valid email address'
+                message: 'Phone number is required for profile completion'
             });
         }
 
-        // update user
+        // If mobile is provided, validate it
+        if (mobile) {
+            const mobileRegex = /^[0-9]{10}$/;
+            if (!mobileRegex.test(mobile.toString().replace(/\D/g, ''))) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Please provide a valid 10-digit mobile number'
+                });
+            }
+
+            // Check if mobile is already in use by another user
+            const existingUser = await User.findOne({ 
+                mobile: mobile.toString().replace(/\D/g, ''),
+                _id: { $ne: user._id }
+            });
+            if (existingUser) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'This phone number is already registered'
+                });
+            }
+
+            user.mobile = mobile.toString().replace(/\D/g, '');
+        }
+
+        // 3. Update user profile
         user.name = sanitizeString(name);
-        user.email = sanitizeString(email).toLowerCase();
+        if (email) {
+            user.email = sanitizeString(email).toLowerCase();
+        }
         user.address = sanitizeString(address);
         user.isProfileComplete = true;
 
@@ -73,7 +98,7 @@ const completeProfile = async (req, res) => {
 
         await user.save();
 
-        // Generate JWT token
+        // Generate JWT token (may refresh if needed)
         const token = generateToken({
             userId: user._id,
             role: user.role
@@ -105,6 +130,8 @@ const completeProfile = async (req, res) => {
             });
         }
 
+        logger.info('Profile completed successfully', { userId: user._id, mobile: user.mobile });
+
         return res.status(200).json({
             success: true,
             message: 'Profile completed successfully',
@@ -117,6 +144,7 @@ const completeProfile = async (req, res) => {
                     mobile: user.mobile,
                     email: user.email,
                     address: user.address,
+                    profileImage: user.profileImage,
                     role: user.role,
                     isProfileComplete: user.isProfileComplete
                 }
@@ -125,6 +153,14 @@ const completeProfile = async (req, res) => {
 
     } catch (error) {
         logger.error('Error in completeProfile:', error);
+
+        // Handle duplicate mobile error
+        if (error.code === 11000 && error.keyPattern?.mobile) {
+            return res.status(400).json({
+                success: false,
+                message: 'Phone number already in use'
+            });
+        }
 
         // Handle duplicate email error
         if (error.code === 11000 && error.keyPattern?.email) {
@@ -264,7 +300,7 @@ const logout = async (req, res) => {
 // Firebase-based login/signup
 const firebaseLogin = async (req, res) => {
     try {
-        const { idToken } = req.body;
+        const { idToken, mobile } = req.body;
         if (!idToken) {
             return res.status(400).json({
                 success: false,
@@ -272,18 +308,18 @@ const firebaseLogin = async (req, res) => {
             });
         }
 
-        // 1. Verify the Firebase token
-        const decoded = await verifyFirebaseToken(idToken);
-        const phoneNumber = decoded.phone_number;
-
-        if (!phoneNumber) {
+        if (!mobile) {
             return res.status(400).json({
                 success: false,
-                message: 'Phone number missing in Firebase token'
+                message: 'Phone number is required'
             });
         }
 
-        const mobile = phoneNumber.replace(/\D/g, '').slice(-10);
+        // 1. Verify the Firebase token
+        const decoded = await verifyFirebaseToken(idToken);
+        
+        // Phone number comes from frontend request body (sent by client after Firebase OTP confirmation)
+        // idToken is verified with Firebase to ensure authenticity
 
         // 3. Find or create the user in DB
         let user = await User.findOne({ mobile });
@@ -382,9 +418,156 @@ const firebaseLogin = async (req, res) => {
     }
 };
 
+// Google-based login/signup
+const googleLogin = async (req, res) => {
+    try {
+        const { idToken, email, name, photoURL } = req.body;
+        
+        if (!idToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'Firebase ID token is required'
+            });
+        }
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required for Google login'
+            });
+        }
+
+        // 1. Verify the Firebase token
+        const decoded = await verifyFirebaseToken(idToken);
+
+        // 2. Find or create the user by email
+        let user = await User.findOne({ email: email.toLowerCase() });
+        let isNewUser = false;
+
+        if (!user) {
+            isNewUser = true;
+            user = await User.create({
+                email: email.toLowerCase(),
+                name: name || email.split('@')[0],
+                profileImage: photoURL || null,
+                role: 'customer'
+                // Note: mobile is NOT set here for Google users - they'll provide it in completeProfile
+            });
+
+            // Create corresponding Customer profile
+            await Customer.create({ user: user._id });
+
+            logger.info('New customer registered via Google', { email, userId: user._id });
+        } else {
+            // Update profile picture if provided and not yet set
+            if (photoURL && !user.profileImage) {
+                user.profileImage = photoURL;
+            }
+
+            if (user.role !== 'customer') {
+                return res.status(403).json({
+                    success: false,
+                    message: `Account already exists with role: ${user.role}`
+                });
+            }
+
+            // Auto-heal isProfileComplete flag if data exists but flag is false
+            if (!user.isProfileComplete && user.checkProfileComplete()) {
+                user.isProfileComplete = true;
+                await user.save();
+                logger.info('Auto-healed profile completion flag', { userId: user._id });
+            }
+        }
+
+        // Save any updates
+        await user.save();
+
+        // 3. Issue backend JWT and Refresh Token (even if profile incomplete)
+        const token = generateToken({ userId: user._id, role: user.role });
+        const refreshToken = generateRefreshToken();
+
+        // Store refresh token in database
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90);
+
+        await RefreshToken.create({
+            token: refreshToken,
+            user: user._id,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        // 4. Update stats
+        if (isNewUser) await statsService.increment('totalCustomers');
+
+        // 5. Log Activity
+        await activityLogService.log(req, {
+            adminId: user._id,
+            action: 'google_login',
+            resource: 'user',
+            resourceId: user._id,
+            details: { email: user.email, role: user.role, isNewUser }
+        });
+
+        logger.info('Google login successful', { userId: user._id, email: user.email });
+
+        // 6. Check if additional data needed
+        if (!user.mobile) {
+            // New Google user - needs to provide phone number
+            return res.status(200).json({
+                success: true,
+                message: 'Login successful - phone number required',
+                data: {
+                    token,
+                    refreshToken,
+                    user: {
+                        id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        mobile: null,
+                        profileImage: user.profileImage,
+                        role: user.role,
+                        isProfileComplete: user.isProfileComplete
+                    },
+                    isNewUser,
+                    requiresPhone: true
+                }
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Login successful',
+            data: {
+                token,
+                refreshToken,
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    mobile: user.mobile,
+                    profileImage: user.profileImage,
+                    role: user.role,
+                    isProfileComplete: user.isProfileComplete
+                },
+                isNewUser
+            }
+        });
+
+    } catch (error) {
+        logger.error('Google login error:', error);
+        return res.status(401).json({
+            success: false,
+            message: error.message || 'Invalid or expired Firebase token'
+        });
+    }
+};
+
 export {
     completeProfile,
     refreshAccessToken,
     logout,
-    firebaseLogin
+    firebaseLogin,
+    googleLogin
 };

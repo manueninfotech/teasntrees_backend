@@ -33,19 +33,22 @@ export const AuthProvider = ({ children }) => {
     // Step 2: Verify OTP (Now accepts idToken)
     const verifyOtp = async (mobile, idToken) => {
         try {
-            const response = await api.post('/customer/auth/firebase-login', { idToken });
+            const response = await api.post('/customer/auth/firebase-login', { idToken, mobile });
             const { token, refreshToken, user } = response.data.data;
 
+            // Store tokens for API calls
+            localStorage.setItem('token', token);
+            localStorage.setItem('refreshToken', refreshToken);
+
             if (token && user?.isProfileComplete) {
-                // Login Success
-                localStorage.setItem('token', token);
-                localStorage.setItem('refreshToken', refreshToken);
+                // Login Success - set user to authenticated
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
                 return { success: true, user };
             } else {
-                // Profile Incomplete (Backend returns data without token for security)
-                return { success: false, ...response.data.data };
+                // Profile Incomplete - store token but NOT user yet
+                // This way they can call completeProfile but won't be logged in
+                return { success: false, user, ...response.data.data };
             }
         } catch (error) {
             throw error.response?.data?.message || 'Failed to verify OTP';
@@ -67,6 +70,44 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Google Sign-In
+    const googleLogin = async (idToken, googleUser) => {
+        try {
+            const response = await api.post('/customer/auth/google-login', { 
+                idToken, 
+                email: googleUser.email,
+                name: googleUser.displayName,
+                photoURL: googleUser.photoURL
+            });
+            const { token, refreshToken, user, requiresPhone } = response.data.data;
+
+            // If phone is required, keep token but DON'T set user as authenticated yet
+            if (requiresPhone) {
+                // Store token temporarily for the completeProfile endpoint
+                localStorage.setItem('token', token);
+                localStorage.setItem('refreshToken', refreshToken);
+                // DON'T set user yet - let the user complete phone details first
+                return { 
+                    success: false, 
+                    requiresPhone: true,
+                    user,
+                    token,
+                    refreshToken
+                };
+            }
+
+            // Only for full profile complete users
+            localStorage.setItem('token', token);
+            localStorage.setItem('refreshToken', refreshToken);
+            localStorage.setItem('user', JSON.stringify(user));
+            setUser(user);
+
+            return { success: true, user };
+        } catch (error) {
+            throw error.response?.data?.message || 'Failed to login with Google';
+        }
+    };
+
     const logout = async () => {
         try {
             await api.post('/customer/auth/logout');
@@ -85,6 +126,7 @@ export const AuthProvider = ({ children }) => {
             user,
             isLoading,
             verifyOtp,
+            googleLogin,
             completeProfile,
             logout,
             isAuthenticated: !!user,

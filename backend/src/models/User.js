@@ -20,12 +20,15 @@ const userSchema = new mongoose.Schema({
 
     mobile: {
         type: String,
-        required: true,
         unique: true,
+        sparse: true, // Allow multiple null values without violating unique constraint
         trim: true,
+        default: null,
         validate: {
             validator: function (v) {
-                // Validates Indian mobile format (10 digits starting with 6-9)
+                // Allow null (for Google users who haven't provided phone yet)
+                if (!v) return true;
+                // Validates Indian mobile format (10 digits)
                 return /^[0-9]{10}$/.test(v);
             },
             message: props => `${props.value} is not a valid 10-digit mobile number!`

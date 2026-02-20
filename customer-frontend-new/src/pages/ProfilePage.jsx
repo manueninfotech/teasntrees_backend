@@ -16,14 +16,14 @@ import { userService } from '../services/userService';
 import { orderService } from '../services/orderService';
 import { reviewService } from '../services/reviewService';
 import { auth } from '../config/firebase';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 
 
 const ProfilePage = () => {
     const navigate = useNavigate();
     const { socket } = useSocket();
-    const { user, isAuthenticated, logout, verifyOtp, completeProfile } = useAuth();
+    const { user, isAuthenticated, logout, verifyOtp, googleLogin, completeProfile } = useAuth();
     const { setIsCartOpen, addToCart } = useCart();
 
     // Auth State
@@ -39,32 +39,24 @@ const ProfilePage = () => {
     useEffect(() => {
         if (isAuthenticated) return;
 
-        const initRecaptcha = () => {
-            const container = document.getElementById('send-otp-button');
-            if (container && !window.recaptchaVerifier) {
-                try {
-                    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-button', {
-                        'size': 'invisible',
-                        'callback': () => { }
-                    });
-                } catch (err) {
-                    console.error('Recaptcha init failed:', err);
-                }
-            }
-        };
-
-        // If not authenticated, we might need recaptcha
-        // Try immediately and also when loginStep might change
-        initRecaptcha();
+        // The RecaptchaVerifier will be initialized when needed (in handleSendOtp)
+        // This is better than initializing it early because:
+        // 1. The DOM element might not be ready yet
+        // 2. We can handle errors more gracefully
+        // 3. We can reinitialize if needed
 
         // Cleanup on unmount
         return () => {
             if (window.recaptchaVerifier) {
-                window.recaptchaVerifier.clear();
+                try {
+                    window.recaptchaVerifier.clear();
+                } catch (err) {
+                    console.warn('Error clearing RecaptchaVerifier:', err);
+                }
                 window.recaptchaVerifier = null;
             }
         };
-    }, [auth, isAuthenticated, loginStep]);
+    }, [isAuthenticated, auth]);
 
     // Dashboard Data State
     const [activeTab, setActiveTab] = useState('profile');
@@ -93,15 +85,54 @@ const ProfilePage = () => {
         e.preventDefault();
         setAuthLoading(true);
         setAuthError('');
+        
         try {
+            // Validate phone number
+            if (!mobile || mobile.length !== 10) {
+                setAuthError('Please enter a valid 10-digit mobile number');
+                setAuthLoading(false);
+                return;
+            }
+
+            // Initialize RecaptchaVerifier if not already done
+            if (!window.recaptchaVerifier) {
+                try {
+                    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-button', {
+                        'size': 'invisible',
+                        'callback': () => console.log('reCAPTCHA verified')
+                    });
+                } catch (err) {
+                    console.error('Failed to initialize reCAPTCHA:', err);
+                    setAuthError('reCAPTCHA initialization failed. Please refresh and try again.');
+                    setAuthLoading(false);
+                    return;
+                }
+            }
+
             const phoneNumber = `+91${mobile}`;
             const appVerifier = window.recaptchaVerifier;
+
             const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
             setConfirmationResult(result);
             setLoginStep('otp');
+            toast.success('OTP sent successfully!');
         } catch (err) {
             console.error('Firebase Auth Error:', err);
-            setAuthError(err.message || 'Failed to send OTP');
+            
+            // Clear the verifier on error so it can be re-initialized
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = null;
+            }
+
+            // User-friendly error messages
+            if (err.code === 'auth/too-many-requests') {
+                setAuthError('Too many requests. Please try again later.');
+            } else if (err.code === 'auth/invalid-phone-number') {
+                setAuthError('Invalid phone number. Please check and try again.');
+            } else {
+                setAuthError(err.message || 'Failed to send OTP. Please try again.');
+            }
         } finally {
             setAuthLoading(false);
         }
@@ -112,6 +143,12 @@ const ProfilePage = () => {
         setAuthLoading(true);
         setAuthError('');
         try {
+            if (!otp || otp.length !== 6) {
+                setAuthError('Please enter a valid 6-digit OTP');
+                setAuthLoading(false);
+                return;
+            }
+
             // 1. Verify OTP with Firebase
             const result = await confirmationResult.confirm(otp);
             const idToken = await result.user.getIdToken();
@@ -127,7 +164,14 @@ const ProfilePage = () => {
             }
         } catch (err) {
             console.error('Verification Error:', err);
-            setAuthError(err.message || 'Invalid OTP');
+            
+            if (err.code === 'auth/invalid-verification-code') {
+                setAuthError('Invalid or expired OTP. Please try again.');
+            } else if (err.code === 'auth/code-expired') {
+                setAuthError('OTP expired. Please request a new one.');
+            } else {
+                setAuthError(err.message || 'Failed to verify OTP. Please try again.');
+            }
         } finally {
             setAuthLoading(false);
         }
@@ -138,13 +182,93 @@ const ProfilePage = () => {
         setAuthLoading(true);
         setAuthError('');
         try {
-            await completeProfile({
+            const result = await completeProfile({
                 mobile,
                 ...userDetails,
                 location: capturedLocation
             });
+            
+            if (result.success) {
+                toast.success('Profile completed successfully!');
+                // The user will be automatically redirected by the app since they're now authenticated
+            }
         } catch (err) {
             setAuthError(err);
+            toast.error(err);
+        } finally {
+            setAuthLoading(false);
+        }
+    };
+
+    const handleGoogleSignIn = async () => {
+        setAuthLoading(true);
+        setAuthError('');
+        try {
+            // Configure Google auth provider to request phone number and profile scope
+            const provider = new GoogleAuthProvider();
+            provider.addScope('profile');
+            provider.addScope('email');
+            provider.addScope('phone'); // Request phone number if available
+            provider.setCustomParameters({
+                'prompt': 'consent' // Force consent screen to appear
+            });
+
+            const result = await signInWithPopup(auth, provider);
+            
+            if (!result.user || !result.user.email) {
+                throw new Error('Failed to retrieve user information');
+            }
+
+            const idToken = await result.user.getIdToken();
+            
+            // Get user info from Google (phone may not be available)
+            const googleUser = {
+                email: result.user.email,
+                displayName: result.user.displayName || '',
+                photoURL: result.user.photoURL || null,
+                phoneNumber: result.user.phoneNumber || null // May be null
+            };
+
+            // Send to backend for authentication
+            const responseResult = await googleLogin(idToken, googleUser);
+            
+            // Check if phone is required FIRST (even if success is true)
+            if (responseResult.requiresPhone) {
+                // Phone number is REQUIRED - show phone-details step
+                setLoginStep('phone-details');
+                setUserDetails({
+                    name: googleUser.displayName || '',
+                    email: googleUser.email,
+                    address: ''
+                });
+                setAuthError(''); // Clear any previous errors
+                toast.info('Phone number is required to complete registration');
+            } else if (responseResult.success) {
+                // Logged in successfully!
+                toast.success("Welcome back!");
+            } else {
+                // Complete profile needed
+                setLoginStep('details');
+                setUserDetails({
+                    name: googleUser.displayName || '',
+                    email: googleUser.email,
+                    address: ''
+                });
+                toast.info('Please complete your profile');
+            }
+        } catch (err) {
+            console.error('Google Auth Error:', err);
+            
+            // Handle specific Firebase errors
+            if (err.code === 'auth/popup-closed-by-user') {
+                setAuthError('Sign-in cancelled. Please try again.');
+            } else if (err.code === 'auth/popup-blocked') {
+                setAuthError('Pop-up was blocked. Please enable pop-ups and try again.');
+            } else if (err.code === 'auth/network-request-failed') {
+                setAuthError('Network error. Please check your connection and try again.');
+            } else {
+                setAuthError(err.message || 'Failed to sign in with Google');
+            }
         } finally {
             setAuthLoading(false);
         }
@@ -611,6 +735,29 @@ const ProfilePage = () => {
                                     >
                                         {authLoading ? 'Sending...' : <>Get OTP <ArrowRight className="w-4 h-4" /></>}
                                     </button>
+
+                                    {/* Divider */}
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex-1 h-px bg-slate-200"></div>
+                                        <span className="text-xs text-slate-400 font-medium">OR</span>
+                                        <div className="flex-1 h-px bg-slate-200"></div>
+                                    </div>
+
+                                    {/* Google Sign In */}
+                                    <button
+                                        type="button"
+                                        disabled={authLoading}
+                                        onClick={handleGoogleSignIn}
+                                        className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-bold hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                        </svg>
+                                        Continue with Google
+                                    </button>
                                 </motion.form>
                             )}
 
@@ -714,6 +861,120 @@ const ProfilePage = () => {
                                         className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg mt-4"
                                     >
                                         {authLoading ? 'Creating Account...' : 'Complete & Login'}
+                                    </button>
+                                </motion.form>
+                            )}
+
+                            {/* Phone Details for Google Users */}
+                            {loginStep === 'phone-details' && (
+                                <motion.form
+                                    key="phone-details"
+                                    initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+                                    onSubmit={handleCompleteProfile}
+                                    className="space-y-6"
+                                >
+                                    {/* Header with required icon */}
+                                    <div className="text-center mb-6">
+                                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
+                                            <Phone className="w-8 h-8" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-slate-800">One More Step!</h3>
+                                        <p className="text-sm text-slate-500 mt-2">We need your phone number to complete your account</p>
+                                    </div>
+                                    
+                                    {/* Name - read only from Google */}
+                                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl">
+                                        <label className="text-xs font-bold text-slate-600 uppercase flex items-center gap-1">
+                                            <span className="text-slate-400">👤</span> Full Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={userDetails.name}
+                                            disabled
+                                            className="w-full px-4 py-3 rounded-lg bg-slate-100 border-none cursor-not-allowed text-slate-600"
+                                        />
+                                    </div>
+
+                                    {/* Email - read only from Google */}
+                                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl">
+                                        <label className="text-xs font-bold text-slate-600 uppercase flex items-center gap-1">
+                                            <span className="text-slate-400">📧</span> Email
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={userDetails.email}
+                                            disabled
+                                            className="w-full px-4 py-3 rounded-lg bg-slate-100 border-none cursor-not-allowed text-slate-600"
+                                        />
+                                    </div>
+
+                                    {/* Phone Number - REQUIRED */}
+                                    <div className="space-y-2 border-2 border-cafe-emerald/50 p-4 rounded-xl bg-emerald-50">
+                                        <label className="text-xs font-bold text-cafe-emerald uppercase flex items-center gap-2">
+                                            <Phone className="w-4 h-4" />
+                                            Mobile Number <span className="text-red-500">*</span> <span className="text-[10px] font-normal text-red-600 ml-auto">REQUIRED</span>
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-3.5 text-slate-600 font-bold">+91</span>
+                                            <input
+                                                type="tel"
+                                                value={mobile}
+                                                onChange={e => {
+                                                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                                                    setMobile(value);
+                                                }}
+                                                placeholder="Enter 10-digit number"
+                                                className="w-full pl-12 pr-4 py-3 rounded-lg bg-white border-2 border-cafe-emerald/30 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 font-medium text-base"
+                                                maxLength="10"
+                                                required
+                                            />
+                                        </div>
+                                        <p className="text-[11px] text-slate-500">Enter your 10-digit phone number without country code</p>
+                                    </div>
+
+                                    {/* Address */}
+                                    <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                            <label className="text-xs font-bold text-slate-500 uppercase flex items-center gap-1">
+                                                <MapPin className="w-4 h-4" /> Address
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => handleDetectLocation(e, 'phone-details')}
+                                                disabled={detectingLocation}
+                                                className="text-[10px] font-bold text-cafe-emerald uppercase flex items-center gap-1 hover:text-cafe-teal transition-colors disabled:opacity-50"
+                                            >
+                                                {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
+                                                Detect
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={userDetails.address}
+                                            onChange={e => setUserDetails({ ...userDetails, address: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                            placeholder="Enter your full address"
+                                            required
+                                        />
+                                    </div>
+
+                                    <button
+                                        disabled={authLoading || !mobile || mobile.length !== 10}
+                                        type="submit"
+                                        className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                                    >
+                                        {authLoading ? 'Creating Account...' : 'Complete & Login'}
+                                    </button>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setLoginStep('mobile');
+                                            setMobile('');
+                                        }}
+                                        className="w-full text-sm text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        ← Back
                                     </button>
                                 </motion.form>
                             )}
