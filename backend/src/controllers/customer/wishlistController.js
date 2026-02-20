@@ -89,15 +89,16 @@ export const getWishlist = async (req, res) => {
             .select('wishlist');
 
         if (!customer) {
-            return res.status(404).json({
-                success: false,
-                message: 'Customer not found'
+            // Customer doesn't exist yet, return empty array
+            return res.json({
+                success: true,
+                data: []
             });
         }
 
         res.json({
             success: true,
-            data: customer.wishlist
+            data: customer.wishlist || []
         });
 
     } catch (error) {

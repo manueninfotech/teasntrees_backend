@@ -20,7 +20,7 @@ const activityLogSchema = new mongoose.Schema({
             'complete_profile',
             'accept_delivery', 'reject_delivery',
             'upload_proof', 'toggle_availability',
-            'update_payment', 'cancel_order', 'assign_rider', 'firebase_login'
+            'update_payment', 'cancel_order', 'assign_rider', 'firebase_login', 'google_login'
         ]
     },
     resource: {
