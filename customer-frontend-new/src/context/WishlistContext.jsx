@@ -25,10 +25,9 @@ export const WishlistProvider = ({ children }) => {
                 try {
                     const items = await userService.getWishlist();
                     setWishlistItems(items || []);
-                    // Update local storage to match cloud
                     localStorage.setItem('wishlist', JSON.stringify(items || []));
                 } catch (error) {
-                    console.error("Failed to sync wishlist", error);
+                    // Gracefully fall back to local storage if sync fails
                 }
             };
             fetchWishlist();

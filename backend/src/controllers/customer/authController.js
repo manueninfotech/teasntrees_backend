@@ -54,7 +54,7 @@ const completeProfile = async (req, res) => {
             }
 
             // Check if mobile is already in use by another user
-            const existingUser = await User.findOne({ 
+            const existingUser = await User.findOne({
                 mobile: mobile.toString().replace(/\D/g, ''),
                 _id: { $ne: user._id }
             });
@@ -317,7 +317,7 @@ const firebaseLogin = async (req, res) => {
 
         // 1. Verify the Firebase token
         const decoded = await verifyFirebaseToken(idToken);
-        
+
         // Phone number comes from frontend request body (sent by client after Firebase OTP confirmation)
         // idToken is verified with Firebase to ensure authenticity
 
@@ -327,13 +327,10 @@ const firebaseLogin = async (req, res) => {
 
         if (!user) {
             isNewUser = true;
-            user = await User.create({
+            user = await Customer.create({
                 mobile,
                 role: 'customer'
             });
-
-            // Create corresponding Customer profile
-            await Customer.create({ user: user._id });
 
             logger.info('New customer registered via Firebase', { mobile, userId: user._id });
         } else {
@@ -422,7 +419,7 @@ const firebaseLogin = async (req, res) => {
 const googleLogin = async (req, res) => {
     try {
         const { idToken, email, name, photoURL } = req.body;
-        
+
         if (!idToken) {
             return res.status(400).json({
                 success: false,
@@ -441,21 +438,31 @@ const googleLogin = async (req, res) => {
         const decoded = await verifyFirebaseToken(idToken);
 
         // 2. Find or create the user by email
-        let user = await User.findOne({ email: email.toLowerCase() });
+        // Use Customer discriminator so Customer.findById works in other controllers
+        let user = await Customer.findOne({ email: email.toLowerCase() });
+
+        // Fallback: user exists but was created without Customer discriminator (legacy)
+        if (!user) {
+            const legacyUser = await User.findOne({ email: email.toLowerCase() });
+            if (legacyUser) {
+                // Heal: set kind to Customer so discriminator works going forward
+                await User.updateOne({ _id: legacyUser._id }, { $set: { kind: 'Customer' } });
+                user = await Customer.findById(legacyUser._id);
+                logger.info('Auto-healed Customer discriminator kind field', { userId: legacyUser._id });
+            }
+        }
+
         let isNewUser = false;
 
         if (!user) {
             isNewUser = true;
-            user = await User.create({
+            user = await Customer.create({
                 email: email.toLowerCase(),
                 name: name || email.split('@')[0],
                 profileImage: photoURL || null,
                 role: 'customer'
                 // Note: mobile is NOT set here for Google users - they'll provide it in completeProfile
             });
-
-            // Create corresponding Customer profile
-            await Customer.create({ user: user._id });
 
             logger.info('New customer registered via Google', { email, userId: user._id });
         } else {
@@ -497,6 +504,17 @@ const googleLogin = async (req, res) => {
             ipAddress: req.ip,
             userAgent: req.headers['user-agent']
         });
+
+        const isMobile = req.headers['x-client-type'] === 'mobile';
+
+        if (!isMobile) {
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'none',
+                maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            });
+        }
 
         // 4. Update stats
         if (isNewUser) await statsService.increment('totalCustomers');
