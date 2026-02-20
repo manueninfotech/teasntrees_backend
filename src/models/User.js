@@ -23,7 +23,7 @@ const userSchema = new mongoose.Schema({
         unique: true,
         sparse: true, // Allow multiple null values without violating unique constraint
         trim: true,
-        default: null,
+        // default: null,
         validate: {
             validator: function (v) {
                 // Allow null (for Google users who haven't provided phone yet)
