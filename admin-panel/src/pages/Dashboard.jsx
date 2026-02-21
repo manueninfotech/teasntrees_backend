@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import {
@@ -21,18 +21,23 @@ export default function Dashboard() {
     const { socket } = useSocket();
     const queryClient = useQueryClient();
 
+    const [brandFilter, setBrandFilter] = useState('');
+
     const { data: stats, isLoading: loading, isFetching, refetch } = useQuery({
-        queryKey: ['dashboard-stats'],
+        queryKey: ['dashboard-stats', brandFilter],
         queryFn: async () => {
-            const response = await api.get('/admin/dashboard/stats');
+            const params = new URLSearchParams();
+            if (brandFilter) params.append('brand', brandFilter);
+
+            const response = await api.get(`/admin/dashboard/stats?${params.toString()}`);
             const data = response.data.data;
             // Cache data in localStorage for instant load on refresh
-            localStorage.setItem('dashboard-stats-cache', JSON.stringify(data));
+            localStorage.setItem(`dashboard-stats-cache-${brandFilter}`, JSON.stringify(data));
             return data;
         },
         // Use cached data immediately on mount for instant load
         initialData: () => {
-            const cached = localStorage.getItem('dashboard-stats-cache');
+            const cached = localStorage.getItem(`dashboard-stats-cache-${brandFilter}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         // Keep previous data visible during refetches - no loading states!
@@ -86,13 +91,24 @@ export default function Dashboard() {
                     <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter">Dashboard</h1>
                     <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Overview of your business</p>
                 </div>
-                <button
-                    onClick={() => refetch()}
-                    disabled={isSyncing}
-                    className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
-                </button>
+                <div className="flex items-center gap-4">
+                    <select
+                        value={brandFilter}
+                        onChange={(e) => setBrandFilter(e.target.value)}
+                        className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700"
+                    >
+                        <option value="">All Brands</option>
+                        <option value="teasntrees">Teas N Trees</option>
+                        <option value="littleh">LittleH Bakery</option>
+                    </select>
+                    <button
+                        onClick={() => refetch()}
+                        disabled={isSyncing}
+                        className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -118,9 +134,12 @@ export default function Dashboard() {
                                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                                             <ShoppingCart className="w-6 h-6 text-indigo-600" />
                                         </div>
-                                        <div className="min-w-0">
+                                        <div className="min-w-0 flex flex-col items-start text-left">
                                             <p className="font-black text-gray-900 uppercase text-sm">#{order.orderNumber}</p>
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{order.customerId?.name || 'Customer'} • ₹{order.total}</p>
+                                            <p className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${order.brand === 'littleh' ? 'text-pink-600' : 'text-emerald-600'}`}>
+                                                {order.brand === 'littleh' ? 'LITTLEH' : 'TEAS N TREES'}
+                                            </p>
                                         </div>
                                     </div>
                                     <OrderStatusBadge status={order.status} />

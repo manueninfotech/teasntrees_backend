@@ -25,6 +25,7 @@ export default function Orders() {
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     const [filters, setFilters] = useState({
+        brand: searchParams.get('brand') || '',  // Add brand filtering
         status: searchParams.get('status') || '',
         paymentMethod: '',
         paymentStatus: '',
@@ -63,6 +64,7 @@ export default function Orders() {
                 page: pagination.currentPage,
                 limit: pagination.limit
             });
+            if (filters.brand) params.append('brand', filters.brand);
             if (filters.status) params.append('status', filters.status);
             if (filters.paymentMethod) params.append('paymentMethod', filters.paymentMethod);
             if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
@@ -73,12 +75,12 @@ export default function Orders() {
             const response = await api.get(`/admin/orders?${params.toString()}`);
             const data = response.data;
             // Cache with filter key to maintain different caches for different filters
-            const cacheKey = `orders-cache-${pagination.currentPage}-${filters.status}`;
+            const cacheKey = `orders-cache-${pagination.currentPage}-${filters.brand}-${filters.status}`;
             localStorage.setItem(cacheKey, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cacheKey = `orders-cache-${pagination.currentPage}-${filters.status}`;
+            const cacheKey = `orders-cache-${pagination.currentPage}-${filters.brand}-${filters.status}`;
             const cached = localStorage.getItem(cacheKey);
             return cached ? JSON.parse(cached) : undefined;
         },
@@ -118,7 +120,7 @@ export default function Orders() {
     };
 
     const clearFilters = () => {
-        setFilters({ status: '', paymentMethod: '', paymentStatus: '', startDate: '', endDate: '' });
+        setFilters({ brand: '', status: '', paymentMethod: '', paymentStatus: '', startDate: '', endDate: '' });
         setSearchTerm('');
     };
 
@@ -160,7 +162,12 @@ export default function Orders() {
                         className="input pl-10"
                     />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                    <select value={filters.brand} onChange={(e) => setFilters({ ...filters, brand: e.target.value })} className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700">
+                        <option value="">All Brands</option>
+                        <option value="teasntrees">Teas N Trees</option>
+                        <option value="littleh">LittleH Bakery</option>
+                    </select>
                     <select value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className="input text-xs font-bold uppercase">
                         <option value="">All Status</option>
                         <option value="pending">Pending</option>
@@ -204,7 +211,7 @@ export default function Orders() {
                                         <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0"><User className="w-5 h-5" /></div>
                                         <div className="min-w-0">
                                             <p className="font-black text-gray-800 text-sm truncate uppercase">{order.customerId?.name || '---'}</p>
-                                            <p className="text-xs text-gray-400 font-bold">{order.customerId?.mobile}</p>
+                                            <p className="text-[10px] text-gray-500 font-bold tracking-wider">{order.brand === 'littleh' ? 'LITTLEH BAKERY' : 'TEAS N TREES'}</p>
                                         </div>
                                     </div>
                                     <div className="flex items-start gap-4">

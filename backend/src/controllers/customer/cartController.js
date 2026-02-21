@@ -6,6 +6,7 @@ import Cart from '../../models/Cart.js';
 import Product from '../../models/Product.js';
 import Order from '../../models/Order.js';
 import Settings from '../../models/Settings.js';
+import Outlet from '../../models/Outlet.js';
 import logger from '../../config/logger.js';
 import { geocodingService } from '../../services/geocodingService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
@@ -17,7 +18,7 @@ export const getCart = async (req, res) => {
         const userId = req.user.userId;
 
         let cart = await Cart.findOne({ userId })
-            .populate('items.product', 'name description image price isAvailable');
+            .populate('items.product', 'name description image price isAvailable brand');
 
         // Create empty cart if doesn't exist
         if (!cart) {
@@ -120,12 +121,13 @@ export const addToCart = async (req, res) => {
                 name: product.name,
                 quantity,
                 price: itemPrice,
-                customization
+                customization,
+                brand: product.brand || 'teasntrees'
             });
         }
 
         await cart.save();
-        await cart.populate('items.product', 'name description image price isAvailable');
+        await cart.populate('items.product', 'name description image price isAvailable brand');
 
         logger.info('Item added to cart', {
             userId,
@@ -325,21 +327,29 @@ export const checkoutCart = async (req, res) => {
             });
         }
 
-        // Validate all items are still available
+        // Validate all items are still available and group by brand
         const unavailableItems = [];
-        const orderItems = [];
+        const brandsGrouped = {};
 
         for (const item of cart.items) {
             if (!item.product || !item.product.isAvailable) {
-                unavailableItems.push(item.name);
+                unavailableItems.push(item.name || 'Unknown Item');
             } else {
-                orderItems.push({
+                const brand = item.product.brand || 'teasntrees';
+                if (!brandsGrouped[brand]) {
+                    brandsGrouped[brand] = {
+                        items: [],
+                        subtotal: 0
+                    };
+                }
+                brandsGrouped[brand].items.push({
                     product: item.product._id,
                     name: item.product.name,
                     quantity: item.quantity,
                     price: item.price,
                     customization: item.customization
                 });
+                brandsGrouped[brand].subtotal += (item.price * item.quantity);
             }
         }
 
@@ -351,138 +361,131 @@ export const checkoutCart = async (req, res) => {
             });
         }
 
-        // Calculate totals
-        const subtotal = cart.subtotal;
-        // Fetch dynamic delivery charge (and other settings like tax if needed)
         const settings = await Settings.findOne();
-        const deliveryCharge = settings ? settings.deliveryCharge : 50; // Fallback to 20
-        const gstRate = settings ? settings.gstRate : 5; // Fallback to 5%
-        const tax = subtotal * (gstRate / 100);
-        const total = subtotal + deliveryCharge + tax;
+        const deliveryChargePerOrder = settings ? settings.deliveryCharge : 50;
+        const gstRate = settings ? settings.gstRate : 5;
 
-        // --- NEW: Atomic Geocoding with Diagnostics ---
-        let finalizedAddress = typeof deliveryAddress === 'object' ? {
-            address: deliveryAddress.address || deliveryAddress.addressLine,
-            location: deliveryAddress.location || { type: 'Point', coordinates: [0, 0] }
-        } : {
-            address: deliveryAddress,
-            location: { type: 'Point', coordinates: [0, 0] }
+        // --- NEW: Atomic Geocoding ---
+        let finalizedAddress = {
+            address: ''
         };
 
-        console.log(`[Checkout] Processing GPS for address: "${finalizedAddress.address}"`);
-        console.log(`[Checkout] Initial coordinates: [${finalizedAddress.location?.coordinates}]`);
+        if (typeof deliveryAddress === 'object') {
+            finalizedAddress.address = deliveryAddress.address || deliveryAddress.addressLine || 'Unknown Address';
+            if (deliveryAddress.location && Array.isArray(deliveryAddress.location.coordinates) && deliveryAddress.location.coordinates.length === 2 &&
+                (deliveryAddress.location.coordinates[0] !== 0 || deliveryAddress.location.coordinates[1] !== 0)) {
+                finalizedAddress.location = deliveryAddress.location;
+            }
+        } else {
+            finalizedAddress.address = deliveryAddress || 'Unknown Address';
+        }
 
-        // If no coordinates, try to geocode
-        if (!finalizedAddress.location.coordinates ||
-            finalizedAddress.location.coordinates.length < 2 ||
-            (finalizedAddress.location.coordinates[0] === 0 && finalizedAddress.location.coordinates[1] === 0)) {
-
-            console.log(`[Checkout] GPS missing/null. Fetching from Geocoding Service...`);
+        if (!finalizedAddress.location) {
             const coords = await geocodingService.getCoordinates(finalizedAddress.address);
-
             if (coords) {
                 finalizedAddress.location = {
                     type: 'Point',
-                    coordinates: [coords.lng, coords.lat] // [Lng, Lat] for MongoDB
+                    coordinates: [coords.lng, coords.lat]
                 };
-                console.log(`[Checkout] Geocoding SUCCESS: [${coords.lng}, ${coords.lat}]`);
-            } else {
-                console.warn(`[Checkout] Geocoding FAILED for: ${finalizedAddress.address}. No GPS available.`);
             }
-        } else {
-            console.log(`[Checkout] Using existing GPS: [${finalizedAddress.location.coordinates}]`);
         }
 
-        // Set estimated delivery time (default 45 mins from now)
         const estimatedDeliveryTime = new Date();
         estimatedDeliveryTime.setMinutes(estimatedDeliveryTime.getMinutes() + 45);
 
-        // Create order
-        const order = await Order.create({
-            customerId: userId,
-            items: orderItems,
-            subtotal,
-            deliveryCharge,
-            tax,
-            total,
-            deliveryAddress: finalizedAddress,
-            paymentMethod,
-            specialInstructions: deliveryInstructions,
-            estimatedDeliveryTime,
-            status: 'pending'
-        });
+        // Fetch outlets for assigning pickup locations
+        const outlets = await Outlet.find({ isActive: true });
 
-        // Clear cart after successful order
+        const createdOrders = [];
+        let grandTotalAllOrders = 0;
+
+        for (const [brand, group] of Object.entries(brandsGrouped)) {
+            const outlet = outlets.find(o => o.brand === brand);
+            const tax = group.subtotal * (gstRate / 100);
+            const orderTotal = group.subtotal + deliveryChargePerOrder + tax;
+            grandTotalAllOrders += orderTotal;
+
+            const orderPayload = {
+                customerId: userId,
+                brand: brand,
+                outletId: outlet ? outlet._id : undefined,
+                items: group.items,
+                subtotal: group.subtotal,
+                deliveryCharge: deliveryChargePerOrder,
+                tax,
+                total: orderTotal,
+                deliveryAddress: finalizedAddress,
+                paymentMethod,
+                specialInstructions: deliveryInstructions,
+                estimatedDeliveryTime,
+                status: 'pending'
+            };
+
+            // Only assign pickupLocation if it properly has coordinates to satisfy MongoDB's 2dsphere index
+            if (outlet && outlet.location && Array.isArray(outlet.location.coordinates) && outlet.location.coordinates.length === 2 && (outlet.location.coordinates[0] !== 0 || outlet.location.coordinates[1] !== 0)) {
+                orderPayload.pickupLocation = outlet.location;
+            }
+
+            const order = new Order(orderPayload);
+
+            await order.save();
+            createdOrders.push(order);
+        }
+
+        // Clear cart after successful orders
         cart.items = [];
         await cart.save();
 
-        logger.info('Order created from cart', {
-            orderId: order._id,
-            orderNumber: order.orderNumber,
-            customerId: userId,
-            total
-        });
-
-        // Diagnostic log for the user to confirm database connection
-        console.log(`ORDER PERSISTED SUCCESS: ${order.orderNumber} in DB: ${mongoose.connection.name}`);
-
-        // Emit socket event
-        try {
-            // Update Dashboard Stats immediately
-            await statsService.increment('totalOrders');
-            await statsService.increment('pendingOrders');
-
-            // Emit socket event DIRECTLY
-
-            const io = req.app.get('io');
-            if (io) {
-                // Notify Customer
+        const io = req.app.get('io');
+        if (io) {
+            createdOrders.forEach(order => {
                 io.to(SOCKET_ROOMS.user(userId.toString())).emit(SOCKET_EVENTS.ORDER_CREATED, {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
                     total: order.total
                 });
+            });
 
-                // Notify Admin & Manager
+            // Need to update stats carefully
+            const newStats = await statsService.getStats();
+            // Fire event for admins for each order created
+            createdOrders.forEach(order => {
                 const notificationData = {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
+                    brand: order.brand,
                     total: order.total,
                     itemsCount: order.items.length,
                     createdAt: order.createdAt,
-                    // Include updated stats
-                    totalOrders: (await statsService.getStats()).totalOrders,
-                    pendingOrders: (await statsService.getStats()).pendingOrders
+                    totalOrders: newStats.totalOrders,
+                    pendingOrders: newStats.pendingOrders
                 };
-
                 io.to(SOCKET_ROOMS.role('admin')).emit(SOCKET_EVENTS.ORDER_NEW, notificationData);
                 io.to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.ORDER_NEW, notificationData);
-            }
-
-        } catch (socketError) {
-            console.error('Socket notification error (checkout continuing):', socketError);
-            logger.warn('Socket notification failed during checkout', { error: socketError.message });
+            });
         }
 
+        // Return primarily the first orderId for frontend backward compatibility,
+        // but include all orderIds and the combined total so Razorpay can capture the entire cart amount
         res.status(201).json({
             success: true,
-            message: 'Order placed successfully',
+            message: 'Order(s) placed successfully',
             data: {
-                orderNumber: order.orderNumber,
-                orderId: order._id,
-                total: order.total,
-                status: order.status
+                orderNumber: createdOrders[0].orderNumber,
+                orderId: createdOrders[0]._id, // legacy frontend support
+                orderIds: createdOrders.map(o => o._id), // new multi-brand support
+                orders: createdOrders,
+                total: grandTotalAllOrders,
+                status: 'pending'
             }
         });
 
     } catch (error) {
         logger.error('Error during checkout', { error: error.message });
-        console.error('Error in checkoutCart:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to complete checkout',
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            error: error.message
         });
     }
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
     Truck, Package, Bike, Clock,
     CheckCircle2, XCircle, Search,
@@ -26,17 +27,22 @@ const Deliveries = () => {
     const [selectedDelivery, setSelectedDelivery] = useState(null);
     const [showModal, setShowModal] = useState(false);
 
+    const [searchParams] = useSearchParams();
+    const [brandFilter, setBrandFilter] = useState(searchParams.get('brand') || '');
+
     // Fetch Stats
     const { data: stats, isLoading: statsLoading } = useQuery({
-        queryKey: ['deliveries-stats'],
+        queryKey: ['deliveries-stats', brandFilter],
         queryFn: async () => {
-            const response = await api.get('/admin/deliveries/stats');
+            const params = new URLSearchParams();
+            if (brandFilter) params.append('brand', brandFilter);
+            const response = await api.get(`/admin/deliveries/stats?${params.toString()}`);
             const data = response.data.data;
-            localStorage.setItem('deliveries-stats-cache', JSON.stringify(data));
+            localStorage.setItem(`deliveries-stats-cache-${brandFilter}`, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('deliveries-stats-cache');
+            const cached = localStorage.getItem(`deliveries-stats-cache-${brandFilter}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         placeholderData: (previousData) => previousData,
@@ -45,18 +51,19 @@ const Deliveries = () => {
 
     // Fetch Deliveries
     const { data: deliveryData, isLoading: loading, isFetching: deliveriesFetching, refetch: refetchDeliveries } = useQuery({
-        queryKey: ['deliveries', page, statusFilter],
+        queryKey: ['deliveries', page, statusFilter, brandFilter],
         queryFn: async () => {
             const params = new URLSearchParams({ page, limit: 10, sortBy: 'createdAt', order: 'desc' });
             if (statusFilter !== 'all') params.append('status', statusFilter);
+            if (brandFilter) params.append('brand', brandFilter);
             const response = await api.get(`/admin/deliveries?${params.toString()}`);
             const data = response.data;
-            const cacheKey = `deliveries-cache-${page}-${statusFilter}`;
+            const cacheKey = `deliveries-cache-${page}-${statusFilter}-${brandFilter}`;
             localStorage.setItem(cacheKey, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cacheKey = `deliveries-cache-${page}-${statusFilter}`;
+            const cacheKey = `deliveries-cache-${page}-${statusFilter}-${brandFilter}`;
             const cached = localStorage.getItem(cacheKey);
             return cached ? JSON.parse(cached) : undefined;
         },
@@ -91,7 +98,7 @@ const Deliveries = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'assigned': return 'bg-blue-50 text-blue-700 border-blue-100';
+            case 'pending_acceptance': return 'bg-blue-50 text-blue-700 border-blue-100';
             case 'picked_up': return 'bg-indigo-50 text-indigo-700 border-indigo-100';
             case 'in_transit': return 'bg-orange-50 text-orange-700 border-orange-100';
             case 'delivered': return 'bg-green-50 text-green-700 border-green-100';
@@ -102,7 +109,7 @@ const Deliveries = () => {
 
     const getStatusIcon = (status) => {
         switch (status) {
-            case 'assigned': return <Clock className="w-3 h-3" />;
+            case 'pending_acceptance': return <Clock className="w-3 h-3" />;
             case 'picked_up': return <Package className="w-3 h-3" />;
             case 'in_transit': return <Truck className="w-3 h-3" />;
             case 'delivered': return <CheckCircle2 className="w-3 h-3" />;
@@ -129,14 +136,25 @@ const Deliveries = () => {
                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Delivery Tracking</h1>
                     <p className="text-gray-500 mt-1 font-bold">Track deliveries and riders in real-time</p>
                 </div>
-                <button
-                    onClick={handleSync}
-                    disabled={isSyncing}
-                    className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg hover:shadow-black/20 disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                    {isSyncing ? 'Refreshing...' : 'Refresh List'}
-                </button>
+                <div className="flex items-center gap-4">
+                    <select
+                        value={brandFilter}
+                        onChange={(e) => setBrandFilter(e.target.value)}
+                        className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700 h-[48px] rounded-2xl px-6"
+                    >
+                        <option value="">All Brands</option>
+                        <option value="teasntrees">Teas N Trees</option>
+                        <option value="littleh">LittleH Bakery</option>
+                    </select>
+                    <button
+                        onClick={handleSync}
+                        disabled={isSyncing}
+                        className="flex items-center gap-2 px-6 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg hover:shadow-black/20 disabled:opacity-50 h-[48px]"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                        {isSyncing ? 'Refreshing...' : 'Refresh List'}
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -159,7 +177,7 @@ const Deliveries = () => {
                         />
                     </div>
                     <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-                        {['all', 'assigned', 'picked_up', 'in_transit', 'delivered', 'failed'].map((status) => (
+                        {['all', 'pending_acceptance', 'picked_up', 'in_transit', 'delivered', 'failed'].map((status) => (
                             <button
                                 key={status}
                                 onClick={() => { setStatusFilter(status); setPage(1); }}
@@ -197,6 +215,11 @@ const Deliveries = () => {
                                                     <div className="min-w-0">
                                                         <p className="text-xs font-black text-gray-900 uppercase mb-0.5">{delivery.customerId?.name || '---'}</p>
                                                         <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Started {new Date(delivery.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                        {delivery.orderId?.brand && (
+                                                            <p className={`text-[8px] font-black uppercase tracking-widest mt-1 w-fit px-1.5 py-0.5 rounded ${delivery.orderId.brand === 'littleh' ? 'bg-pink-50 text-pink-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                                {delivery.orderId.brand === 'littleh' ? 'LITTLEH' : 'TEAS N TREES'}
+                                                            </p>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>

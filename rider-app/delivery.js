@@ -54,7 +54,7 @@ let otpPrompted = false;
 
 // State Machine Mapping
 const NEXT_ACTIONS = {
-    'assigned': { label: 'Start Pickup Route', next: 'heading_to_pickup', needsOtp: false },
+    'pending_acceptance': { label: 'Start Pickup Route', next: 'heading_to_pickup', needsOtp: false },
     'accepted': { label: 'Start Pickup Route', next: 'heading_to_pickup', needsOtp: false },
     'heading_to_pickup': { label: 'Arrived at Outlet', next: 'arrived_at_pickup', needsOtp: false },
     'arrived_at_pickup': { label: 'Package Picked Up', next: 'picked_up', needsOtp: true },

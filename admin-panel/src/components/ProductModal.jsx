@@ -12,7 +12,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
         isAvailable: true,
         isSeasonal: false,
         availableMonths: [],
-        tags: ''
+        tags: '',
+        brand: 'teasntrees'
     });
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
@@ -37,7 +38,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                     isAvailable: product.isAvailable ?? true,
                     isSeasonal: product.isSeasonal ?? false,
                     availableMonths: product.availableMonths || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                    tags: product.tags?.join(', ') || ''
+                    tags: product.tags?.join(', ') || '',
+                    brand: product.brand || 'teasntrees'
                 });
                 // Set image preview if editing
                 if (product.image) {
@@ -54,7 +56,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                     isAvailable: true,
                     isSeasonal: false,
                     availableMonths: [],
-                    tags: ''
+                    tags: '',
+                    brand: 'teasntrees'
                 });
                 setImagePreview('');
                 setImageFile(null);
@@ -266,6 +269,21 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                         {cat.name.toUpperCase()}
                                     </option>
                                 ))}
+                            </select>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                Brand Selection *
+                            </label>
+                            <select
+                                value={formData.brand}
+                                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all appearance-none text-gray-900"
+                                required
+                            >
+                                <option value="teasntrees">Teas N Trees</option>
+                                <option value="littleh">LittleH Bakery</option>
                             </select>
                         </div>
 

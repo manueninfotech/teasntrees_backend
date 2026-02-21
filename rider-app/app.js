@@ -1,6 +1,58 @@
 const API_BASE = 'http://localhost:5000/api/rider';
 const token = localStorage.getItem('riderToken');
 
+// Debug overlay to help diagnose unexpected reloads
+try {
+    const dbg = document.createElement('div');
+    dbg.id = 'dbgOverlay';
+    dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99999;padding:8px 10px;background:rgba(0,0,0,0.7);color:#fff;font-size:12px;border-radius:8px;max-width:320px;word-break:break-word';
+    dbg.innerText = `riderToken: ${localStorage.getItem('riderToken') || 'null'}`;
+    document.addEventListener('DOMContentLoaded', () => document.body.appendChild(dbg));
+
+    const updateDbg = (msg) => {
+        const now = new Date().toISOString();
+        dbg.innerText = `${now}\n${msg}\n[riderToken:${localStorage.getItem('riderToken') || 'null'}]`;
+    };
+    // expose for other functions in this file
+    window.__updateDbg = updateDbg;
+
+    // Monkey-patch localStorage methods to catch changes
+    const _setItem = localStorage.setItem.bind(localStorage);
+    const _removeItem = localStorage.removeItem.bind(localStorage);
+    const _clear = localStorage.clear.bind(localStorage);
+
+    localStorage.setItem = function (k, v) {
+        _setItem(k, v);
+        if (k === 'riderToken') updateDbg(`setItem -> ${k} = ${v}`);
+        return true;
+    };
+    localStorage.removeItem = function (k) {
+        _removeItem(k);
+        if (k === 'riderToken') updateDbg(`removeItem -> ${k}`);
+        return true;
+    };
+    localStorage.clear = function () {
+        _clear();
+        updateDbg('localStorage.clear()');
+        return true;
+    };
+
+    // Track redirect attempts
+    const _replace = window.location.replace.bind(window.location);
+    window.location.replace = function (url) {
+        updateDbg(`location.replace -> ${url}`);
+        return _replace(url);
+    };
+    const _hrefSet = Object.getOwnPropertyDescriptor(Location.prototype, 'href')?.set;
+    if (_hrefSet) {
+        Object.defineProperty(window.location, 'href', {
+            set(v) { updateDbg(`location.href set -> ${v}`); _hrefSet.call(window.location, v); }
+        });
+    }
+} catch (err) {
+    console.error('Debug overlay init failed', err);
+}
+
 // Auth Check
 function getValidToken() {
     const t = localStorage.getItem('riderToken');
@@ -91,6 +143,7 @@ async function fetchProfile() {
         const res = await fetch(`${API_BASE}/auth/profile`, { headers });
 
         if (res.status === 401) {
+            window.__updateDbg && window.__updateDbg('fetchProfile -> 401');
             handleLogout();
             return;
         }
@@ -106,6 +159,7 @@ async function fetchProfile() {
 }
 
 function handleLogout() {
+    window.__updateDbg && window.__updateDbg('handleLogout -> clearing localStorage and redirect');
     localStorage.clear();
     window.location.replace('login.html');
 }
@@ -207,7 +261,7 @@ function renderActiveOrder() {
             </div>
         </div>
 
-        ${activeDelivery.status === 'assigned' ? `
+        ${activeDelivery.status === 'pending_acceptance' ? `
             <div class="grid grid-cols-2 gap-3">
                 <button onclick="handleAction('accept', '${activeDelivery._id}')" class="py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-700 transition-all">Accept</button>
                 <button onclick="handleAction('reject', '${activeDelivery._id}')" class="py-4 bg-white/10 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white/20 transition-all">Decline</button>
@@ -232,7 +286,10 @@ window.handleAction = async (action, id) => {
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        location.reload();
+        // Refresh profile and active delivery without a full page reload
+        await fetchProfile();
+        await fetchActiveDelivery();
+        showNotification('Success', 'Action completed');
     } catch (err) {
         alert(err.message);
     }

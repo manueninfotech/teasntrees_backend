@@ -90,7 +90,8 @@ export const CartProvider = ({ children }) => {
         size: serverItem.customization,
         quantity: serverItem.quantity,
         description: serverItem.product.description,
-        isAvailable: serverItem.product.isAvailable
+        isAvailable: serverItem.product.isAvailable,
+        brand: serverItem.product.brand || 'teasntrees'
     });
 
     // Add Item
@@ -108,7 +109,8 @@ export const CartProvider = ({ children }) => {
             size: sizeLabel,
             quantity: 1,
             description: product.description,
-            isAvailable: true
+            isAvailable: true,
+            brand: product.brand || 'teasntrees'
         };
 
         if (isAuthenticated) {

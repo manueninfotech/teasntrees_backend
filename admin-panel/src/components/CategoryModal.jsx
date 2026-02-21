@@ -7,7 +7,8 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }) 
         name: '',
         description: '',
         icon: '',
-        displayOrder: ''
+        displayOrder: '',
+        brand: 'teasntrees'
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -20,7 +21,8 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }) 
                     name: category.name || '',
                     description: category.description || '',
                     icon: category.icon || '',
-                    displayOrder: category.displayOrder || ''
+                    displayOrder: category.displayOrder || '',
+                    brand: category.brand || 'teasntrees'
                 });
             } else {
                 // Add mode
@@ -28,7 +30,8 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }) 
                     name: '',
                     description: '',
                     icon: '',
-                    displayOrder: ''
+                    displayOrder: '',
+                    brand: 'teasntrees'
                 });
             }
             setError('');
@@ -142,6 +145,21 @@ export default function CategoryModal({ isOpen, onClose, category, onSuccess }) 
                                 placeholder="E.G. 1"
                                 className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
                             />
+                        </div>
+
+                        <div className="space-y-2 col-span-2">
+                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                                Brand Selection *
+                            </label>
+                            <select
+                                value={formData.brand}
+                                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest text-gray-900 focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all"
+                                required
+                            >
+                                <option value="teasntrees">Teas N Trees</option>
+                                <option value="littleh">LittleH Bakery</option>
+                            </select>
                         </div>
                     </div>
 

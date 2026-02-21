@@ -5,19 +5,24 @@ import Product from '../../models/Product.js';
 // Get dashboard statistics
 export const getDashboardStats = async (req, res) => {
     try {
+        const { brand } = req.query;
+        const queryOrder = brand ? { brand } : {};
+        const queryProduct = brand ? { brand } : {};
+
         // Get total counts
-        const totalOrders = await Order.countDocuments();
+        const totalOrders = await Order.countDocuments(queryOrder);
         const totalCustomers = await User.countDocuments({ role: 'customer' });
-        const totalProducts = await Product.countDocuments();
+        const totalProducts = await Product.countDocuments(queryProduct);
         const totalRiders = await User.countDocuments({ role: 'rider' });
         const activeRiders = await User.countDocuments({ role: 'rider', isActive: true });
-        const pendingOrders = await Order.countDocuments({ status: 'pending' });
+        const pendingOrders = await Order.countDocuments({ ...queryOrder, status: 'pending' });
 
         // Get today's data
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const todayOrders = await Order.countDocuments({
+            ...queryOrder,
             createdAt: { $gte: today }
         });
 
@@ -25,6 +30,7 @@ export const getDashboardStats = async (req, res) => {
         const todayRevenue = await Order.aggregate([
             {
                 $match: {
+                    ...queryOrder,
                     deliveredAt: { $gte: today },
                     status: 'delivered',
                     paymentStatus: 'paid'
@@ -35,12 +41,13 @@ export const getDashboardStats = async (req, res) => {
 
         // Get active orders
         const activeOrders = await Order.countDocuments({
+            ...queryOrder,
             status: { $in: ['pending', 'confirmed', 'preparing', 'ready', 'out-for-delivery'] }
         });
 
         // Get total revenue from delivered orders with paid status
         const revenueData = await Order.aggregate([
-            { $match: { status: 'delivered', paymentStatus: 'paid' } },
+            { $match: { ...queryOrder, status: 'delivered', paymentStatus: 'paid' } },
             { $group: { _id: null, total: { $sum: '$total' } } }
         ]);
 
@@ -48,19 +55,20 @@ export const getDashboardStats = async (req, res) => {
 
         // Get order status breakdown
         const ordersByStatus = await Order.aggregate([
+            { $match: queryOrder },
             { $group: { _id: '$status', count: { $sum: 1 } } }
         ]);
 
         // Get recent orders
-        const recentOrders = await Order.find()
+        const recentOrders = await Order.find(queryOrder)
             .sort({ createdAt: -1 })
             .limit(5)
             .populate('customerId', 'name')
-            .select('orderNumber items total status createdAt');
+            .select('orderNumber items total status createdAt brand');
 
         // Get top products (Accurate Best Sellers - only delivered)
         const topProducts = await Order.aggregate([
-            { $match: { status: 'delivered' } },
+            { $match: { ...queryOrder, status: 'delivered' } },
             { $unwind: '$items' },
             {
                 $group: {
@@ -103,7 +111,8 @@ export const getDashboardStats = async (req, res) => {
 // Get revenue analytics
 export const getRevenueAnalytics = async (req, res) => {
     try {
-        const { period = 'week' } = req.query; // week, month, year
+        const { period = 'week', brand } = req.query; // week, month, year
+        const queryOrder = brand ? { brand } : {};
 
         let startDate = new Date();
 
@@ -118,6 +127,7 @@ export const getRevenueAnalytics = async (req, res) => {
         const revenueData = await Order.aggregate([
             {
                 $match: {
+                    ...queryOrder,
                     status: 'delivered',
                     paymentStatus: 'paid',
                     createdAt: { $gte: startDate }
@@ -153,10 +163,11 @@ export const getRevenueAnalytics = async (req, res) => {
 // Get top selling products (Detailed list)
 export const getTopProducts = async (req, res) => {
     try {
-        const { limit = 10 } = req.query;
+        const { limit = 10, brand } = req.query;
+        const queryOrder = brand ? { brand } : {};
 
         const topProducts = await Order.aggregate([
-            { $match: { status: 'delivered' } },
+            { $match: { ...queryOrder, status: 'delivered' } },
             { $unwind: '$items' },
             {
                 $group: {
@@ -207,13 +218,14 @@ export const getTopProducts = async (req, res) => {
 // Get recent orders
 export const getRecentOrders = async (req, res) => {
     try {
-        const { limit = 10 } = req.query;
-        const recentOrders = await Order.find()
+        const { limit = 10, brand } = req.query;
+        const queryOrder = brand ? { brand } : {};
+        const recentOrders = await Order.find(queryOrder)
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
             .populate('customerId', 'name email')
             .populate('items.product', 'name price')
-            .select('orderNumber total status createdAt customerId');
+            .select('orderNumber total status createdAt customerId brand');
         res.status(200).json({
             success: true,
             count: recentOrders.length,

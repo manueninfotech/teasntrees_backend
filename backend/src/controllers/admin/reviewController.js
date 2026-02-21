@@ -7,9 +7,10 @@ import activityLogService from '../../services/activityLogService.js';
 // Get all reviews with filters
 export const getAllReviews = async (req, res) => {
     try {
-        const { page = 1, limit = 20, status, productId, riderId, rating } = req.query;
+        const { page = 1, limit = 20, status, productId, riderId, rating, brand } = req.query;
 
         const query = {};
+        if (brand) query.brand = brand;
 
         if (status === 'approved') {
             query.isApproved = true;
@@ -361,26 +362,28 @@ export const getRiderReviews = async (req, res) => {
     }
 };
 
-// Get review statistics
 export const getReviewStats = async (req, res) => {
     try {
-        const totalReviews = await Review.countDocuments();
-        const approvedReviews = await Review.countDocuments({ isApproved: true });
-        const pendingReviews = await Review.countDocuments({ isApproved: false });
+        const { brand } = req.query;
+        const query = brand ? { brand } : {};
+
+        const totalReviews = await Review.countDocuments(query);
+        const approvedReviews = await Review.countDocuments({ ...query, isApproved: true });
+        const pendingReviews = await Review.countDocuments({ ...query, isApproved: false });
 
         // Average ratings
         const avgFoodRating = await Review.aggregate([
-            { $match: { foodRating: { $exists: true } } },
+            { $match: { ...query, foodRating: { $exists: true } } },
             { $group: { _id: null, avg: { $avg: '$foodRating' } } }
         ]);
 
         const avgRiderRating = await Review.aggregate([
-            { $match: { riderRating: { $exists: true } } },
+            { $match: { ...query, riderRating: { $exists: true } } },
             { $group: { _id: null, avg: { $avg: '$riderRating' } } }
         ]);
 
         const avgProductRating = await Review.aggregate([
-            { $match: { productRating: { $exists: true } } },
+            { $match: { ...query, productRating: { $exists: true } } },
             { $group: { _id: null, avg: { $avg: '$productRating' } } }
         ]);
 
@@ -394,10 +397,10 @@ export const getReviewStats = async (req, res) => {
                 averageRiderRating: avgRiderRating.length > 0 ? avgRiderRating[0].avg.toFixed(1) : 0,
                 averageProductRating: avgProductRating.length > 0 ? avgProductRating[0].avg.toFixed(1) : 0,
                 averageSiteRating: (await Review.aggregate([
-                    { $match: { type: 'site' } },
+                    { $match: { ...query, type: 'site' } },
                     { $group: { _id: null, avg: { $avg: '$foodRating' } } }
                 ]))[0]?.avg?.toFixed(1) || 0,
-                totalSiteReviews: await Review.countDocuments({ type: 'site' })
+                totalSiteReviews: await Review.countDocuments({ ...query, type: 'site' })
             }
         });
 

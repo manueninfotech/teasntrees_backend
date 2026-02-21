@@ -4,8 +4,8 @@ import { X, ZoomIn, Utensils, Coffee, Armchair, LayoutGrid } from 'lucide-react'
 import { cn } from '../lib/utils';
 import matchaLatte from '../assets/matchalatte.jpg';
 
-// Categorized images
-const images = [
+// Categorized images - Teas N Trees
+const teasImages = [
     // Interior
     { id: 1, category: 'Interior', src: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800", alt: "Main Hall", span: "row-span-2 col-span-1" },
     { id: 2, category: 'Interior', src: "https://thumbs.dreamstime.com/b/cozy-indoor-cafe-seating-area-abundant-greenery-368292740.jpg", alt: "Green Corner", span: "row-span-1 col-span-1" },
@@ -23,6 +23,25 @@ const images = [
     { id: 10, category: 'Drinks', src: matchaLatte, alt: "Matcha Latte", span: "row-span-1 col-span-1" },
 ];
 
+// Categorized images - LittleH Bakery
+const littlehImages = [
+    // Interior
+    { id: 1, category: 'Interior', src: "https://images.unsplash.com/photo-1557142046-c704a3adf364?auto=format&fit=crop&q=80&w=800", alt: "Bakery Counter", span: "row-span-2 col-span-1" },
+    { id: 2, category: 'Interior', src: "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&q=80&w=800", alt: "Display Case", span: "row-span-1 col-span-1" },
+    { id: 3, category: 'Interior', src: "https://images.unsplash.com/photo-1517433670267-08bbd4be890f?auto=format&fit=crop&q=80&w=800", alt: "Pink Decor", span: "row-span-1 col-span-1" },
+
+    // Food
+    { id: 4, category: 'Food', src: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&q=80&w=800", alt: "Custom Cake", span: "row-span-1 col-span-1" },
+    { id: 5, category: 'Food', src: "https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&q=80&w=800", alt: "Cupcakes", span: "row-span-2 col-span-1" },
+    { id: 6, category: 'Food', src: "https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&q=80&w=800", alt: "Macarons", span: "row-span-1 col-span-1" },
+
+    // Drinks
+    { id: 7, category: 'Drinks', src: "https://images.unsplash.com/photo-1579992357154-faf4bde95b3d?auto=format&fit=crop&q=80&w=800", alt: "Milkshake", span: "row-span-1 col-span-1" },
+    { id: 8, category: 'Drinks', src: "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800", alt: "Hot Chocolate", span: "row-span-1 col-span-1" },
+    { id: 9, category: 'Drinks', src: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&q=80&w=800", alt: "Specialty Drink", span: "row-span-1 col-span-1" },
+    { id: 10, category: 'Drinks', src: matchaLatte, alt: "Matcha Latte", span: "row-span-1 col-span-1" },
+];
+
 const categories = [
     { id: 'All', label: 'All', icon: LayoutGrid },
     { id: 'Interior', label: 'Interior', icon: Armchair },
@@ -30,13 +49,18 @@ const categories = [
     { id: 'Drinks', label: 'Drinks', icon: Coffee },
 ];
 
+import { useBrand } from '../context/BrandContext';
+
 const GalleryPage = () => {
+    const { brand, theme } = useBrand();
     const [selectedImage, setSelectedImage] = useState(null);
     const [activeCategory, setActiveCategory] = useState('All');
 
+    const imagesToUse = theme.isTeasNTrees ? teasImages : littlehImages;
+
     const filteredImages = activeCategory === 'All'
-        ? images
-        : images.filter(img => img.category === activeCategory);
+        ? imagesToUse
+        : imagesToUse.filter(img => img.category === activeCategory);
 
     return (
         <div className="min-h-screen pt-24 pb-20 bg-slate-50">
@@ -44,10 +68,12 @@ const GalleryPage = () => {
 
                 {/* Header */}
                 <div className="text-center max-w-3xl mx-auto mb-12">
-                    <h1 className="text-4xl font-bold text-slate-800 mb-4">Gallery</h1>
-                    <div className="w-20 h-1.5 bg-gradient-to-r from-cafe-emerald to-cafe-teal rounded-full mx-auto mb-6" />
+                    <h1 className="text-4xl font-bold text-slate-800 mb-4">{theme.brandName} Gallery</h1>
+                    <div className={`w-20 h-1.5 bg-gradient-to-r ${theme.gradientClass} rounded-full mx-auto mb-6`} />
                     <p className="text-slate-500 text-lg">
-                        Explore the visuals of our cozy spaces, delicious meals, and refreshing brews.
+                        {theme.isTeasNTrees
+                            ? "Explore the visuals of our cozy spaces, delicious meals, and refreshing brews."
+                            : "Explore the magical treats, custom cakes, and beautiful pastries from our bakery."}
                     </p>
                 </div>
 
@@ -60,7 +86,7 @@ const GalleryPage = () => {
                             className={cn(
                                 "px-6 py-3 rounded-full flex items-center gap-2 font-bold transition-all shadow-sm",
                                 activeCategory === cat.id
-                                    ? "bg-cafe-emerald text-white shadow-emerald-200 shadow-lg scale-105"
+                                    ? `${theme.primaryColorClass} text-white ${theme.primaryColorClass.replace('bg-', 'shadow-')}/40 shadow-lg scale-105`
                                     : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
                             )}
                         >

@@ -3,11 +3,13 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Star, Clock, Coffee, Truck, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
+import { useBrand } from '../context/BrandContext';
 import Logo from '../assets/logoteasntrees-removebg-preview.png';
 import HeroImage from '../assets/TTNoName.png';
 
 const HomePage = () => {
     const navigate = useNavigate();
+    const { brand, theme } = useBrand();
 
     return (
         <div className="min-h-screen">
@@ -47,12 +49,14 @@ const HomePage = () => {
                         >
                             <div className="flex flex-col items-start gap-4">
                                 <h1 className="text-5xl lg:text-7xl font-black tracking-tighter leading-[1.1] text-slate-900">
-                                    Welcome to <span className="text-cafe-emerald">Teas N Trees</span>
+                                    Welcome to <span className={theme.textColorClass}>{theme.brandName}</span>
                                 </h1>
                             </div>
 
                             <p className="text-xl lg:text-2xl text-slate-600 max-w-xl font-medium leading-relaxed">
-                                Where nature meets your perfect cup. Authentic Assam teas, artisan coffee, and nature-inspired vibes.
+                                {theme.isTeasNTrees
+                                    ? "Where nature meets your perfect cup. Authentic Assam teas, artisan coffee, and nature-inspired vibes."
+                                    : "Baking happiness daily. Fresh pastries, custom cakes, and delightful sweet treats made with love."}
                             </p>
 
                             <div className="flex flex-wrap gap-4 pt-4">
@@ -60,7 +64,7 @@ const HomePage = () => {
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => navigate('/menu')}
-                                    className="px-8 py-4 bg-gradient-to-r from-cafe-emerald to-cafe-teal text-white rounded-full text-lg font-bold shadow-lg shadow-cafe-emerald/30 hover:shadow-2xl hover:shadow-cafe-emerald/40 transition-all flex items-center gap-2"
+                                    className={`px-8 py-4 bg-gradient-to-r ${theme.gradientClass} text-white rounded-full text-lg font-bold shadow-lg ${theme.shadowClass} ${theme.gradientHoverClass} transition-all flex items-center gap-2`}
                                 >
                                     Explore Our Menu <ArrowRight className="w-5 h-5" />
                                 </motion.button>
@@ -87,20 +91,26 @@ const HomePage = () => {
                         {/* Hero Image / Animation */}
                         <div className="relative z-0 flex justify-center lg:justify-end">
                             {/* Abstract Background Blobs */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cafe-emerald/20 rounded-full blur-[100px] animate-pulse-slow" />
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-cafe-orange/20 rounded-full blur-[80px] translate-x-20 translate-y-20" />
+                            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] ${theme.isLittleH ? 'bg-pink-400/20' : 'bg-cafe-emerald/20'} rounded-full blur-[100px] animate-pulse-slow`} />
+                            <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] ${theme.isLittleH ? 'bg-purple-300/20' : 'bg-cafe-orange/20'} rounded-full blur-[80px] translate-x-20 translate-y-20`} />
 
                             {/* 3D Floating Cup Placeholder using actual image */}
                             <motion.div
                                 animate={{ y: [-20, 20, -20] }}
                                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-                                className="relative w-[300px] h-[300px] lg:w-[500px] lg:h-[500px] flex items-center justify-center"
+                                className="relative w-[300px] h-[300px] lg:w-[500px] lg:h-[500px] flex items-center justify-center font-black text-[200px]"
                             >
-                                <img
-                                    src={HeroImage}
-                                    alt="Teas N Trees Cup"
-                                    className="w-full h-full object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
-                                />
+                                {theme.isTeasNTrees ? (
+                                    <img
+                                        src={HeroImage}
+                                        alt="Teas N Trees Cup"
+                                        className="w-full h-full object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+                                    />
+                                ) : (
+                                    <div className="hover:scale-105 transition-transform duration-500 drop-shadow-2xl">
+                                        🧁
+                                    </div>
+                                )}
 
                                 {/* Floating Elements */}
                                 <motion.div
@@ -123,9 +133,9 @@ const HomePage = () => {
             <section className="py-20 bg-white relative overflow-hidden">
                 <div className="container mx-auto px-4 lg:px-8 relative z-10">
                     <div className="text-center mb-16">
-                        <h2 className="text-4xl font-bold text-slate-900 mb-4">Why Choose Teas N Trees?</h2>
-                        <div className="w-20 h-1.5 bg-gradient-to-r from-cafe-emerald to-cafe-teal rounded-full mx-auto mb-6" />
-                        <p className="text-lg text-slate-600">Experience the difference in every cup</p>
+                        <h2 className="text-4xl font-bold text-slate-900 mb-4">Why Choose {theme.brandName}?</h2>
+                        <div className={`w-20 h-1.5 bg-gradient-to-r ${theme.gradientClass} rounded-full mx-auto mb-6`} />
+                        <p className="text-lg text-slate-600">Experience the difference in every {theme.isLittleH ? 'bite' : 'cup'}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -144,7 +154,9 @@ const HomePage = () => {
                         >
                             <div className="text-5xl mb-6">👨🍳</div>
                             <h3 className="text-xl font-bold mb-3 text-slate-800">Expert Craftsmanship</h3>
-                            <p className="text-slate-600 leading-relaxed">Skilled baristas and tea masters creating perfect beverages</p>
+                            <p className="text-slate-600 leading-relaxed">
+                                {theme.isTeasNTrees ? 'Skilled baristas and tea masters creating perfect beverages' : 'Master bakers creating spectacular custom cakes and pastries'}
+                            </p>
                         </motion.div>
 
                         <motion.div

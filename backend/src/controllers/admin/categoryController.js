@@ -11,11 +11,18 @@ export const getAllCategories = async (req, res) => {
         const order = req.query.order === 'desc' ? -1 : 1;
         const skip = (page - 1) * limit;
 
-        const categories = await Category.find()
+        const { brand } = req.query;
+
+        let filter = {};
+        if (brand) {
+            filter.brand = brand;
+        }
+
+        const categories = await Category.find(filter)
             .sort({ [sortBy]: order })
             .limit(limit)
             .skip(skip);
-        const total = await Category.countDocuments();
+        const total = await Category.countDocuments(filter);
         res.status(200).json({
             success: true,
             count: categories.length,
@@ -63,7 +70,7 @@ export const getCategoryById = async (req, res) => {
 // create new category
 export const createCategory = async (req, res) => {
     try {
-        const { name, description, icon, displayOrder } = req.body;
+        const { name, description, icon, displayOrder, brand } = req.body;
         // check if category already exists
         const existingCategory = await Category.findOne({ name });
         if (existingCategory) {
@@ -76,7 +83,8 @@ export const createCategory = async (req, res) => {
             name,
             description,
             icon,
-            displayOrder
+            displayOrder,
+            brand: brand || 'teasntrees'
         });
 
         // Emit Socket.io event DIRECTLY
@@ -116,7 +124,7 @@ export const createCategory = async (req, res) => {
 // update category
 export const updateCategory = async (req, res) => {
     try {
-        const { name, description, icon, displayOrder } = req.body;
+        const { name, description, icon, displayOrder, brand } = req.body;
         const category = await Category.findById(req.params.id);
         if (!category) {
             return res.status(404).json({
@@ -138,6 +146,7 @@ export const updateCategory = async (req, res) => {
         category.description = description || category.description;
         category.icon = icon || category.icon;
         category.displayOrder = displayOrder !== undefined ? displayOrder : category.displayOrder;
+        if (brand) category.brand = brand;
 
         await category.save();
 

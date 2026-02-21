@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import CategoryTabs from '../components/CategoryTabs';
 import MenuCard from '../components/MenuCard';
 import { productService } from '../services/productService';
+import { useBrand } from '../context/BrandContext';
 
 // Debounce hook for search
 const useDebounce = (value, delay) => {
@@ -24,6 +25,7 @@ const useDebounce = (value, delay) => {
 
 const MenuPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const { brand, theme } = useBrand();
 
     // 1. URL Source of Truth
     const queryQ = searchParams.get('q') || ''; // From Navbar
@@ -77,8 +79,8 @@ const MenuPage = () => {
 
     // Fetch Categories
     const { data: rawCategories } = useQuery({
-        queryKey: ['categories'],
-        queryFn: productService.getCategories,
+        queryKey: ['categories', brand],
+        queryFn: () => productService.getCategories(brand),
     });
 
     const categories = [
@@ -88,12 +90,13 @@ const MenuPage = () => {
 
     // Fetch Products (Backend supports both, but UI handles exclusivity)
     const { data: products, isLoading, isError, error } = useQuery({
-        queryKey: ['products', activeCategory, queryQ, querySearch],
+        queryKey: ['products', activeCategory, queryQ, querySearch, brand],
         queryFn: () => {
             return productService.getAllProducts({
                 category: activeCategory,
                 q: queryQ,
-                search: querySearch
+                search: querySearch,
+                brand: brand
             });
         },
     });
@@ -134,7 +137,7 @@ const MenuPage = () => {
                 {(queryQ || querySearch) && (
                     <div className="mb-6 flex flex-wrap items-center gap-3">
                         {queryQ && (
-                            <div className="bg-cafe-emerald/10 text-cafe-emerald px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium border border-cafe-emerald/20">
+                            <div className={`bg-${theme.primaryColor}/10 ${theme.textColorClass} px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium border border-${theme.primaryColor}/20`}>
                                 Global: "{queryQ}"
                                 <button onClick={() => setSearchParams({})} className="hover:text-red-500 transition-colors">
                                     <XCircle className="w-4 h-4" />
@@ -163,7 +166,7 @@ const MenuPage = () => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Filter these results..."
-                            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-cafe-emerald/50 transition-all shadow-sm"
+                            className={`w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-${theme.primaryColor}/50 transition-all shadow-sm`}
                         />
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
 
@@ -180,7 +183,7 @@ const MenuPage = () => {
 
                 {isLoading && (
                     <div className="flex justify-center items-center h-64">
-                        <Loader2 className="w-10 h-10 text-cafe-emerald animate-spin" />
+                        <Loader2 className={`w-10 h-10 ${theme.textColorClass} animate-spin`} />
                     </div>
                 )}
 
@@ -203,7 +206,7 @@ const MenuPage = () => {
                         No items found.
                         <button
                             onClick={clearAll}
-                            className="mt-4 text-cafe-emerald hover:underline block mx-auto"
+                            className={`mt-4 ${theme.textColorClass} hover:underline block mx-auto`}
                         >
                             Clear All Search
                         </button>

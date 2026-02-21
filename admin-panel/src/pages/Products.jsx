@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import ProductModal from '../components/ProductModal';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -35,6 +35,8 @@ export default function Products() {
     const { socket } = useSocket();
     const queryClient = useQueryClient();
 
+    const [searchParams] = useSearchParams();
+
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
@@ -43,19 +45,21 @@ export default function Products() {
     const [bulkAction, setBulkAction] = useState(null);
 
     const [pagination, setPagination] = useState({ currentPage: 1, limit: 12 });
-    const [filters, setFilters] = useState({ category: '', tag: '', availability: 'all' });
+    const [filters, setFilters] = useState({ category: '', tag: '', availability: 'all', brand: searchParams.get('brand') || '' });
 
     // Fetch Categories for Filter
     const { data: categoriesData } = useQuery({
-        queryKey: ['categories-list'],
+        queryKey: ['categories-list', filters.brand],
         queryFn: async () => {
-            const response = await api.get('/admin/categories?limit=100');
+            const params = new URLSearchParams({ limit: 100 });
+            if (filters.brand) params.append('brand', filters.brand);
+            const response = await api.get(`/admin/categories?${params.toString()}`);
             const data = response.data.data || [];
-            localStorage.setItem('categories-list-cache', JSON.stringify(data));
+            localStorage.setItem(`categories-list-cache-${filters.brand}`, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('categories-list-cache');
+            const cached = localStorage.getItem(`categories-list-cache-${filters.brand}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         placeholderData: (previousData) => previousData,
@@ -68,18 +72,19 @@ export default function Products() {
         queryFn: async () => {
             const params = new URLSearchParams({ page: pagination.currentPage, limit: pagination.limit, search: searchTerm });
             if (filters.category) params.append('category', filters.category);
+            if (filters.brand) params.append('brand', filters.brand);
             if (filters.tag) params.append('tags', filters.tag);
             if (filters.availability !== 'all') {
                 params.append('isAvailable', filters.availability === 'available' ? 'true' : 'false');
             }
             const response = await api.get(`/admin/products?${params.toString()}`);
             const data = response.data;
-            const cacheKey = `products-cache-${pagination.currentPage}-${filters.category}`;
+            const cacheKey = `products-cache-${pagination.currentPage}-${filters.category}-${filters.brand}`;
             localStorage.setItem(cacheKey, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cacheKey = `products-cache-${pagination.currentPage}-${filters.category}`;
+            const cacheKey = `products-cache-${pagination.currentPage}-${filters.category}-${filters.brand}`;
             const cached = localStorage.getItem(cacheKey);
             return cached ? JSON.parse(cached) : undefined;
         },
@@ -90,15 +95,17 @@ export default function Products() {
 
     // Fetch Global Stats
     const { data: statsData, isLoading: statsLoading } = useQuery({
-        queryKey: ['products-stats'],
+        queryKey: ['products-stats', filters.brand],
         queryFn: async () => {
-            const response = await api.get('/admin/products/stats');
+            const params = new URLSearchParams();
+            if (filters.brand) params.append('brand', filters.brand);
+            const response = await api.get(`/admin/products/stats?${params.toString()}`);
             const data = response.data.data;
-            localStorage.setItem('products-stats-cache', JSON.stringify(data));
+            localStorage.setItem(`products-stats-cache-${filters.brand}`, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('products-stats-cache');
+            const cached = localStorage.getItem(`products-stats-cache-${filters.brand}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         staleTime: 30000 // Cache for 30 seconds
@@ -198,7 +205,12 @@ export default function Products() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input type="text" placeholder="Search by name, SKU, or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input pl-12 text-sm font-bold" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <select value={filters.brand} onChange={(e) => setFilters({ ...filters, brand: e.target.value })} className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700">
+                        <option value="">All Brands</option>
+                        <option value="teasntrees">Teas N Trees</option>
+                        <option value="littleh">LittleH Bakery</option>
+                    </select>
                     <select value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })} className="input text-xs font-black uppercase">
                         <option value="">All Categories</option>
                         {categories.map((cat) => (
@@ -261,7 +273,10 @@ export default function Products() {
                                             <h3 className="font-black text-gray-900 uppercase truncate text-sm flex-1">{product.name}</h3>
                                             {product.isSeasonal && <span className="bg-orange-50 text-orange-600 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md">Seasonal</span>}
                                         </div>
-                                        <p className="text-xs text-gray-400 font-bold line-clamp-1">{product.description}</p>
+                                        <p className="text-xs text-gray-400 font-bold line-clamp-1 mb-2">{product.description}</p>
+                                        <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md ${product.brand === 'littleh' ? 'bg-pink-50 text-pink-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                            {product.brand === 'littleh' ? 'LITTLEH BAKERY' : 'TEAS N TREES'}
+                                        </span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-2xl font-black text-gray-900">₹{product.displayPrice}</span>

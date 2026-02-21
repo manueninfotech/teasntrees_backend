@@ -70,7 +70,7 @@ export const userService = {
     },
 
     removeFromWishlist: async (productId) => {
-        const response = await api.delete(`/customer/wishlist/${productId}`);
+        const response = await api.delete(`/customer/wishlist/remove/${productId}`);
         return response.data.data;
     }
 };

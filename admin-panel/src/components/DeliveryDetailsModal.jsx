@@ -110,7 +110,7 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
     if (!isOpen || !delivery) return null;
 
     const timeline = [
-        { status: 'assigned', label: 'Rider Assigned', time: delivery.assignedAt || delivery.createdAt, icon: User, color: 'text-blue-500', bg: 'bg-blue-50' },
+        { status: 'pending_acceptance', label: 'Pending Rider Acceptance', time: delivery.assignedAt || delivery.createdAt, icon: User, color: 'text-blue-500', bg: 'bg-blue-50' },
         { status: 'picked_up', label: 'Order Picked Up', time: delivery.pickedUpAt, icon: Package, color: 'text-indigo-500', bg: 'bg-indigo-50' },
         { status: 'in_transit', label: 'Out for Delivery', time: delivery.pickedUpAt, icon: Navigation, color: 'text-orange-500', bg: 'bg-orange-50' },
         { status: 'delivered', label: 'Delivered', time: delivery.deliveredAt, icon: CheckCircle2, color: 'text-green-500', bg: 'bg-green-50' },
@@ -143,6 +143,12 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                     }`}>
                                     {delivery.status}
                                 </span>
+                                {delivery.orderId?.brand && (
+                                    <span className={`px-3 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border ${delivery.orderId.brand === 'littleh' ? 'bg-pink-50 text-pink-700 border-pink-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                        }`}>
+                                        {delivery.orderId.brand === 'littleh' ? 'LITTLEH BAKERY' : 'TEAS N TREES'}
+                                    </span>
+                                )}
                             </div>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">Order ID: #{delivery.orderId?._number || delivery.orderId?.orderNumber || 'N/A'}</p>
                         </div>

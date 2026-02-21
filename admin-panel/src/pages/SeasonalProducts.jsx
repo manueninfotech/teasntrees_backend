@@ -16,7 +16,7 @@ import {
     RefreshCw,
     ArrowRight
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '../context/SocketContext';
 
@@ -39,19 +39,24 @@ export default function SeasonalProducts() {
     const [editingProduct, setEditingProduct] = useState(null);
     const [error, setError] = useState(null);
 
+    const [searchParams] = useSearchParams();
+    const [brandFilter, setBrandFilter] = useState(searchParams.get('brand') || '');
+
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     // Fetch Seasonal Products
     const { data: seasonalProducts = [], isLoading: seasonalLoading } = useQuery({
-        queryKey: ['products-seasonal-all'],
+        queryKey: ['products-seasonal-all', brandFilter],
         queryFn: async () => {
-            const response = await api.get('/admin/products/seasonal/all');
+            const params = new URLSearchParams();
+            if (brandFilter) params.append('brand', brandFilter);
+            const response = await api.get(`/admin/products/seasonal/all?${params.toString()}`);
             const data = response.data.data || [];
-            localStorage.setItem('products-seasonal-all-cache', JSON.stringify(data));
+            localStorage.setItem(`products-seasonal-all-cache-${brandFilter}`, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('products-seasonal-all-cache');
+            const cached = localStorage.getItem(`products-seasonal-all-cache-${brandFilter}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         placeholderData: (previousData) => previousData,
@@ -60,15 +65,17 @@ export default function SeasonalProducts() {
 
     // Fetch Out-of-Season Products
     const { data: outOfSeasonProducts = [], isLoading: outOfSeasonLoading } = useQuery({
-        queryKey: ['products-seasonal-out-of-season'],
+        queryKey: ['products-seasonal-out-of-season', brandFilter],
         queryFn: async () => {
-            const response = await api.get('/admin/products/seasonal/out-of-season');
+            const params = new URLSearchParams();
+            if (brandFilter) params.append('brand', brandFilter);
+            const response = await api.get(`/admin/products/seasonal/out-of-season?${params.toString()}`);
             const data = response.data.data || [];
-            localStorage.setItem('products-seasonal-out-of-season-cache', JSON.stringify(data));
+            localStorage.setItem(`products-seasonal-out-of-season-cache-${brandFilter}`, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('products-seasonal-out-of-season-cache');
+            const cached = localStorage.getItem(`products-seasonal-out-of-season-cache-${brandFilter}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         placeholderData: (previousData) => previousData,
@@ -111,16 +118,27 @@ export default function SeasonalProducts() {
                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Seasonal Items</h1>
                     <p className="text-gray-500 mt-1 font-bold">Manage items available only at certain times</p>
                 </div>
-                <button
-                    onClick={() => {
-                        queryClient.invalidateQueries({ queryKey: ['products-seasonal-all'] });
-                        queryClient.invalidateQueries({ queryKey: ['products-seasonal-out-of-season'] });
-                    }}
-                    disabled={loading}
-                    className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
-                >
-                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
-                </button>
+                <div className="flex items-center gap-4">
+                    <select
+                        value={brandFilter}
+                        onChange={(e) => setBrandFilter(e.target.value)}
+                        className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700 h-[48px] rounded-2xl px-6"
+                    >
+                        <option value="">All Brands</option>
+                        <option value="teasntrees">Teas N Trees</option>
+                        <option value="littleh">LittleH Bakery</option>
+                    </select>
+                    <button
+                        onClick={() => {
+                            queryClient.invalidateQueries({ queryKey: ['products-seasonal-all'] });
+                            queryClient.invalidateQueries({ queryKey: ['products-seasonal-out-of-season'] });
+                        }}
+                        disabled={loading}
+                        className="p-3 bg-white border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-all disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin text-indigo-600' : 'text-gray-400'}`} />
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

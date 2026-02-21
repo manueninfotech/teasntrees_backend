@@ -34,10 +34,43 @@ const reviewsData = [
     }
 ];
 
+const littlehReviewsData = [
+    {
+        id: 1,
+        name: "Priya Reddy",
+        rating: 5,
+        text: "The custom cake for my daughter's birthday was absolutely beautiful and tasted divine! Highly recommend.",
+        platform: "Google Reviews"
+    },
+    {
+        id: 2,
+        name: "Rahul M",
+        rating: 5,
+        text: "Best macarons in town. The pink ambience makes it such a happy place to grab a dessert.",
+        platform: "Google Reviews"
+    },
+    {
+        id: 3,
+        name: "Anjali K",
+        rating: 4,
+        text: "Got the chocolate truffle pastry and it was incredibly soft. Just wish they had more seating.",
+        platform: "Google Reviews"
+    },
+    {
+        id: 4,
+        name: "Vikram N",
+        rating: 5,
+        text: "Ordered a box of assorted cupcakes for an office party. Everyone loved them! Hidden gem.",
+        platform: "Google Reviews"
+    }
+];
+
 import { reviewService } from '../services/reviewService';
 import toast from 'react-hot-toast';
+import { useBrand } from '../context/BrandContext';
 
 const ReviewsPage = () => {
+    const { brand, theme } = useBrand();
     const [dynamicReviews, setDynamicReviews] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [rating, setRating] = useState(0);
@@ -107,9 +140,9 @@ const ReviewsPage = () => {
                     </motion.div>
 
                     <h1 className="text-4xl font-bold text-slate-800 mb-4">Loved by Guntur</h1>
-                    <div className="w-20 h-1.5 bg-gradient-to-r from-cafe-emerald to-cafe-teal rounded-full mx-auto mb-6" />
+                    <div className={`w-20 h-1.5 bg-gradient-to-r ${theme.gradientClass} rounded-full mx-auto mb-6`} />
                     <p className="text-slate-500 text-lg">
-                        See what our customers are saying about their "LittleH" moments at Teas N Trees.
+                        See what our customers are saying about their "{theme.brandName}" moments.
                     </p>
                 </div>
 
@@ -117,13 +150,13 @@ const ReviewsPage = () => {
                 <div className="max-w-5xl mx-auto mb-20">
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                            <div className="w-12 h-12 border-4 border-cafe-emerald border-t-transparent rounded-full animate-spin mb-4" />
+                            <div className={`w-12 h-12 border-4 ${theme.primaryColorClass.replace('bg-', 'border-')} border-t-transparent rounded-full animate-spin mb-4`} />
                             <p className="text-slate-500 font-medium">Fetching the latest reviews...</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
                             {/* Static Reviews first for established social proof */}
-                            {reviewsData.map((review, idx) => (
+                            {(theme.isTeasNTrees ? reviewsData : littlehReviewsData).map((review, idx) => (
                                 <motion.div
                                     key={`static-${review.id}`}
                                     initial={{ opacity: 0, y: 20 }}
@@ -132,7 +165,7 @@ const ReviewsPage = () => {
                                     transition={{ delay: idx * 0.1 }}
                                     className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative hover:shadow-lg transition-all flex flex-col h-full"
                                 >
-                                    <Quote className="absolute top-8 right-8 w-10 h-10 text-cafe-emerald/10" />
+                                    <Quote className={`absolute top-8 right-8 w-10 h-10 ${theme.textColorClass} opacity-10`} />
                                     <div className="flex items-center gap-1 mb-4">
                                         {[...Array(review.rating)].map((_, i) => (
                                             <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -162,10 +195,10 @@ const ReviewsPage = () => {
                                     initial={{ opacity: 0, y: 20 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     viewport={{ once: true }}
-                                    transition={{ delay: (idx + reviewsData.length) * 0.1 }}
+                                    transition={{ delay: (idx + (theme.isTeasNTrees ? reviewsData.length : littlehReviewsData.length)) * 0.1 }}
                                     className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 relative hover:shadow-lg transition-all flex flex-col h-full"
                                 >
-                                    <Quote className="absolute top-8 right-8 w-10 h-10 text-cafe-emerald/10" />
+                                    <Quote className={`absolute top-8 right-8 w-10 h-10 ${theme.textColorClass} opacity-10`} />
                                     <div className="flex items-center gap-1 mb-4">
                                         {[...Array(review.foodRating || 5)].map((_, i) => (
                                             <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400" />
@@ -176,7 +209,7 @@ const ReviewsPage = () => {
                                     </p>
                                     <div className="flex items-center justify-between mt-auto">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-cafe-emerald/10 flex items-center justify-center font-bold text-cafe-emerald">
+                                            <div className={`w-10 h-10 rounded-full ${theme.primaryColorClass.replace('bg-', 'bg-')}/10 flex items-center justify-center font-bold ${theme.textColorClass}`}>
                                                 {(review.customerId?.name || 'Customer')[0]}
                                             </div>
                                             <div>
@@ -201,8 +234,8 @@ const ReviewsPage = () => {
                     className="max-w-xl mx-auto bg-white rounded-3xl p-8 md:p-12 shadow-xl border border-slate-100"
                 >
                     <div className="text-center mb-8">
-                        <div className="w-14 h-14 bg-cafe-emerald/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <MessageSquarePlus className="w-7 h-7 text-cafe-emerald" />
+                        <div className={`w-14 h-14 ${theme.primaryColorClass.replace('bg-', 'bg-')}/10 rounded-full flex items-center justify-center mx-auto mb-4`}>
+                            <MessageSquarePlus className={`w-7 h-7 ${theme.textColorClass}`} />
                         </div>
                         <h2 className="text-2xl font-bold text-slate-800">Write a Review</h2>
                         <p className="text-slate-500">Share your experience with us directly.</p>
@@ -228,7 +261,7 @@ const ReviewsPage = () => {
                                         setComment('');
                                         setName('');
                                     }}
-                                    className="mt-8 text-cafe-emerald font-medium hover:underline"
+                                    className={`mt-8 ${theme.textColorClass} font-medium hover:underline`}
                                 >
                                     Write another review
                                 </button>
@@ -282,7 +315,7 @@ const ReviewsPage = () => {
                                         value={comment}
                                         onChange={(e) => setComment(e.target.value)}
                                         rows={4}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none resize-none"
+                                        className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-${theme.primaryColor} focus:ring-2 focus:ring-${theme.primaryColor}/20 transition-all outline-none resize-none`}
                                         placeholder="Tell us what you liked..."
                                     />
                                 </div>

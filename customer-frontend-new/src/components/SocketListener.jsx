@@ -23,6 +23,7 @@ const SocketListener = () => {
                 'preparing': 'Kitchen is preparing your order 🍳',
                 'ready': 'Order is Ready! 🥡',
                 'assigned': 'Rider assigned to your order 🛵',
+                'pending_acceptance': 'Assigning a rider to your order 🛵',
                 'picked_up': 'Rider has picked up your order 📦',
                 'out-for-delivery': 'Order is Out for Delivery 🚀',
                 'delivered': 'Order Delivered! Enjoy 😋',

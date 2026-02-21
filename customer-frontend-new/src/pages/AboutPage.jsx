@@ -2,8 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Leaf, Coffee, Users, Heart, Sun, UserCheck, Truck, ShoppingBag, Utensils, Wifi, Moon, CreditCard, Car, Baby } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useBrand } from '../context/BrandContext';
 
 const AboutPage = () => {
+    const { brand, theme } = useBrand();
     return (
         <div className="min-h-screen pt-24 pb-20 bg-slate-50">
             {/* Hero Section */}
@@ -14,23 +16,23 @@ const AboutPage = () => {
                     transition={{ duration: 0.6 }}
                     className="relative rounded-3xl overflow-hidden h-[400px] md:h-[500px] shadow-2xl"
                 >
-                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=2000')] bg-cover bg-center" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                    <div className={`absolute inset-0 bg-[url('${theme.isTeasNTrees ? 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=2000' : 'https://images.unsplash.com/photo-1557142046-c704a3adf364?auto=format&fit=crop&q=80&w=2000'}')] bg-cover bg-center`} />
+                    <div className={`absolute inset-0 bg-gradient-to-t ${theme.isTeasNTrees ? 'from-black/80 via-black/40' : 'from-pink-900/80 via-pink-900/40'} to-transparent`} />
 
                     <div className="absolute bottom-0 left-0 w-full p-8 md:p-16 text-white">
                         <motion.span
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2 }}
-                            className="inline-block px-4 py-1.5 rounded-full bg-cafe-emerald/20 border border-cafe-emerald/30 backdrop-blur-md text-emerald-300 font-bold text-sm mb-4"
+                            className={`inline-block px-4 py-1.5 rounded-full ${theme.isTeasNTrees ? 'bg-cafe-emerald/20 border-cafe-emerald/30 text-emerald-300' : 'bg-pink-500/20 border-pink-500/30 text-pink-300'} border backdrop-blur-md font-bold text-sm mb-4`}
                         >
                             Since 2023
                         </motion.span>
                         <h1 className="text-4xl md:text-6xl font-bold mb-4 leading-tight">
-                            Brewing Memories,<br /> One Cup at a Time.
+                            {theme.isTeasNTrees ? 'Brewing Memories,' : 'Baking Happiness,'}<br /> {theme.isTeasNTrees ? 'One Cup at a Time.' : 'One Slice at a Time.'}
                         </h1>
                         <p className="text-lg md:text-xl text-slate-200 max-w-2xl">
-                            Where nature meets your perfect cup - discover our story, services, and what makes us special.
+                            {theme.isTeasNTrees ? 'Where nature meets your perfect cup - discover our story, services, and what makes us special.' : 'Where sweetness meets perfectly crafted pastries - discover our story, treats, and what makes us special.'}
                         </p>
                     </div>
                 </motion.div>
@@ -46,12 +48,12 @@ const AboutPage = () => {
                         className="space-y-6"
                     >
                         <h2 className="text-3xl font-bold text-slate-800">Our Story</h2>
-                        <div className="w-20 h-1.5 bg-gradient-to-r from-cafe-emerald to-cafe-teal rounded-full" />
+                        <div className={`w-20 h-1.5 bg-gradient-to-r ${theme.gradientClass} rounded-full`} />
                         <p className="text-slate-600 leading-relaxed text-lg">
-                            Teas N Trees began with a simple idea: to create a sanctuary where people can pause, reflect, and enjoy the finest teas and coffees amidst the hustle of city life.
+                            {theme.isTeasNTrees ? 'Teas N Trees began with a simple idea: to create a sanctuary where people can pause, reflect, and enjoy the finest teas and coffees amidst the hustle of city life.' : 'LittleH Bakery began with a profound love for baking. We desired to create a colorful escape offering the finest and freshest sweet treats to sprinkle joy on every occasion.'}
                         </p>
                         <p className="text-slate-600 leading-relaxed text-lg">
-                            We believe in Little Happiness. It's found in the aroma of freshly brewed chai, the crunch of a perfectly baked cookie, and the warmth of a friendly smile.
+                            We believe in Little Happiness. It's found in the aroma of {theme.isTeasNTrees ? 'freshly brewed chai' : 'a beautifully baked cake'}, the crunch of a perfectly baked cookie, and the warmth of a friendly smile.
                         </p>
                     </motion.div>
                     <motion.div
@@ -60,10 +62,10 @@ const AboutPage = () => {
                         viewport={{ once: true }}
                         className="relative"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-tr from-cafe-emerald to-cafe-orange rounded-3xl rotate-3 opacity-20 transform translate-y-4 translate-x-4" />
+                        <div className={`absolute inset-0 bg-gradient-to-tr ${theme.gradientClass} rounded-3xl rotate-3 opacity-20 transform translate-y-4 translate-x-4`} />
                         <img
-                            src="https://images.unsplash.com/photo-1559925393-8be0ec4767c8?auto=format&fit=crop&q=80&w=800"
-                            alt="Cafe Interior"
+                            src={theme.isTeasNTrees ? "https://images.unsplash.com/photo-1559925393-8be0ec4767c8?auto=format&fit=crop&q=80&w=800" : "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&q=80&w=800"}
+                            alt={theme.brandName}
                             className="relative rounded-3xl shadow-xl border-4 border-white"
                         />
                     </motion.div>
@@ -104,17 +106,17 @@ const AboutPage = () => {
                         {/* Highlights */}
                         <div>
                             <h2 className="text-2xl font-bold text-slate-800 mb-8 flex items-center gap-3">
-                                <span className="w-8 h-8 rounded-lg bg-cafe-orange text-white flex items-center justify-center text-sm">✨</span>
+                                <span className={`w-8 h-8 rounded-lg ${theme.primaryColorClass} text-white flex items-center justify-center text-sm`}>✨</span>
                                 Highlights
                             </h2>
                             <div className="space-y-4">
                                 {[
-                                    { icon: "☕", title: "Great Coffee", desc: "Premium beans, expert brewing" },
-                                    { icon: "🍰", title: "Great Dessert", desc: "Fresh pastries & sweet treats" },
-                                    { icon: "🍃", title: "Great Tea Selection", desc: "Curated premium teas" },
-                                    { icon: "⚽", title: "Sport", desc: "Watch games while you dine" },
+                                    { icon: "☕", title: theme.isTeasNTrees ? "Great Coffee" : "Custom Cakes", desc: theme.isTeasNTrees ? "Premium beans, expert brewing" : "Perfect for every occasion" },
+                                    { icon: "🍰", title: theme.isTeasNTrees ? "Great Dessert" : "Fresh Pastries", desc: "Fresh pastries & sweet treats" },
+                                    { icon: "🍃", title: theme.isTeasNTrees ? "Great Tea Selection" : "Sweet Delights", desc: theme.isTeasNTrees ? "Curated premium teas" : "Cookies, brownies, and more" },
+                                    { icon: "⚽", title: theme.isTeasNTrees ? "Sport" : "Joyful Setup", desc: theme.isTeasNTrees ? "Watch games while you dine" : "Colorful, happy interiors" },
                                 ].map((item, idx) => (
-                                    <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:border-cafe-emerald/30 transition-colors">
+                                    <div key={idx} className={`flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 ${theme.primaryColorClass.replace('bg-', 'hover:border-')}/30 transition-colors`}>
                                         <span className="text-2xl">{item.icon}</span>
                                         <div>
                                             <h3 className="font-bold text-slate-800">{item.title}</h3>
@@ -159,10 +161,10 @@ const AboutPage = () => {
                         <h2 className="text-2xl font-bold text-slate-800 mb-8">Offerings</h2>
                         <div className="grid grid-cols-2 gap-4">
                             {[
-                                { icon: "☕", label: "Coffee", color: "bg-orange-50 text-orange-700" },
-                                { icon: "🌙", label: "Late-night Food", color: "bg-indigo-50 text-indigo-700" },
-                                { icon: "⚡", label: "Quick Bite", color: "bg-yellow-50 text-yellow-700" },
-                                { icon: "🍽️", label: "Small Plates", color: "bg-rose-50 text-rose-700" },
+                                { icon: "☕", label: theme.isTeasNTrees ? "Coffee" : "Cakes", color: "bg-orange-50 text-orange-700" },
+                                { icon: "🌙", label: theme.isTeasNTrees ? "Late-night Food" : "Macarons", color: "bg-indigo-50 text-indigo-700" },
+                                { icon: "⚡", label: theme.isTeasNTrees ? "Quick Bite" : "Cupcakes", color: "bg-yellow-50 text-yellow-700" },
+                                { icon: "🍽️", label: theme.isTeasNTrees ? "Small Plates" : "Pastries", color: "bg-rose-50 text-rose-700" },
                                 { icon: "🌱", label: "Vegan Options", color: "bg-green-50 text-green-700" },
                                 { icon: "🥬", label: "Vegetarian", color: "bg-emerald-50 text-emerald-700" },
                             ].map((item, idx) => (
@@ -212,7 +214,7 @@ const AboutPage = () => {
                             className="bg-white p-8 rounded-3xl shadow-xl border border-slate-100"
                         >
                             <h3 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-3">
-                                <span className="p-2 bg-cafe-emerald/10 rounded-xl text-cafe-emerald">✨</span> Atmosphere
+                                <span className={`p-2 ${theme.primaryColorClass.replace('bg-', 'bg-')}/10 rounded-xl ${theme.textColorClass}`}>✨</span> Atmosphere
                             </h3>
                             <ul className="space-y-3">
                                 {[
@@ -310,13 +312,13 @@ const AboutPage = () => {
             {/* Visit Us CTA */}
             <div className="container mx-auto px-4 lg:px-8 py-20">
                 <div className="bg-slate-900 rounded-3xl p-10 md:p-16 text-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-cafe-emerald rounded-full blur-[80px] opacity-20" />
-                    <div className="absolute bottom-0 left-0 w-64 h-64 bg-cafe-orange rounded-full blur-[80px] opacity-20" />
+                    <div className={`absolute top-0 right-0 w-64 h-64 ${theme.primaryColorClass} rounded-full blur-[80px] opacity-20`} />
+                    <div className={`absolute bottom-0 left-0 w-64 h-64 ${theme.isTeasNTrees ? 'bg-cafe-orange' : 'bg-purple-500'} rounded-full blur-[80px] opacity-20`} />
                     <div className="relative z-10">
                         <Coffee className="w-12 h-12 text-white mx-auto mb-6 opacity-80" />
                         <h2 className="text-3xl md:text-4xl font-bold text-white mb-6">Come Visit Us Today</h2>
                         <p className="text-slate-400 max-w-xl mx-auto mb-8 text-lg">
-                            Experience the magic of Teas N Trees.
+                            Experience the magic of {theme.brandName}.
                         </p>
                     </div>
                 </div>

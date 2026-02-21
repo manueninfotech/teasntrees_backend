@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { MessageSquare, Star, Check, X, Trash2, ArrowRight } from 'lucide-react';
 import api from '../utils/api';
 import ReviewDetailsModal from '../components/ReviewDetailsModal';
@@ -23,17 +24,22 @@ const Reviews = () => {
     const [selectedReviewId, setSelectedReviewId] = useState(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
 
+    const [searchParams] = useSearchParams();
+    const [brandFilter, setBrandFilter] = useState(searchParams.get('brand') || '');
+
     // Fetch Stats
     const { data: stats, isLoading: statsLoading } = useQuery({
-        queryKey: ['reviews-stats'],
+        queryKey: ['reviews-stats', brandFilter],
         queryFn: async () => {
-            const response = await api.get('/admin/reviews/stats');
+            const params = new URLSearchParams();
+            if (brandFilter) params.append('brand', brandFilter);
+            const response = await api.get(`/admin/reviews/stats?${params.toString()}`);
             const data = response.data.data;
-            localStorage.setItem('reviews-stats-cache', JSON.stringify(data));
+            localStorage.setItem(`reviews-stats-cache-${brandFilter}`, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('reviews-stats-cache');
+            const cached = localStorage.getItem(`reviews-stats-cache-${brandFilter}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         placeholderData: (previousData) => previousData,
@@ -42,18 +48,19 @@ const Reviews = () => {
 
     // Fetch Reviews
     const { data: reviewsData, isLoading: loading } = useQuery({
-        queryKey: ['reviews', reviewType, activeTab, page],
+        queryKey: ['reviews', reviewType, activeTab, page, brandFilter],
         queryFn: async () => {
             const params = { page, limit: 10, type: reviewType };
             if (activeTab !== 'all') params.status = activeTab;
+            if (brandFilter) params.brand = brandFilter;
             const response = await api.get('/admin/reviews', { params });
             const data = response.data.data;
-            const cacheKey = `reviews-cache-${reviewType}-${activeTab}-${page}`;
+            const cacheKey = `reviews-cache-${reviewType}-${activeTab}-${page}-${brandFilter}`;
             localStorage.setItem(cacheKey, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cacheKey = `reviews-cache-${reviewType}-${activeTab}-${page}`;
+            const cacheKey = `reviews-cache-${reviewType}-${activeTab}-${page}-${brandFilter}`;
             const cached = localStorage.getItem(cacheKey);
             return cached ? JSON.parse(cached) : undefined;
         },
@@ -118,6 +125,17 @@ const Reviews = () => {
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 uppercase tracking-tight">Customer Reviews</h1>
                     <p className="text-gray-500 mt-1 font-bold">Manage customer and rider feedback</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <select
+                        value={brandFilter}
+                        onChange={(e) => setBrandFilter(e.target.value)}
+                        className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700 h-[48px] rounded-2xl px-6"
+                    >
+                        <option value="">All Brands</option>
+                        <option value="teasntrees">Teas N Trees</option>
+                        <option value="littleh">LittleH Bakery</option>
+                    </select>
                 </div>
             </div>
 

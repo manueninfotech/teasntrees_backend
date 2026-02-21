@@ -4,10 +4,12 @@ import { Star, Plus, Heart } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
+import { useBrand } from '../context/BrandContext';
 
 const MenuCard = ({ product }) => {
     const { addToCart } = useCart();
     const { toggleWishlist: toggleWishlistContext, isInWishlist } = useWishlist();
+    const { theme } = useBrand();
 
     const isWishlisted = isInWishlist(product._id);
 
@@ -140,10 +142,10 @@ const MenuCard = ({ product }) => {
                     {/* Content */}
                     <div className="p-5 flex flex-col flex-1 relative z-10">
                         <div className="flex-1 flex flex-col">
-                            <div className="text-[10px] font-bold uppercase tracking-wider mb-1 w-fit px-2 py-0.5 rounded-md bg-cafe-emerald/10 text-cafe-emerald">
+                            <div className={`text-[10px] font-bold uppercase tracking-wider mb-1 w-fit px-2 py-0.5 rounded-md ${theme.primaryColorClass}/10 ${theme.textColorClass}`}>
                                 {product.category?.name || 'Specialty'}
                             </div>
-                            <h3 className="font-bold text-xl text-slate-800 leading-tight mb-2 group-hover:text-cafe-emerald transition-colors">
+                            <h3 className={`font-bold text-xl text-slate-800 leading-tight mb-2 ${theme.textColorClass.replace('text-', 'group-hover:text-')} transition-colors`}>
                                 {product.name}
                             </h3>
                             {/* Full Description - No Line Clamp */}
@@ -164,7 +166,7 @@ const MenuCard = ({ product }) => {
                                                     "text-[10px] px-2 py-1 rounded border transition-all duration-200",
                                                     selectedSize?.size === o.size
                                                         ? "bg-slate-800 text-white border-slate-800 shadow-md transform scale-105"
-                                                        : "bg-slate-50 text-slate-600 border-slate-200 hover:border-cafe-emerald hover:text-cafe-emerald"
+                                                        : `bg-slate-50 text-slate-600 border-slate-200 hover:border-${theme.primaryColor} ${theme.textColorClass.replace('text-', 'hover:text-')}`
                                                 )}
                                             >
                                                 {o.size}
@@ -190,7 +192,7 @@ const MenuCard = ({ product }) => {
                                 <span className="relative z-10 flex items-center gap-1.5 transition-colors group-hover/btn:text-white">
                                     <Plus className="w-4 h-4" /> Add
                                 </span>
-                                <div className="absolute inset-0 bg-gradient-to-r from-cafe-emerald to-cafe-teal translate-y-[101%] group-hover/btn:translate-y-0 transition-transform duration-300 ease-out" />
+                                <div className={`absolute inset-0 bg-gradient-to-r ${theme.gradientClass} translate-y-[101%] group-hover/btn:translate-y-0 transition-transform duration-300 ease-out`} />
                             </button>
                         </div>
                     </div>

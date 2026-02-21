@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion'; // Added missing motion import
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useBrand } from '../context/BrandContext';
 import AddressModal from '../components/AddressModal';
 import { userService } from '../services/userService';
 import { orderService } from '../services/orderService';
@@ -16,6 +17,7 @@ import clsx from 'clsx';
 const CheckoutPage = () => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const { theme } = useBrand();
     const { cartItems, cartTotal, clearCart, checkout } = useCart();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -118,7 +120,7 @@ const CheckoutPage = () => {
                     contact: ""
                 },
                 theme: {
-                    color: "#10b981" // cafe-emerald
+                    color: theme.primaryColorClass === 'bg-pink-500' ? '#ec4899' : '#10b981' // cafe-emerald or pink
                 },
                 modal: {
                     ondismiss: function () {
@@ -321,7 +323,7 @@ const CheckoutPage = () => {
                     <p className="text-slate-500 mb-8">Add some delicious items to checkout.</p>
                     <button
                         onClick={() => navigate('/menu')}
-                        className="px-8 py-3 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg hover:bg-cafe-teal transition-all"
+                        className={`px-8 py-3 bg-gradient-to-r ${theme.gradientClass} text-white rounded-xl font-bold hover:shadow-xl active:scale-95 flex items-center gap-2 transition-all shadow-lg mx-auto`}
                     >
                         Browse Menu
                     </button>
@@ -354,7 +356,7 @@ const CheckoutPage = () => {
                         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-                                    <span className="w-8 h-8 rounded-full bg-cafe-emerald text-white flex items-center justify-center text-sm font-bold">1</span>
+                                    <span className={`w-8 h-8 rounded-full ${theme.primaryColorClass} text-white flex items-center justify-center text-sm font-bold`}>1</span>
                                     Delivery Address
                                 </h2>
                             </div>
@@ -366,7 +368,7 @@ const CheckoutPage = () => {
                                         onClick={() => setSelectedAddress(addr._id)}
                                         className={`
                                             cursor-pointer rounded-2xl p-5 border-2 transition-all relative
-                                            ${selectedAddress === addr._id ? 'border-cafe-emerald bg-cafe-emerald/5' : 'border-slate-100 hover:border-slate-200'}
+                                            ${selectedAddress === addr._id ? `border-${theme.primaryColor} bg-${theme.primaryColor}/5` : 'border-slate-100 hover:border-slate-200'}
                                         `}
                                     >
                                         <div className="flex items-start justify-between">
@@ -377,7 +379,7 @@ const CheckoutPage = () => {
                                                 </p>
                                             </div>
                                             {selectedAddress === addr._id && (
-                                                <CheckCircle className="w-6 h-6 text-cafe-emerald flex-shrink-0" />
+                                                <CheckCircle className={`w-6 h-6 ${theme.textColorClass} flex-shrink-0`} />
                                             )}
                                         </div>
                                     </div>
@@ -385,7 +387,7 @@ const CheckoutPage = () => {
 
                                 <button
                                     onClick={() => setShowAddressModal(true)}
-                                    className="border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 hover:border-cafe-emerald hover:text-cafe-emerald hover:bg-cafe-emerald/5 transition-all min-h-[120px]"
+                                    className={`border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 hover:border-${theme.primaryColor} ${theme.textColorClass.replace('text-', 'hover:text-')} ${theme.primaryColorClass.replace('bg-', 'hover:bg-')}/5 transition-all min-h-[120px]`}
                                 >
                                     <Plus className="w-6 h-6 mb-2" />
                                     <span className="font-bold text-sm">Add New Address</span>
@@ -401,36 +403,36 @@ const CheckoutPage = () => {
                             </h2>
 
                             <div className="space-y-3">
-                                <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'COD' ? 'border-cafe-emerald bg-cafe-emerald/5' : 'border-slate-100 hover:border-slate-200'}`}>
+                                <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'COD' ? `border-${theme.primaryColor} bg-${theme.primaryColor}/5` : 'border-slate-100 hover:border-slate-200'}`}>
                                     <input
                                         type="radio"
                                         name="payment"
                                         value="COD"
                                         checked={paymentMethod === 'COD'}
                                         onChange={() => setPaymentMethod('COD')}
-                                        className="w-5 h-5 text-cafe-emerald focus:ring-cafe-emerald"
+                                        className={`w-5 h-5 ${theme.textColorClass} focus:ring-${theme.primaryColor}`}
                                     />
                                     <div className="flex-1">
                                         <div className="font-bold text-slate-800">Cash on Delivery</div>
                                         <div className="text-xs text-slate-500">Pay lightly when you receive your order</div>
                                     </div>
-                                    <CreditCard className={clsx("w-6 h-6", paymentMethod === 'COD' ? "text-cafe-emerald" : "text-slate-300")} />
+                                    <CreditCard className={clsx("w-6 h-6", paymentMethod === 'COD' ? theme.textColorClass : "text-slate-300")} />
                                 </label>
 
-                                <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'Online' ? 'border-cafe-emerald bg-cafe-emerald/5' : 'border-slate-100 hover:border-slate-200'}`}>
+                                <label className={`flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'Online' ? `border-${theme.primaryColor} bg-${theme.primaryColor}/5` : 'border-slate-100 hover:border-slate-200'}`}>
                                     <input
                                         type="radio"
                                         name="payment"
                                         value="Online"
                                         checked={paymentMethod === 'Online'}
                                         onChange={() => setPaymentMethod('Online')}
-                                        className="w-5 h-5 text-cafe-emerald focus:ring-cafe-emerald"
+                                        className={`w-5 h-5 ${theme.textColorClass} focus:ring-${theme.primaryColor}`}
                                     />
                                     <div className="flex-1">
                                         <div className="font-bold text-slate-800">Online Payment</div>
                                         <div className="text-xs text-slate-500">UPI, Cards, Netbanking</div>
                                     </div>
-                                    <CheckCircle2 className={clsx("w-6 h-6", paymentMethod === 'Online' ? "text-cafe-emerald" : "text-slate-300")} />
+                                    <CheckCircle2 className={clsx("w-6 h-6", paymentMethod === 'Online' ? theme.textColorClass : "text-slate-300")} />
                                 </label>
                             </div>
                         </div>
@@ -459,16 +461,30 @@ const CheckoutPage = () => {
                                 </div>
                             )}
                             <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                                {cartItems.map((item, idx) => (
-                                    <div key={item.key || item._id || idx} className="flex gap-3">
-                                        <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover bg-slate-100" />
-                                        <div className="flex-1">
-                                            <div className="text-sm font-bold text-slate-800 line-clamp-1">{item.name}</div>
-                                            <div className="text-xs text-slate-500 mb-1">{item.size || 'Regular'}</div>
-                                            <div className="flex justify-between items-center">
-                                                <div className="text-xs font-bold text-slate-400">x{item.quantity}</div>
-                                                <div className="text-sm font-bold text-slate-800">₹{item.price * item.quantity}</div>
-                                            </div>
+                                {Object.entries(cartItems.reduce((acc, item) => {
+                                    const b = item.brand || 'teasntrees';
+                                    if (!acc[b]) acc[b] = [];
+                                    acc[b].push(item);
+                                    return acc;
+                                }, {})).map(([brandName, items]) => (
+                                    <div key={brandName} className="mb-4 last:mb-0">
+                                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 border-b border-slate-100 pb-1">
+                                            {brandName === 'teasntrees' ? 'TEAS N TREES' : 'LITTLEH BAKERY'}
+                                        </div>
+                                        <div className="space-y-3">
+                                            {items.map((item, idx) => (
+                                                <div key={item.key || item._id || idx} className="flex gap-3">
+                                                    <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover bg-slate-100" />
+                                                    <div className="flex-1">
+                                                        <div className="text-sm font-bold text-slate-800 line-clamp-1">{item.name}</div>
+                                                        <div className="text-xs text-slate-500 mb-1">{item.size || 'Regular'}</div>
+                                                        <div className="flex justify-between items-center">
+                                                            <div className="text-xs font-bold text-slate-400">x{item.quantity}</div>
+                                                            <div className="text-sm font-bold text-slate-800">₹{item.price * item.quantity}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                 ))}

@@ -24,8 +24,8 @@ export const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Delivery address required' });
         }
 
-        let subtotal = 0;
-        const orderItems = [];
+        const brandsGrouped = {};
+        let grandTotalAllOrders = 0;
 
         for (const item of items) {
             const product = await Product.findById(item.product);
@@ -36,80 +36,107 @@ export const createOrder = async (req, res) => {
                 });
             }
 
-            const price = item.price ?? product.price;
-            subtotal += price * item.quantity;
+            const brand = product.brand || 'teasntrees';
+            if (!brandsGrouped[brand]) {
+                brandsGrouped[brand] = { items: [], subtotal: 0 };
+            }
 
-            orderItems.push({
+            const price = item.price ?? product.price;
+            brandsGrouped[brand].items.push({
                 product: product._id,
                 name: product.name,
                 quantity: item.quantity,
                 price,
                 customization: item.customization || ''
             });
+            brandsGrouped[brand].subtotal += price * item.quantity;
         }
 
         const settings = await import('../../models/Settings.js').then(m => m.default.findOne());
-        const deliveryCharge = settings ? settings.deliveryCharge : 50;
+        const deliveryChargePerOrder = settings ? settings.deliveryCharge : 50;
         const gstRate = settings ? settings.gstRate : 5;
-        const tax = subtotal * (gstRate / 100);
-        const total = subtotal + deliveryCharge + tax;
 
-        const order = await Order.create({
-            customerId,
-            items: orderItems,
-            subtotal,
-            deliveryCharge,
-            tax,
-            total,
-            deliveryAddress,
-            paymentMethod,
-            specialInstructions: deliveryInstructions,
-            status: 'pending'
-        });
+        const Outlet = await import('../../models/Outlet.js').then(m => m.default);
+        const outlets = await Outlet.find({ isActive: true });
 
-        // Update product stats asynchronously
-        Promise.all(orderItems.map(i =>
-            Product.findByIdAndUpdate(i.product, { $inc: { orderCount: i.quantity } })
-        )).catch(() => { });
+        const createdOrders = [];
 
-        // Stats – safer increment
-        await statsService.increment('totalOrders');
-        await statsService.increment('pendingOrders');
+        for (const [brand, group] of Object.entries(brandsGrouped)) {
+            const outlet = outlets.find(o => o.brand === brand);
+            const tax = group.subtotal * (gstRate / 100);
+            const orderTotal = group.subtotal + deliveryChargePerOrder + tax;
+            grandTotalAllOrders += orderTotal;
+
+            const order = await Order.create({
+                customerId,
+                brand,
+                outletId: outlet ? outlet._id : undefined,
+                pickupLocation: outlet ? outlet.location : undefined,
+                items: group.items,
+                subtotal: group.subtotal,
+                deliveryCharge: deliveryChargePerOrder,
+                tax,
+                total: orderTotal,
+                deliveryAddress,
+                paymentMethod,
+                specialInstructions: deliveryInstructions,
+                status: 'pending'
+            });
+
+            createdOrders.push(order);
+
+            // Update product stats asynchronously
+            Promise.all(group.items.map(i =>
+                Product.findByIdAndUpdate(i.product, { $inc: { orderCount: i.quantity } })
+            )).catch(() => { });
+        }
+
+        // Stats
+        for (let i = 0; i < createdOrders.length; i++) {
+            await statsService.increment('totalOrders');
+            await statsService.increment('pendingOrders');
+        }
 
         const io = req.app.get('io');
         if (io) {
-            io.to(SOCKET_ROOMS.user(customerId.toString()))
-                .emit(SOCKET_EVENTS.ORDER_CREATED, {
+            createdOrders.forEach(order => {
+                io.to(SOCKET_ROOMS.user(customerId.toString()))
+                    .emit(SOCKET_EVENTS.ORDER_CREATED, {
+                        orderId: order._id,
+                        orderNumber: order.orderNumber,
+                        total: order.total
+                    });
+
+                io.emit(SOCKET_EVENTS.ORDER_NEW, {
                     orderId: order._id,
                     orderNumber: order.orderNumber,
-                    total: order.total
+                    total: order.total,
+                    status: order.status
                 });
-
-            io.emit(SOCKET_EVENTS.ORDER_NEW, {
-                orderId: order._id,
-                orderNumber: order.orderNumber,
-                total: order.total,
-                status: order.status
             });
         }
 
         // Notify admins
         try {
             const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
-            await notificationService.sendPushToMany(admins, {
-                title: '🛒 New Order',
-                body: `Order #${order.orderNumber} for ₹${order.total}`,
-                data: { orderId: order._id }
+            createdOrders.forEach(order => {
+                notificationService.sendPushToMany(admins, {
+                    title: '🛒 New Order',
+                    body: `Order #${order.orderNumber} for ₹${order.total}`,
+                    data: { orderId: order._id }
+                }).catch(() => { });
             });
         } catch { }
 
         res.status(201).json({
             success: true,
             data: {
-                orderId: order._id,
-                orderNumber: order.orderNumber,
-                status: order.status,
-                total: order.total
+                orderId: createdOrders[0]._id, // legacy
+                orderNumber: createdOrders[0].orderNumber,
+                orderIds: createdOrders.map(o => o._id),
+                orders: createdOrders,
+                total: grandTotalAllOrders,
+                status: 'pending'
             }
         });
 

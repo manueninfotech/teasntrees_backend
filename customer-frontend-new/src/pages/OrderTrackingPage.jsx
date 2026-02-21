@@ -19,6 +19,7 @@ const steps = [
 
 const LIVE_STATUSES = new Set([
     'assigned',
+    'pending_acceptance',
     'accepted',
     'heading_to_pickup',
     'arrived_at_pickup',
@@ -34,6 +35,7 @@ const DELIVERY_AWARE_STATUSES = new Set([
     'ready',
     'waiting_for_rider',
     'assigned',
+    'pending_acceptance',
     'picked_up',
     'out-for-delivery',
     'out_for_delivery',
@@ -112,7 +114,7 @@ const OrderTrackingPage = () => {
 
         // Multi-Leg Logic:
         // Statuses before pickup: leg 1 (Rider to Outlet) + leg 2 (Outlet to Customer)
-        const isBeforePickup = ['assigned', 'accepted', 'heading_to_pickup', 'arrived_at_pickup'].includes(status);
+        const isBeforePickup = ['assigned', 'pending_acceptance', 'accepted', 'heading_to_pickup', 'arrived_at_pickup'].includes(status);
 
         if (isBeforePickup && deliveryInfo.pickupLocation?.coordinates) {
             const outletLng = deliveryInfo.pickupLocation.coordinates[0];
@@ -149,7 +151,7 @@ const OrderTrackingPage = () => {
         const minutes = calculateEtaFromRider();
         if (minutes !== null) {
             setEtaMinutes(minutes);
-        } else if (statusForEta === 'assigned') {
+        } else if (['assigned', 'pending_acceptance'].includes(statusForEta)) {
             setEtaMinutes(10);
         } else {
             setEtaMinutes(null);
@@ -263,6 +265,7 @@ const OrderTrackingPage = () => {
             case 'preparing': return 2;
             case 'ready': return 3;
             case 'waiting_for_rider': return 3;
+            case 'pending_acceptance': return 4;
             case 'assigned': return 4;
             case 'picked_up': return 5;
             case 'out-for-delivery': return 5;

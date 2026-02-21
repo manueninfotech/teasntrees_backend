@@ -34,6 +34,27 @@ const orderSchema = new mongoose.Schema(
             unique: true
         },
 
+        brand: {
+            type: String,
+            enum: ['teasntrees', 'littleh'],
+            default: 'teasntrees',
+            required: true
+        },
+
+        outletId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Outlet'
+            // To be made required after migration
+        },
+
+        pickupLocation: {
+            type: {
+                type: String,
+                enum: ['Point']
+            },
+            coordinates: [Number] // [lng, lat]
+        },
+
         customerId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'User',
@@ -65,8 +86,7 @@ const orderSchema = new mongoose.Schema(
             location: {
                 type: {
                     type: String,
-                    enum: ['Point'],
-                    default: 'Point'
+                    enum: ['Point']
                 },
                 coordinates: [Number] // [lng, lat]
             }
@@ -137,7 +157,9 @@ const orderSchema = new mongoose.Schema(
 ----------------------------------- */
 orderSchema.index({ customerId: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ brand: 1, createdAt: -1 });
 orderSchema.index({ 'deliveryAddress.location': '2dsphere' });
+orderSchema.index({ pickupLocation: '2dsphere' });
 
 /* ----------------------------------
    ORDER NUMBER GENERATION

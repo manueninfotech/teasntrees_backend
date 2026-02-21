@@ -1,4 +1,5 @@
 import Delivery from '../../models/Delivery.js';
+import Order from '../../models/Order.js';
 import activityLogService from '../../services/activityLogService.js';
 
 /* ----------------------------------
@@ -6,7 +7,7 @@ import activityLogService from '../../services/activityLogService.js';
 ----------------------------------- */
 export const getAllDeliveries = async (req, res) => {
     try {
-        const { status, riderId, startDate, endDate } = req.query;
+        const { status, riderId, startDate, endDate, brand } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
@@ -15,6 +16,12 @@ export const getAllDeliveries = async (req, res) => {
         if (status) query.status = status;
         if (riderId) query.riderId = riderId;
 
+        // Brand filtering logic: Delivery schema does not have 'brand'. We filter by Order.
+        if (brand) {
+            const filteredOrders = await Order.find({ brand }).select('_id');
+            query.orderId = { $in: filteredOrders.map(o => o._id) };
+        }
+
         if (startDate || endDate) {
             query.createdAt = {};
             if (startDate) query.createdAt.$gte = new Date(startDate);
@@ -22,7 +29,7 @@ export const getAllDeliveries = async (req, res) => {
         }
 
         const deliveries = await Delivery.find(query)
-            .populate('orderId', 'orderNumber total status')
+            .populate('orderId', 'orderNumber total status brand')
             .populate('riderId', 'name mobile')
             .populate('customerId', 'name mobile')
             .sort({ createdAt: -1 })
@@ -113,22 +120,31 @@ export const cancelDelivery = async (req, res) => {
 ----------------------------------- */
 export const getDeliveryStats = async (req, res) => {
     try {
+        const { brand } = req.query;
+        const query = {};
+
+        if (brand) {
+            const filteredOrders = await Order.find({ brand }).select('_id');
+            query.orderId = { $in: filteredOrders.map(o => o._id) };
+        }
+
         const [
             totalDeliveries,
             activeDeliveries,
             completedDeliveries,
             cancelledDeliveries
         ] = await Promise.all([
-            Delivery.countDocuments(),
+            Delivery.countDocuments(query),
             Delivery.countDocuments({
-                status: { $in: ['assigned', 'accepted', 'heading_to_pickup', 'picked_up', 'in_transit'] }
+                ...query,
+                status: { $in: ['pending_acceptance', 'accepted', 'heading_to_pickup', 'picked_up', 'in_transit'] }
             }),
-            Delivery.countDocuments({ status: 'delivered' }),
-            Delivery.countDocuments({ status: 'cancelled' })
+            Delivery.countDocuments({ ...query, status: 'delivered' }),
+            Delivery.countDocuments({ ...query, status: 'cancelled' })
         ]);
 
         const earnings = await Delivery.aggregate([
-            { $match: { status: 'delivered' } },
+            { $match: { ...query, status: 'delivered' } },
             { $group: { _id: null, total: { $sum: '$totalEarning' } } }
         ]);
 

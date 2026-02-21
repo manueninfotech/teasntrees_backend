@@ -20,6 +20,12 @@ const cartItemSchema = new mongoose.Schema({
     customization: {
         type: String,
         default: ''
+    },
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh'],
+        default: 'teasntrees',
+        required: true
     }
 });
 

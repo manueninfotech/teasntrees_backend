@@ -3,8 +3,10 @@ import { motion } from 'framer-motion';
 import { Phone, Mail, MapPin, Send, Loader2, Instagram, Facebook, Twitter, Clock } from 'lucide-react';
 import contactService from '../services/contactService';
 import settingsService from '../services/settingsService';
+import { useBrand } from '../context/BrandContext';
 
 const ContactPage = () => {
+    const { brand, theme } = useBrand();
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -64,8 +66,8 @@ const ContactPage = () => {
         {
             icon: Mail,
             title: "Email",
-            text: settings?.contactEmail || "hello@teasntrees.in",
-            link: `mailto:${settings?.contactEmail || "hello@teasntrees.in"}`,
+            text: settings?.contactEmail || (theme.isTeasNTrees ? "hello@teasntrees.in" : "hello@littlehbakery.in"),
+            link: `mailto:${settings?.contactEmail || (theme.isTeasNTrees ? "hello@teasntrees.in" : "hello@littlehbakery.in")}`,
             color: "text-purple-500",
             bg: "bg-purple-50"
         },
@@ -83,7 +85,7 @@ const ContactPage = () => {
         return (
             <div className="min-h-screen pt-24 pb-20 bg-slate-50 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-10 h-10 text-cafe-emerald animate-spin" />
+                    <Loader2 className={`w-10 h-10 ${theme.textColorClass} animate-spin`} />
                     <p className="text-slate-500 font-medium">Loading contact details...</p>
                 </div>
             </div>
@@ -99,7 +101,7 @@ const ContactPage = () => {
                     <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="inline-block bg-white px-6 py-2 rounded-full shadow-sm mb-6 text-cafe-emerald font-semibold"
+                        className={`inline-block bg-white px-6 py-2 rounded-full shadow-sm mb-6 ${theme.textColorClass} font-semibold border ${theme.primaryColorClass.replace('bg-', 'border-')}/20`}
                     >
                         Get in Touch
                     </motion.div>
@@ -133,15 +135,14 @@ const ContactPage = () => {
                             </motion.a>
                         ))}
 
-                        {/* Social Media & Hours */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.3 }}
-                            className="bg-cafe-emerald/5 p-8 rounded-3xl border border-cafe-emerald/10"
+                            className={`${theme.primaryColorClass.replace('bg-', 'bg-')}/5 p-8 rounded-3xl border ${theme.primaryColorClass.replace('bg-', 'border-')}/10`}
                         >
                             <h3 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-                                <Clock className="w-5 h-5 text-cafe-emerald" /> Opening Hours
+                                <Clock className={`w-5 h-5 ${theme.textColorClass}`} /> Opening Hours
                             </h3>
                             <ul className="space-y-3 mb-8">
                                 {settings?.operatingHours ? (
@@ -218,7 +219,7 @@ const ContactPage = () => {
                                             type="text"
                                             id="firstName"
                                             required
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none"
+                                            className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-${theme.primaryColor} focus:ring-2 focus:ring-${theme.primaryColor}/20 transition-all outline-none`}
                                             placeholder="John"
                                             value={formData.firstName}
                                             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
@@ -230,7 +231,7 @@ const ContactPage = () => {
                                             type="text"
                                             id="lastName"
                                             required
-                                            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none"
+                                            className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-${theme.primaryColor} focus:ring-2 focus:ring-${theme.primaryColor}/20 transition-all outline-none`}
                                             placeholder="Doe"
                                             value={formData.lastName}
                                             onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
@@ -244,7 +245,7 @@ const ContactPage = () => {
                                         type="email"
                                         id="email"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none"
+                                        className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-${theme.primaryColor} focus:ring-2 focus:ring-${theme.primaryColor}/20 transition-all outline-none`}
                                         placeholder="john@example.com"
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -256,7 +257,7 @@ const ContactPage = () => {
                                     <select
                                         id="subject"
                                         required
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none bg-white"
+                                        className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-${theme.primaryColor} focus:ring-2 focus:ring-${theme.primaryColor}/20 transition-all outline-none bg-white`}
                                         value={formData.subject}
                                         onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                                     >
@@ -276,7 +277,7 @@ const ContactPage = () => {
                                         id="message"
                                         required
                                         rows={6}
-                                        className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 transition-all outline-none resize-none"
+                                        className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-${theme.primaryColor} focus:ring-2 focus:ring-${theme.primaryColor}/20 transition-all outline-none resize-none`}
                                         placeholder="How can we help you?"
                                         value={formData.message}
                                         onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -320,7 +321,10 @@ const ContactPage = () => {
                     >
                         <div className="w-full h-[500px] rounded-2xl overflow-hidden relative">
                             <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3829.271512537432!2d80.4309655!3d16.309065399999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a4a75d5803c1ad5%3A0x575d7ce7d4586540!2sTEAS%20N%20TREES!5e0!3m2!1sen!2sin!4v1758987737969!5m2!1sen!2sin"
+                                src={theme.isTeasNTrees
+                                    ? "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3829.271512537432!2d80.4309655!3d16.309065399999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a4a75d5803c1ad5%3A0x575d7ce7d4586540!2sTEAS%20N%20TREES!5e0!3m2!1sen!2sin!4v1758987737969!5m2!1sen!2sin"
+                                    : "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3829.271512537432!2d80.4309655!3d16.309065399999998!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3a4a75d5803c1ad5%3A0x575d7ce7d4586540!2sLittleH%20Bakery!5e0!3m2!1sen!2sin!4v1758987737970!5m2!1sen!2sin"
+                                }
                                 width="100%"
                                 height="100%"
                                 style={{ border: 0 }}

@@ -8,9 +8,13 @@ import { isProductInSeason, getCurrentMonth } from '../../utils/seasonUtils.js';
 // Get all products (with pagination, search, filter)
 export const getAllProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 20, category, search, q, tags } = req.query;
+        const { page = 1, limit = 20, category, search, q, tags, brand } = req.query;
 
         const query = { isAvailable: true };
+
+        if (brand) {
+            query.brand = brand;
+        }
 
         // 1. Filter by category
         if (category) {
@@ -146,14 +150,20 @@ export const getProductById = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
     try {
         const { categoryId } = req.params;
-        const { page = 1, limit = 20 } = req.query;
+        const { page = 1, limit = 20, brand } = req.query;
 
         const skip = (page - 1) * limit;
 
-        let products = await Product.find({
+        const query = {
             category: categoryId,
             isAvailable: true
-        })
+        };
+
+        if (brand) {
+            query.brand = brand;
+        }
+
+        let products = await Product.find(query)
             .populate('category', 'name description icon')
             .limit(parseInt(limit))
             .skip(skip);
@@ -161,10 +171,7 @@ export const getProductsByCategory = async (req, res) => {
         // Filter out seasonal products that are not in season
         products = products.filter(product => isProductInSeason(product));
 
-        const totalProducts = await Product.countDocuments({
-            category: categoryId,
-            isAvailable: true
-        });
+        const totalProducts = await Product.countDocuments(query);
 
         res.json({
             success: true,

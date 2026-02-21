@@ -6,7 +6,14 @@ import Category from '../../models/Category.js';
 // Get all categories
 export const getAllCategories = async (req, res) => {
     try {
-        const categories = await Category.find({ isActive: true })
+        const { brand } = req.query;
+        const query = { isActive: true };
+
+        if (brand) {
+            query.brand = brand;
+        }
+
+        const categories = await Category.find(query)
             .select('-__v')
             .sort({ name: 1 });
 
