@@ -8,7 +8,7 @@ import activityLogService from '../../services/activityLogService.js';
 // Get all products
 export const getAllProducts = async (req, res) => {
     try {
-        const { category, search, isAvailable, tags } = req.query;
+        const { category, search, isAvailable, tags, brand } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const sortBy = req.query.sortBy || 'createdAt';
@@ -30,6 +30,9 @@ export const getAllProducts = async (req, res) => {
         }
         if (tags) {
             query.tags = { $in: tags.split(',') };
+        }
+        if (brand) {
+            query.brand = brand;
         }
 
         const products = await Product.find(query)
@@ -116,7 +119,8 @@ export const createProduct = async (req, res) => {
             isSeasonal,
             availableMonths,
             sizeOptions,
-            variants
+            variants,
+            brand
         } = req.body;
 
         // verify category exists
@@ -139,6 +143,7 @@ export const createProduct = async (req, res) => {
         const product = await Product.create({
             name,
             description,
+            brand: brand || 'teasntrees',
             category,
             price: price || 0,
             image: productImage,
@@ -444,7 +449,11 @@ export const bulkUpdateProducts = async (req, res) => {
 // Get all seasonal products
 export const getSeasonalProducts = async (req, res) => {
     try {
-        const products = await Product.find({ isSeasonal: true })
+        const { brand } = req.query;
+        const query = { isSeasonal: true };
+        if (brand) query.brand = brand;
+
+        const products = await Product.find(query)
             .populate('category', 'name icon')
             .select('name isSeasonal availableMonths isAvailable category price image')
             .sort({ createdAt: -1 });
@@ -466,10 +475,14 @@ export const getSeasonalProducts = async (req, res) => {
 // Get products that are currently out of season
 export const getOutOfSeasonProducts = async (req, res) => {
     try {
+        const { brand } = req.query;
         const { getCurrentMonth } = await import('../../utils/seasonUtils.js');
         const currentMonth = getCurrentMonth();
 
-        const seasonalProducts = await Product.find({ isSeasonal: true })
+        const query = { isSeasonal: true };
+        if (brand) query.brand = brand;
+
+        const seasonalProducts = await Product.find(query)
             .populate('category', 'name icon')
             .select('name isSeasonal availableMonths isAvailable category price image');
 
@@ -549,16 +562,20 @@ export const updateProductSeason = async (req, res) => {
 // Get product stats
 export const getProductStats = async (req, res) => {
     try {
+        const { brand } = req.query;
+        const query = {};
+        if (brand) query.brand = brand;
+
         const [
             totalProducts,
             hiddenProducts,
             newIntroProducts,
             categoriesCount
         ] = await Promise.all([
-            Product.countDocuments(),
-            Product.countDocuments({ isAvailable: false }),
-            Product.countDocuments({ tags: 'new-intro' }),
-            Category.countDocuments()
+            Product.countDocuments(query),
+            Product.countDocuments({ ...query, isAvailable: false }),
+            Product.countDocuments({ ...query, tags: 'new-intro' }),
+            Category.countDocuments(query)
         ]);
 
         res.status(200).json({

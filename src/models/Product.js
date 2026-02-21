@@ -13,6 +13,13 @@ const productSchema = new mongoose.Schema(
       required: true
     },
 
+    brand: {
+      type: String,
+      enum: ['teasntrees', 'littleh'],
+      default: 'teasntrees',
+      required: true
+    },
+
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',

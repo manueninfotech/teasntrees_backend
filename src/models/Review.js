@@ -6,6 +6,12 @@ const reviewSchema = new mongoose.Schema({
         ref: 'Order',
         required: false
     },
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh'],
+        default: 'teasntrees',
+        required: true
+    },
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',

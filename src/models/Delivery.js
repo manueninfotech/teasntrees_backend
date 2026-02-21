@@ -7,8 +7,8 @@ import Rider from './Rider.js';
    DELIVERY → ORDER STATUS MAP
 ----------------------------------- */
 const DELIVERY_TO_ORDER_STATUS = {
-    // "assigned" here means offer sent; do not mark order assigned yet
-    assigned: null,
+    // "pending_acceptance" here means offer sent; do not mark order assigned yet
+    pending_acceptance: null,
     // After acceptance/movement, mark order as assigned
     accepted: 'assigned',
     heading_to_pickup: 'assigned',
@@ -30,6 +30,13 @@ const deliverySchema = new mongoose.Schema({
     orderId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Order',
+        required: true
+    },
+
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh'],
+        default: 'teasntrees',
         required: true
     },
 
@@ -63,7 +70,7 @@ const deliverySchema = new mongoose.Schema({
     status: {
         type: String,
         enum: [
-            'assigned',
+            'pending_acceptance',
             'accepted',
             'rejected',
             'heading_to_pickup',
@@ -74,7 +81,7 @@ const deliverySchema = new mongoose.Schema({
             'delivered',
             'cancelled'
         ],
-        default: 'assigned'
+        default: 'pending_acceptance'
     },
 
     assignedAt: { type: Date, default: Date.now },
@@ -206,7 +213,6 @@ deliverySchema.post('save', async function (delivery) {
     const mappedStatus = DELIVERY_TO_ORDER_STATUS[delivery.status];
 
     if (mappedStatus && order.status !== mappedStatus) {
-        // Only show "assigned" after kitchen is ready or already waiting for rider
         if (mappedStatus === 'assigned' && !['ready', 'waiting_for_rider', 'assigned'].includes(order.status)) {
             return;
         }

@@ -4,8 +4,13 @@ const categorySchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        unique: true,
         trim: true
+    },
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh'],
+        default: 'teasntrees',
+        required: true
     },
     description: String,
     icon: String,
@@ -21,6 +26,6 @@ const categorySchema = new mongoose.Schema({
     timestamps: true
 });
 
-categorySchema.index({ name: 1 });
+categorySchema.index({ name: 1, brand: 1 }, { unique: true });
 
 export default mongoose.model('Category', categorySchema);

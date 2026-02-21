@@ -14,10 +14,8 @@ class RiderAssignmentService {
     /* ======================================================
        FIND BEST RIDER (NO LOCKING HERE)
     ====================================================== */
-    async findBestRider(customerLocation, excludeRiderIds = []) {
+    async findBestRider(customerLocation, outletLocation, excludeRiderIds = []) {
         try {
-            const OUTLET_LOCATION = { lat: 16.3090716, lng: 80.4308257 };
-
             const query = {
                 isOnline: true,
                 isOnDelivery: false,
@@ -29,14 +27,29 @@ class RiderAssignmentService {
                 query._id = { $nin: excludeRiderIds };
             }
 
+            if (outletLocation && outletLocation.lat && outletLocation.lng) {
+                query.currentLocation = {
+                    $near: {
+                        $geometry: {
+                            type: "Point",
+                            coordinates: [outletLocation.lng, outletLocation.lat]
+                        },
+                        $maxDistance: this.CONFIG.MAX_ASSIGNMENT_DISTANCE
+                    }
+                };
+            }
+
             const riders = await Rider.find(query)
                 .select("name currentLocation vehicleType averageRating totalDeliveries")
+                .limit(20) // Process at most top 20 nearest riders
                 .lean();
 
             if (!riders.length) {
-                logger.warn("[RiderAssignment] No riders available");
+                logger.warn("[RiderAssignment] No riders available nearby");
                 return null;
             }
+
+            const fallbackOutletLocation = outletLocation || { lat: 16.3090716, lng: 80.4308257 };
 
             const scored = riders
                 .map(rider => {
@@ -44,24 +57,10 @@ class RiderAssignmentService {
                         return { rider, score: -1 };
                     }
 
-                    const riderLat = rider.currentLocation.coordinates[1];
-                    const riderLng = rider.currentLocation.coordinates[0];
-
-                    const distToOutlet = getDistance(
-                        riderLat,
-                        riderLng,
-                        OUTLET_LOCATION.lat,
-                        OUTLET_LOCATION.lng
-                    );
-
-                    if (distToOutlet > this.CONFIG.MAX_ASSIGNMENT_DISTANCE) {
-                        return { rider, score: -1 };
-                    }
-
                     const score = this.calculateRiderScore(
                         rider,
                         customerLocation,
-                        OUTLET_LOCATION
+                        fallbackOutletLocation
                     );
 
                     return { rider, score };
@@ -140,17 +139,22 @@ class RiderAssignmentService {
             ? { lat: coords[1], lng: coords[0] }
             : null;
 
+        const outletLocation = order.pickupLocation?.coordinates ? {
+            lat: order.pickupLocation.coordinates[1],
+            lng: order.pickupLocation.coordinates[0]
+        } : { lat: 16.3090716, lng: 80.4308257 }; // Fallback central location
+
         while (attempts < 5) {
             attempts++;
 
-            const rider = await this.findBestRider(customerLocation, excludedRiders);
+            const rider = await this.findBestRider(customerLocation, outletLocation, excludedRiders);
             if (!rider) break;
 
             try {
                 const delivery = await Delivery.create({
                     ...deliveryData,
                     riderId: rider._id,
-                    status: "assigned",
+                    status: "pending_acceptance",
                     assignedAt: new Date()
                 });
 
@@ -220,13 +224,17 @@ class RiderAssignmentService {
                     throw new Error('Cannot reassign rider for a terminal delivery');
                 }
                 delivery.riderId = rider._id;
-                delivery.status = 'assigned';
+                delivery.status = 'pending_acceptance';
                 delivery.assignedAt = new Date();
                 await delivery.save();
                 return delivery;
             }
 
-            const OUTLET = { lat: 16.3090716, lng: 80.4308257 };
+            const outletLocation = order.pickupLocation?.coordinates ? {
+                lat: order.pickupLocation.coordinates[1],
+                lng: order.pickupLocation.coordinates[0]
+            } : { lat: 16.3090716, lng: 80.4308257 };
+
             const deliveryLocation = order.deliveryAddress?.location;
 
             if (!deliveryLocation?.coordinates) {
@@ -234,8 +242,8 @@ class RiderAssignmentService {
             }
 
             const distance = getDistance(
-                OUTLET.lat,
-                OUTLET.lng,
+                outletLocation.lat,
+                outletLocation.lng,
                 deliveryLocation.coordinates[1],
                 deliveryLocation.coordinates[0]
             );
@@ -246,14 +254,14 @@ class RiderAssignmentService {
                 customerId: order.customerId,
                 pickupLocation: {
                     type: 'Point',
-                    coordinates: [OUTLET.lng, OUTLET.lat],
-                    address: 'Teas N Trees Outlet'
+                    coordinates: [outletLocation.lng, outletLocation.lat],
+                    address: 'Pickup Outlet'
                 },
                 deliveryLocation,
                 distance,
                 baseEarning: order.riderEarning || 20,
                 totalEarning: order.riderEarning || 20,
-                status: 'assigned',
+                status: 'pending_acceptance',
                 assignedAt: new Date(),
                 pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
                 deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
@@ -288,15 +296,19 @@ class RiderAssignmentService {
             const settings = (await Settings.findOne()) || {};
             const base = settings.riderBaseEarning || 20;
             const rate = settings.distanceBonusPerKm || 5;
-            const OUTLET = { lat: 16.3090716, lng: 80.4308257 };
 
             for (const order of pendingOrders) {
                 const coords = order.deliveryAddress?.location?.coordinates;
                 if (!coords || coords.length !== 2) continue;
 
+                const outletLocation = order.pickupLocation?.coordinates ? {
+                    lat: order.pickupLocation.coordinates[1],
+                    lng: order.pickupLocation.coordinates[0]
+                } : { lat: 16.3090716, lng: 80.4308257 };
+
                 const distance = getDistance(
-                    OUTLET.lat,
-                    OUTLET.lng,
+                    outletLocation.lat,
+                    outletLocation.lng,
                     coords[1],
                     coords[0]
                 );
@@ -309,8 +321,8 @@ class RiderAssignmentService {
                         customerId: order.customerId,
                         pickupLocation: {
                             type: 'Point',
-                            coordinates: [OUTLET.lng, OUTLET.lat],
-                            address: 'Teas N Trees Outlet'
+                            coordinates: [outletLocation.lng, outletLocation.lat],
+                            address: 'Pickup Outlet'
                         },
                         deliveryLocation: order.deliveryAddress.location,
                         distance,

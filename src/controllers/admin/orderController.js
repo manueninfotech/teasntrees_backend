@@ -14,7 +14,7 @@ import activityLogService from "../../services/activityLogService.js";
 ========================================================= */
 export const getAllOrders = async (req, res) => {
     try {
-        const { status, customerId, startDate, endDate } = req.query;
+        const { status, customerId, startDate, endDate, brand } = req.query;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
@@ -22,6 +22,7 @@ export const getAllOrders = async (req, res) => {
         const query = {};
         if (status) query.status = status;
         if (customerId) query.customerId = customerId;
+        if (brand) query.brand = brand;
 
         if (startDate || endDate) {
             query.createdAt = {};
@@ -360,8 +361,12 @@ export const cancelOrder = async (req, res) => {
 ========================================================= */
 export const getOrderStats = async (req, res) => {
     try {
+        const { brand } = req.query;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+
+        const queryBase = {};
+        if (brand) queryBase.brand = brand;
 
         const [
             totalOrders,
@@ -371,11 +376,12 @@ export const getOrderStats = async (req, res) => {
             inProgressOrders,
             revenueData
         ] = await Promise.all([
-            Order.countDocuments(),
-            Order.countDocuments({ status: 'pending' }),
-            Order.countDocuments({ status: 'delivered' }),
-            Order.countDocuments({ status: 'cancelled' }),
+            Order.countDocuments(queryBase),
+            Order.countDocuments({ ...queryBase, status: 'pending' }),
+            Order.countDocuments({ ...queryBase, status: 'delivered' }),
+            Order.countDocuments({ ...queryBase, status: 'cancelled' }),
             Order.countDocuments({
+                ...queryBase,
                 status: {
                     $in: [
                         'confirmed',
@@ -391,6 +397,7 @@ export const getOrderStats = async (req, res) => {
             Order.aggregate([
                 {
                     $match: {
+                        ...queryBase,
                         status: 'delivered',
                         paymentStatus: 'paid',
                         deliveredAt: { $gte: today }

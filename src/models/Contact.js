@@ -11,6 +11,12 @@ const contactSchema = new mongoose.Schema({
         required: [true, 'Last name is required'],
         trim: true
     },
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh'],
+        default: 'teasntrees',
+        required: true
+    },
     email: {
         type: String,
         required: [true, 'Email is required'],

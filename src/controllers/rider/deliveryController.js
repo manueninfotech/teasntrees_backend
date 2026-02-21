@@ -73,7 +73,7 @@ export const acceptDelivery = async (req, res) => {
         const delivery = await Delivery.findOne({
             _id: req.params.id,
             riderId: req.user.userId,
-            status: 'assigned'
+            status: 'pending_acceptance'
         });
 
         if (!delivery) {
@@ -139,7 +139,7 @@ export const rejectDelivery = async (req, res) => {
         const delivery = await Delivery.findOne({
             _id: id,
             riderId: req.user.userId,
-            status: 'assigned'
+            status: 'pending_acceptance'
         }).populate('orderId');
 
         if (!delivery) {

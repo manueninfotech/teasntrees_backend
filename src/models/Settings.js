@@ -1,6 +1,12 @@
 import mongoose from 'mongoose';
 
 const settingsSchema = new mongoose.Schema({
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh'],
+        default: 'teasntrees',
+        required: true
+    },
     deliveryCharge: {
         type: Number,
         default: 20
