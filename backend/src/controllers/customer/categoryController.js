@@ -9,7 +9,9 @@ export const getAllCategories = async (req, res) => {
         const { brand } = req.query;
         const query = { isActive: true };
 
-        if (brand) {
+        if (req.user?.activeBrand) {
+            query.brand = req.user.activeBrand;
+        } else if (brand) {
             query.brand = brand;
         }
 

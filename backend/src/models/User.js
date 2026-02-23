@@ -46,6 +46,14 @@ const userSchema = new mongoose.Schema({
         default: null
     },
 
+    preferences: {
+        activeBrand: {
+            type: String,
+            enum: ['teasntrees', 'littleh'],
+            default: 'teasntrees'
+        }
+    },
+
     role: {
         type: String,
         enum: ['admin', 'customer', 'rider', 'manager'],

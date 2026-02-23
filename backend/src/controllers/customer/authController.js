@@ -146,7 +146,8 @@ const completeProfile = async (req, res) => {
                     address: user.address,
                     profileImage: user.profileImage,
                     role: user.role,
-                    isProfileComplete: user.isProfileComplete
+                    isProfileComplete: user.isProfileComplete,
+                    activeBrand: user.preferences?.activeBrand
                 }
             }
         });
@@ -400,7 +401,8 @@ const firebaseLogin = async (req, res) => {
                     name: user.name,
                     mobile: user.mobile,
                     role: user.role,
-                    isProfileComplete: user.isProfileComplete
+                    isProfileComplete: user.isProfileComplete,
+                    activeBrand: user.preferences?.activeBrand
                 },
                 isNewUser
             }
@@ -546,7 +548,8 @@ const googleLogin = async (req, res) => {
                         mobile: null,
                         profileImage: user.profileImage,
                         role: user.role,
-                        isProfileComplete: user.isProfileComplete
+                        isProfileComplete: user.isProfileComplete,
+                        activeBrand: user.preferences?.activeBrand
                     },
                     isNewUser,
                     requiresPhone: true
@@ -567,7 +570,8 @@ const googleLogin = async (req, res) => {
                     mobile: user.mobile,
                     profileImage: user.profileImage,
                     role: user.role,
-                    isProfileComplete: user.isProfileComplete
+                    isProfileComplete: user.isProfileComplete,
+                    activeBrand: user.preferences?.activeBrand
                 },
                 isNewUser
             }

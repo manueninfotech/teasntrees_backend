@@ -44,6 +44,12 @@ export const AuthProvider = ({ children }) => {
                 // Login Success - set user to authenticated
                 localStorage.setItem('user', JSON.stringify(user));
                 setUser(user);
+
+                if (user.activeBrand) {
+                    localStorage.setItem('activeBrand', user.activeBrand);
+                    window.dispatchEvent(new Event('brandSyncFromAuth'));
+                }
+
                 return { success: true, user };
             } else {
                 // Profile Incomplete - store token but NOT user yet
@@ -64,6 +70,12 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('refreshToken', refreshToken);
             localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
+
+            if (user?.activeBrand) {
+                localStorage.setItem('activeBrand', user.activeBrand);
+                window.dispatchEvent(new Event('brandSyncFromAuth'));
+            }
+
             return { success: true, user };
         } catch (error) {
             throw error.response?.data?.message || 'Failed to complete profile';
@@ -73,8 +85,8 @@ export const AuthProvider = ({ children }) => {
     // Google Sign-In
     const googleLogin = async (idToken, googleUser) => {
         try {
-            const response = await api.post('/customer/auth/google-login', { 
-                idToken, 
+            const response = await api.post('/customer/auth/google-login', {
+                idToken,
                 email: googleUser.email,
                 name: googleUser.displayName,
                 photoURL: googleUser.photoURL
@@ -87,8 +99,8 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem('token', token);
                 localStorage.setItem('refreshToken', refreshToken);
                 // DON'T set user yet - let the user complete phone details first
-                return { 
-                    success: false, 
+                return {
+                    success: false,
                     requiresPhone: true,
                     user,
                     token,
@@ -101,6 +113,11 @@ export const AuthProvider = ({ children }) => {
             localStorage.setItem('refreshToken', refreshToken);
             localStorage.setItem('user', JSON.stringify(user));
             setUser(user);
+
+            if (user?.activeBrand) {
+                localStorage.setItem('activeBrand', user.activeBrand);
+                window.dispatchEvent(new Event('brandSyncFromAuth'));
+            }
 
             return { success: true, user };
         } catch (error) {

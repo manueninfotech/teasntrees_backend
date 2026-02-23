@@ -201,7 +201,53 @@ const updateProfile = async (req, res) => {
     }
 };
 
+// Update active brand preference
+const updateBrandPreference = async (req, res) => {
+    try {
+        const { brand } = req.body;
+        const userId = req.user.userId;
+
+        if (!brand || !['teasntrees', 'littleh'].includes(brand)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or missing brand. Must be teasntrees or littleh'
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        if (!user.preferences) {
+            user.preferences = {};
+        }
+
+        user.preferences.activeBrand = brand;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Brand preference updated successfully',
+            data: {
+                activeBrand: user.preferences.activeBrand
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating brand preference:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update brand preference'
+        });
+    }
+};
+
 export {
     getProfile,
-    updateProfile
+    updateProfile,
+    updateBrandPreference
 };

@@ -7,12 +7,13 @@ import {
     getProductById,
     getProductsByCategory
 } from '../../controllers/customer/productController.js';
+import { optionalAuthenticate } from '../../middlewares/auth.js';
 
 const router = express.Router();
 
-// Public routes - no authentication required for browsing
-router.get('/', getAllProducts);
-router.get('/category/:categoryId', getProductsByCategory);
+// Public routes - optionally use authentication to fetch brand preference
+router.get('/', optionalAuthenticate, getAllProducts);
+router.get('/category/:categoryId', optionalAuthenticate, getProductsByCategory);
 router.get('/:id', getProductById);
 
 export default router;

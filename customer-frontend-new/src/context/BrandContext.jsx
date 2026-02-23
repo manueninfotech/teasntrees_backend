@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import api from '../services/api';
 
 const BrandContext = createContext();
 
@@ -16,8 +17,26 @@ export const BrandProvider = ({ children }) => {
         if (newBrand === 'teasntrees' || newBrand === 'littleh') {
             setBrandState(newBrand);
             localStorage.setItem('activeBrand', newBrand);
+
+            // Sync with backend session if logged in
+            if (localStorage.getItem('token')) {
+                api.put('/customer/profile/preferences/brand', { brand: newBrand })
+                    .catch(err => console.error("Pref sync failed", err));
+            }
         }
     };
+
+    // Listen for auth-triggered brand syncs
+    useEffect(() => {
+        const handleSync = () => {
+            const syncedBrand = localStorage.getItem('activeBrand');
+            if (syncedBrand && syncedBrand !== brand) {
+                setBrandState(syncedBrand);
+            }
+        };
+        window.addEventListener('brandSyncFromAuth', handleSync);
+        return () => window.removeEventListener('brandSyncFromAuth', handleSync);
+    }, [brand]);
 
     // Auto-detect brand from URL path
     useEffect(() => {

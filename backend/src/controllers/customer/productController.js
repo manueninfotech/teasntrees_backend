@@ -12,7 +12,9 @@ export const getAllProducts = async (req, res) => {
 
         const query = { isAvailable: true };
 
-        if (brand) {
+        if (req.user?.activeBrand) {
+            query.brand = req.user.activeBrand;
+        } else if (brand) {
             query.brand = brand;
         }
 
@@ -159,7 +161,9 @@ export const getProductsByCategory = async (req, res) => {
             isAvailable: true
         };
 
-        if (brand) {
+        if (req.user?.activeBrand) {
+            query.brand = req.user.activeBrand;
+        } else if (brand) {
             query.brand = brand;
         }
 
