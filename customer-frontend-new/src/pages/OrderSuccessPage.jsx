@@ -3,9 +3,11 @@ import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { orderService } from '../services/orderService';
 import { CheckCircle, Package, ArrowRight, Home, Loader2 } from 'lucide-react';
+import { useBrand } from '../context/BrandContext';
 
 const OrderSuccessPage = () => {
     const { orderId } = useParams();
+    const { theme } = useBrand();
     const [order, setOrder] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
 
@@ -28,7 +30,7 @@ const OrderSuccessPage = () => {
     }, [orderId]);
 
     return (
-        <div className="min-h-screen bg-cafe-emerald flex items-center justify-center p-4">
+        <div className={`min-h-screen ${theme.isLittleH ? 'bg-[#FAF1E8]' : 'bg-cafe-emerald'} flex items-center justify-center p-4`}>
             <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -36,9 +38,9 @@ const OrderSuccessPage = () => {
                 className="bg-white rounded-3xl p-8 md:p-12 w-full max-w-md text-center shadow-2xl relative overflow-hidden"
             >
                 {/* Background Decor */}
-                <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-emerald-400 to-teal-500" />
+                <div className={`absolute top-0 left-0 w-full h-2 ${theme.isLittleH ? 'bg-gradient-to-r from-[#565A47] to-[#8B8E7B]' : 'bg-gradient-to-r from-emerald-400 to-teal-500'}`} />
 
-                <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8 text-emerald-600">
+                <div className={`w-24 h-24 ${theme.isLittleH ? 'bg-[#FDF5EC] text-[#565A47]' : 'bg-emerald-100 text-emerald-600'} rounded-full flex items-center justify-center mx-auto mb-8`}>
                     <CheckCircle className="w-12 h-12" />
                 </div>
 

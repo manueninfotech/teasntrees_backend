@@ -7,6 +7,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useBrand } from '../context/BrandContext';
 import Logo from '../assets/logoteasntrees-removebg-preview.png';
+import LittleHLogo from '../assets/littleh-logo.png'; // Make sure this file exists!
 
 const Navbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -30,26 +31,23 @@ const Navbar = () => {
 
     return (
 
-        <nav className={`glass-nav transition-all duration-300 ${brand === 'littleh' ? 'bg-pink-50/10' : ''}`}>
+        <nav className={cn("fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b", theme.isLittleH ? "bg-[#FAF1E8] border-[#8B8E7B]/15" : "glass-nav border-transparent")}>
             <div className="container mx-auto px-4 lg:px-8 h-20 flex items-center justify-between">
                 <div className="flex items-center gap-6">
                     {/* Logo */}
-                    <Link to={brand === 'littleh' ? '/littleh' : '/teasntrees'} className="flex items-center gap-2 group">
-                        {theme.isTeasNTrees ? (
-                            <img
-                                src={Logo}
-                                alt="Teas N Trees"
-                                className="h-14 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
-                            />
-                        ) : (
-                            <div className="flex items-center gap-2 text-2xl font-black text-pink-600 tracking-tighter group-hover:scale-105 transition-transform duration-300">
-                                <span className="text-3xl">🧁</span> LittleH
-                            </div>
-                        )}
+                    <Link to={theme.isLittleH ? "/littleh" : "/teasntrees"} className="flex items-center gap-2 group" onClick={() => setIsOpen(false)}>
+                        <img
+                            src={theme.isLittleH ? LittleHLogo : Logo}
+                            alt={theme.brandName}
+                            className={cn(
+                                "w-auto object-contain transition-transform group-hover:scale-105 duration-300",
+                                theme.isLittleH ? "h-20 md:h-24 scale-125" : "h-10 md:h-14"
+                            )}
+                        />
                     </Link>
 
                     {/* Brand Switcher Desktop */}
-                    <div className="hidden lg:flex bg-white/50 backdrop-blur-md p-1 rounded-full items-center border border-white/60">
+                    <div className={cn("hidden lg:flex p-1 rounded-full items-center border transition-colors", theme.isLittleH ? "bg-bakery-light border-bakery-accent/20" : "bg-white/50 backdrop-blur-md border-white/60")}>
                         <button
                             onClick={() => { setBrand('teasntrees'); navigate('/teasntrees'); }}
                             className={cn(
@@ -79,7 +77,10 @@ const Navbar = () => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search for 'Masala Chai'..."
-                            className={`w-full bg-white/50 backdrop-blur-sm border border-white/40 rounded-full py-2.5 pl-12 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-${theme.primaryColor}/50 transition-all shadow-sm hover:shadow-md hover:bg-white/70`}
+                            className={cn(
+                                "w-full border py-2.5 pl-12 pr-12 text-sm focus:outline-none transition-all shadow-sm hover:shadow-md",
+                                theme.isLittleH ? "bg-bakery-light border-bakery-accent/20 focus:ring-2 focus:ring-bakery-accent/50 rounded-none font-playfair" : "bg-white/50 backdrop-blur-sm border-white/40 rounded-full focus:ring-2 focus:ring-cafe-emerald/50 hover:bg-white/70"
+                            )}
                             autoComplete="off"
                         />
                         <button
@@ -144,7 +145,7 @@ const Navbar = () => {
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
                         exit={{ opacity: 0, height: 0 }}
-                        className="lg:hidden overflow-hidden bg-white/95 backdrop-blur-xl border-t border-slate-100"
+                        className={cn("lg:hidden overflow-hidden border-t", theme.isLittleH ? "bg-bakery-bg border-bakery-accent/20" : "bg-white/95 backdrop-blur-xl border-slate-100")}
                     >
                         <div className="p-6 flex flex-col gap-4">
                             {/* Brand Switcher Mobile */}

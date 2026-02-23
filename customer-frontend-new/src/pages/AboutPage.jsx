@@ -5,7 +5,87 @@ import { cn } from '../lib/utils';
 import { useBrand } from '../context/BrandContext';
 
 const AboutPage = () => {
-    const { brand, theme } = useBrand();
+    const { theme } = useBrand();
+    if (theme.isLittleH) {
+        return (
+            <div className="min-h-screen pt-28 pb-20 bg-[#FAF1E8] font-sans selection:bg-[#565A47] selection:text-[#FAF1E8]">
+                {/* Elegant Hero */}
+                <div className="container mx-auto px-4 lg:px-8 mb-24">
+                    <div className="text-center max-w-4xl mx-auto mb-16">
+                        <span className="uppercase tracking-[0.3em] text-[#8B8E7B] text-sm font-semibold mb-6 block">Our Story</span>
+                        <h1 className="text-5xl lg:text-7xl font-playfair font-bold text-[#565A47] mb-8 leading-tight">
+                            Crafting <span className="italic font-light">Happiness,</span><br />One Bake at a Time.
+                        </h1>
+                        <p className="text-[#8B8E7B] text-xl font-light leading-relaxed max-w-2xl mx-auto">
+                            Founded on a profound love for traditional baking and modern artistry, LittleH Patisserie is your neighborhood sanctuary for sweet indulgence.
+                        </p>
+                    </div>
+
+                    <div className="relative w-full aspect-[21/9] overflow-hidden bg-[#FDF5EC]">
+                        <img
+                            src="https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&q=80&w=2000"
+                            alt="LittleH Bakery Interior"
+                            className="w-full h-full object-cover opacity-90 sepia-[0.2]"
+                        />
+                    </div>
+                </div>
+
+                {/* The Philosophy */}
+                <div className="bg-[#FDF5EC] py-32 border-y border-[#8B8E7B]/10">
+                    <div className="container mx-auto px-4 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-20 items-center max-w-6xl mx-auto">
+                            <div className="order-2 md:order-1 relative">
+                                <div className="absolute inset-0 bg-[#565A47] translate-x-4 translate-y-4 -z-10 opacity-10"></div>
+                                <img
+                                    src="https://images.unsplash.com/photo-1556910103-1c02745a872f?auto=format&fit=crop&q=80&w=800"
+                                    alt="Baker whisking"
+                                    className="w-full aspect-[4/5] object-cover grayscale-[0.2]"
+                                />
+                            </div>
+                            <div className="order-1 md:order-2 space-y-8">
+                                <h2 className="text-4xl lg:text-5xl font-playfair font-bold text-[#565A47]">The Artisan Philosophy</h2>
+                                <div className="w-16 h-px bg-[#8B8E7B]"></div>
+                                <p className="text-[#8B8E7B] text-lg font-light leading-loose">
+                                    We believe that truly great pastry cannot be rushed. It requires patience, precision, and an unwavering commitment to using only the finest ingredients available. From the European butter folded generously into our croissants to the Madagascar vanilla in our cakes, we meticulously source every element.
+                                </p>
+                                <p className="text-[#8B8E7B] text-lg font-light leading-loose">
+                                    Every morning, long before the sun rises, our ovens are fired up. We bake in small batches throughout the day to ensure that every single item that reaches your hands is astonishingly fresh.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Offerings Grid */}
+                <div className="py-32">
+                    <div className="container mx-auto px-4 lg:px-8">
+                        <div className="text-center mb-20">
+                            <h2 className="text-4xl font-playfair font-bold text-[#565A47] mb-6">Our Craft</h2>
+                            <div className="w-16 h-px bg-[#8B8E7B] mx-auto"></div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-6xl mx-auto">
+                            {[
+                                { title: "Viennoiserie", desc: "Classic laminated pastries, from buttery croissants to decadent pains au chocolat.", img: "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80&w=600" },
+                                { title: "Custom Cakes", desc: "Bespoke centerpieces designed to make your celebrations extraordinary.", img: "https://images.unsplash.com/photo-1535141192574-5d4897c12636?auto=format&fit=crop&q=80&w=600" },
+                                { title: "Petits Fours", desc: "Bite-sized elegance. Macarons, tartlets, and delicate mignardises.", img: "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&q=80&w=600" }
+                            ].map((item, idx) => (
+                                <div key={idx} className="group cursor-pointer">
+                                    <div className="relative overflow-hidden mb-6 aspect-[4/5]">
+                                        <div className="absolute inset-0 bg-[#565A47]/20 group-hover:bg-transparent transition-colors duration-700 z-10"></div>
+                                        <img src={item.img} alt={item.title} className="w-full h-full object-cover scale-100 group-hover:scale-110 transition-transform duration-1000 ease-out" />
+                                    </div>
+                                    <h3 className="font-playfair font-bold text-2xl text-[#565A47] mb-3">{item.title}</h3>
+                                    <p className="font-light text-[#8B8E7B] leading-relaxed">{item.desc}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen pt-24 pb-20 bg-slate-50">
             {/* Hero Section */}

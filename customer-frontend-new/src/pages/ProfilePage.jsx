@@ -17,14 +17,14 @@ import { orderService } from '../services/orderService';
 import { reviewService } from '../services/reviewService';
 import { auth } from '../config/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-
-
+import { useBrand } from '../context/BrandContext';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
     const { socket } = useSocket();
     const { user, isAuthenticated, logout, verifyOtp, googleLogin, completeProfile } = useAuth();
     const { setIsCartOpen, addToCart } = useCart();
+    const { theme } = useBrand();
 
     // Auth State
     const [loginStep, setLoginStep] = useState('mobile'); // mobile, otp, details
@@ -85,7 +85,7 @@ const ProfilePage = () => {
         e.preventDefault();
         setAuthLoading(true);
         setAuthError('');
-        
+
         try {
             // Validate phone number
             if (!mobile || mobile.length !== 10) {
@@ -118,7 +118,7 @@ const ProfilePage = () => {
             toast.success('OTP sent successfully!');
         } catch (err) {
             console.error('Firebase Auth Error:', err);
-            
+
             // Clear the verifier on error so it can be re-initialized
             if (window.recaptchaVerifier) {
                 window.recaptchaVerifier.clear();
@@ -164,7 +164,7 @@ const ProfilePage = () => {
             }
         } catch (err) {
             console.error('Verification Error:', err);
-            
+
             if (err.code === 'auth/invalid-verification-code') {
                 setAuthError('Invalid or expired OTP. Please try again.');
             } else if (err.code === 'auth/code-expired') {
@@ -187,7 +187,7 @@ const ProfilePage = () => {
                 ...userDetails,
                 location: capturedLocation
             });
-            
+
             if (result.success) {
                 toast.success('Profile completed successfully!');
                 // The user will be automatically redirected by the app since they're now authenticated
@@ -214,13 +214,13 @@ const ProfilePage = () => {
             });
 
             const result = await signInWithPopup(auth, provider);
-            
+
             if (!result.user || !result.user.email) {
                 throw new Error('Failed to retrieve user information');
             }
 
             const idToken = await result.user.getIdToken();
-            
+
             // Get user info from Google (phone may not be available)
             const googleUser = {
                 email: result.user.email,
@@ -231,7 +231,7 @@ const ProfilePage = () => {
 
             // Send to backend for authentication
             const responseResult = await googleLogin(idToken, googleUser);
-            
+
             // Check if phone is required FIRST (even if success is true)
             if (responseResult.requiresPhone) {
                 // Phone number is REQUIRED - show phone-details step
@@ -258,7 +258,7 @@ const ProfilePage = () => {
             }
         } catch (err) {
             console.error('Google Auth Error:', err);
-            
+
             // Handle specific Firebase errors
             if (err.code === 'auth/popup-closed-by-user') {
                 setAuthError('Sign-in cancelled. Please try again.');
@@ -692,13 +692,13 @@ const ProfilePage = () => {
     // --- RENDER LOGIN VIEW ---
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen pt-24 pb-20 bg-slate-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col relative border border-slate-100">
+            <div className={`min-h-screen pt-24 pb-20 flex items-center justify-center p-4 ${theme.isLittleH ? 'bg-bakery-bg' : 'bg-slate-50'}`}>
+                <div className={`rounded-3xl shadow-xl w-full max-w-md overflow-hidden flex flex-col relative border ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
                     {/* Header */}
-                    <div className="h-32 bg-gradient-to-br from-cafe-emerald to-cafe-teal flex items-center justify-center relative overflow-hidden">
+                    <div className={`h-32 ${theme.isLittleH ? 'bg-gradient-to-br from-[#565A47] to-[#8B8E7B]' : 'bg-gradient-to-br from-cafe-emerald to-cafe-teal'} flex items-center justify-center relative overflow-hidden`}>
                         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=800&q=80')] opacity-10 bg-cover bg-center" />
                         <div className="text-white text-center z-10">
-                            <h2 className="text-2xl font-bold">Welcome Back</h2>
+                            <h2 className={cn("text-2xl font-bold", theme.isLittleH && "font-playfair")}>Welcome Back</h2>
                             <p className="text-white/80 text-sm">Sign in to continue</p>
                         </div>
                     </div>
@@ -722,7 +722,7 @@ const ProfilePage = () => {
                                                 value={mobile}
                                                 onChange={e => setMobile(e.target.value)}
                                                 placeholder="9876543210"
-                                                className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 font-medium"
+                                                className={`w-full pl-12 pr-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/50' : 'bg-slate-50 focus:ring-cafe-emerald/50'} font-medium`}
                                                 required
                                             />
                                         </div>
@@ -731,7 +731,7 @@ const ProfilePage = () => {
                                         disabled={authLoading}
                                         id="send-otp-button"
                                         type="submit"
-                                        className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all flex items-center justify-center gap-2"
+                                        className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233] shadow-[#565A47]/30' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2`}
                                     >
                                         {authLoading ? 'Sending...' : <>Get OTP <ArrowRight className="w-4 h-4" /></>}
                                     </button>
@@ -751,10 +751,10 @@ const ProfilePage = () => {
                                         className="w-full py-3.5 bg-white border-2 border-slate-200 text-slate-700 rounded-xl font-bold hover:border-slate-300 hover:bg-slate-50 transition-all flex items-center justify-center gap-2"
                                     >
                                         <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                                         </svg>
                                         Continue with Google
                                     </button>
@@ -770,7 +770,7 @@ const ProfilePage = () => {
                                     className="space-y-6"
                                 >
                                     <div className="text-center mb-6">
-                                        <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600">
+                                        <div className={`w-16 h-16 ${theme.isLittleH ? 'bg-[#FDF5EC] text-[#565A47]' : 'bg-emerald-100 text-emerald-600'} rounded-full flex items-center justify-center mx-auto mb-3`}>
                                             <ShieldCheck className="w-8 h-8" />
                                         </div>
                                         <p className="text-slate-500 text-sm">Enter the OTP sent to <span className="font-bold text-slate-800">{mobile}</span></p>
@@ -782,7 +782,7 @@ const ProfilePage = () => {
                                             value={otp}
                                             onChange={e => setOtp(e.target.value)}
                                             placeholder="XXXXXX"
-                                            className="w-full text-center text-2xl tracking-widest py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 font-bold"
+                                            className={`w-full text-center text-2xl tracking-widest py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/50' : 'bg-slate-50 focus:ring-cafe-emerald/50'} font-bold`}
                                             maxLength={6}
                                             required
                                         />
@@ -790,7 +790,7 @@ const ProfilePage = () => {
                                     <button
                                         disabled={authLoading}
                                         type="submit"
-                                        className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all"
+                                        className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233] shadow-[#565A47]/30' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white rounded-xl font-bold shadow-lg transition-all`}
                                     >
                                         {authLoading ? 'Verifying...' : 'Verify & Login'}
                                     </button>
@@ -812,14 +812,14 @@ const ProfilePage = () => {
                                     onSubmit={handleCompleteProfile}
                                     className="space-y-4"
                                 >
-                                    <h3 className="text-xl font-bold text-center text-slate-800 mb-4">Complete Profile</h3>
+                                    <h3 className={cn("text-xl font-bold text-center text-slate-800 mb-4", theme.isLittleH && "font-playfair")}>Complete Profile</h3>
                                     <div className="space-y-2">
                                         <label className="text-xs font-bold text-slate-500 uppercase">Full Name</label>
                                         <input
                                             type="text"
                                             value={userDetails.name}
                                             onChange={e => setUserDetails({ ...userDetails, name: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none"
+                                            className={`w-full px-4 py-3 rounded-xl border-none ${theme.isLittleH ? 'bg-white shadow-inner' : 'bg-slate-50'}`}
                                             required
                                         />
                                     </div>
@@ -829,7 +829,7 @@ const ProfilePage = () => {
                                             type="email"
                                             value={userDetails.email}
                                             onChange={e => setUserDetails({ ...userDetails, email: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none"
+                                            className={`w-full px-4 py-3 rounded-xl border-none ${theme.isLittleH ? 'bg-white shadow-inner' : 'bg-slate-50'}`}
                                             required
                                         />
                                     </div>
@@ -840,7 +840,7 @@ const ProfilePage = () => {
                                                 type="button"
                                                 onClick={(e) => handleDetectLocation(e, 'details')}
                                                 disabled={detectingLocation}
-                                                className="text-[10px] font-bold text-cafe-emerald uppercase flex items-center gap-1 hover:text-cafe-teal transition-colors disabled:opacity-50"
+                                                className={`text-[10px] font-bold ${theme.isLittleH ? 'text-[#565A47] hover:text-[#3f4233]' : 'text-cafe-emerald hover:text-cafe-teal'} uppercase flex items-center gap-1 transition-colors disabled:opacity-50`}
                                             >
                                                 {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
                                                 Detect My Location
@@ -850,7 +850,7 @@ const ProfilePage = () => {
                                             type="text"
                                             value={userDetails.address}
                                             onChange={e => setUserDetails({ ...userDetails, address: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none"
+                                            className={`w-full px-4 py-3 rounded-xl border-none ${theme.isLittleH ? 'bg-white shadow-inner' : 'bg-slate-50'}`}
                                             placeholder="Enter your full address"
                                             required
                                         />
@@ -858,7 +858,7 @@ const ProfilePage = () => {
                                     <button
                                         disabled={authLoading}
                                         type="submit"
-                                        className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg mt-4"
+                                        className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233] shadow-[#565A47]/30' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white rounded-xl font-bold shadow-lg mt-4 transition-all`}
                                     >
                                         {authLoading ? 'Creating Account...' : 'Complete & Login'}
                                     </button>
@@ -878,12 +878,12 @@ const ProfilePage = () => {
                                         <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3 text-blue-600">
                                             <Phone className="w-8 h-8" />
                                         </div>
-                                        <h3 className="text-xl font-bold text-slate-800">One More Step!</h3>
+                                        <h3 className={cn("text-xl font-bold text-slate-800", theme.isLittleH && "font-playfair")}>One More Step!</h3>
                                         <p className="text-sm text-slate-500 mt-2">We need your phone number to complete your account</p>
                                     </div>
-                                    
+
                                     {/* Name - read only from Google */}
-                                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl">
+                                    <div className={`space-y-2 p-4 rounded-xl ${theme.isLittleH ? 'bg-[#FDF5EC]' : 'bg-slate-50'}`}>
                                         <label className="text-xs font-bold text-slate-600 uppercase flex items-center gap-1">
                                             <span className="text-slate-400">👤</span> Full Name
                                         </label>
@@ -896,7 +896,7 @@ const ProfilePage = () => {
                                     </div>
 
                                     {/* Email - read only from Google */}
-                                    <div className="space-y-2 bg-slate-50 p-4 rounded-xl">
+                                    <div className={`space-y-2 p-4 rounded-xl ${theme.isLittleH ? 'bg-[#FDF5EC]' : 'bg-slate-50'}`}>
                                         <label className="text-xs font-bold text-slate-600 uppercase flex items-center gap-1">
                                             <span className="text-slate-400">📧</span> Email
                                         </label>
@@ -909,8 +909,8 @@ const ProfilePage = () => {
                                     </div>
 
                                     {/* Phone Number - REQUIRED */}
-                                    <div className="space-y-2 border-2 border-cafe-emerald/50 p-4 rounded-xl bg-emerald-50">
-                                        <label className="text-xs font-bold text-cafe-emerald uppercase flex items-center gap-2">
+                                    <div className={`space-y-2 border-2 ${theme.isLittleH ? 'border-[#565A47]/50 bg-[#FDF5EC]' : 'border-cafe-emerald/50 bg-emerald-50'} p-4 rounded-xl`}>
+                                        <label className={`text-xs font-bold ${theme.isLittleH ? 'text-[#565A47]' : 'text-cafe-emerald'} uppercase flex items-center gap-2`}>
                                             <Phone className="w-4 h-4" />
                                             Mobile Number <span className="text-red-500">*</span> <span className="text-[10px] font-normal text-red-600 ml-auto">REQUIRED</span>
                                         </label>
@@ -924,7 +924,7 @@ const ProfilePage = () => {
                                                     setMobile(value);
                                                 }}
                                                 placeholder="Enter 10-digit number"
-                                                className="w-full pl-12 pr-4 py-3 rounded-lg bg-white border-2 border-cafe-emerald/30 focus:border-cafe-emerald focus:ring-2 focus:ring-cafe-emerald/20 font-medium text-base"
+                                                className={`w-full pl-12 pr-4 py-3 rounded-lg bg-white border-2 transition-colors ${theme.isLittleH ? 'border-[#565A47]/30 focus:border-[#565A47] focus:ring-[#565A47]/20' : 'border-cafe-emerald/30 focus:border-cafe-emerald focus:ring-cafe-emerald/20'} focus:ring-2 font-medium text-base`}
                                                 maxLength="10"
                                                 required
                                             />
@@ -942,7 +942,7 @@ const ProfilePage = () => {
                                                 type="button"
                                                 onClick={(e) => handleDetectLocation(e, 'phone-details')}
                                                 disabled={detectingLocation}
-                                                className="text-[10px] font-bold text-cafe-emerald uppercase flex items-center gap-1 hover:text-cafe-teal transition-colors disabled:opacity-50"
+                                                className={`text-[10px] font-bold ${theme.isLittleH ? 'text-[#565A47] hover:text-[#3f4233]' : 'text-cafe-emerald hover:text-cafe-teal'} uppercase flex items-center gap-1 transition-colors disabled:opacity-50`}
                                             >
                                                 {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
                                                 Detect
@@ -952,7 +952,7 @@ const ProfilePage = () => {
                                             type="text"
                                             value={userDetails.address}
                                             onChange={e => setUserDetails({ ...userDetails, address: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                            className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-white shadow-inner focus:ring-[#565A47]/50' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                             placeholder="Enter your full address"
                                             required
                                         />
@@ -961,7 +961,7 @@ const ProfilePage = () => {
                                     <button
                                         disabled={authLoading || !mobile || mobile.length !== 10}
                                         type="submit"
-                                        className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+                                        className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233] shadow-[#565A47]/30' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed mt-4`}
                                     >
                                         {authLoading ? 'Creating Account...' : 'Complete & Login'}
                                     </button>
@@ -1001,12 +1001,12 @@ const ProfilePage = () => {
     ];
 
     return (
-        <div className="min-h-screen pt-24 pb-20 bg-slate-50">
+        <div className={`min-h-screen pt-24 pb-20 ${theme.isLittleH ? 'bg-bakery-bg' : 'bg-slate-50'}`}>
             <div className="container mx-auto px-4 lg:px-8">
 
                 {/* Header Card */}
-                <div className="bg-white rounded-3xl p-8 mb-8 shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-6 relative overflow-visible">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-cafe-emerald/10 to-transparent rounded-bl-full pointer-events-none" />
+                <div className={`rounded-3xl p-8 mb-8 shadow-sm border flex flex-col md:flex-row items-center gap-6 relative overflow-visible ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
+                    <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${theme.isLittleH ? 'from-[#565A47]/10' : 'from-cafe-emerald/10'} to-transparent rounded-bl-full pointer-events-none`} />
 
                     <div className="relative group cursor-pointer">
                         <input
@@ -1067,7 +1067,7 @@ const ProfilePage = () => {
 
                     {/* Sidebar Tabs */}
                     <div className="lg:w-72 flex-shrink-0">
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden sticky top-24">
+                        <div className={`rounded-2xl shadow-sm border overflow-hidden sticky top-24 ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
                             {tabs.map((tab) => {
                                 const Icon = tab.icon;
                                 const isActive = activeTab === tab.id;
@@ -1075,14 +1075,9 @@ const ProfilePage = () => {
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
-                                        className={cn(
-                                            "w-full flex items-center gap-3 px-6 py-4 transition-all border-l-4",
-                                            isActive
-                                                ? "bg-cafe-emerald/5 border-cafe-emerald text-cafe-emerald font-semibold"
-                                                : "border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-                                        )}
+                                        className={cn("inline-flex w-full items-center gap-2 px-6 py-4 border-l-4 transition-all duration-300", isActive ? (theme.isLittleH ? "bg-bakery-light border-bakery-primary text-bakery-primary font-semibold shadow-sm" : "bg-cafe-emerald/5 border-cafe-emerald text-cafe-emerald font-semibold") : "border-transparent text-slate-500 hover:bg-slate-50")}
                                     >
-                                        <Icon className={cn("w-5 h-5", isActive ? "text-cafe-emerald" : "text-slate-400")} />
+                                        <Icon className={cn("w-5 h-5", isActive ? (theme.isLittleH ? "text-[#565A47]" : "text-cafe-emerald") : "text-slate-400")} />
                                         {tab.label}
                                         {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
                                     </button>
@@ -1106,20 +1101,25 @@ const ProfilePage = () => {
                                 ) : (
                                     <>
                                         {activeTab === 'profile' && (
-                                            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-                                                <h2 className="text-xl font-bold text-slate-800 mb-6">Personal Information</h2>
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-semibold text-slate-600">Full Name</label>
-                                                        <div className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-800 font-medium">{profileData?.name}</div>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-semibold text-slate-600">Email Address</label>
-                                                        <div className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-800 font-medium">{profileData?.email}</div>
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-semibold text-slate-600">Phone Number</label>
-                                                        <div className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-800 font-medium">{profileData?.mobile}</div>
+                                            <div className="space-y-6">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <h1 className={cn("text-3xl font-black text-slate-800", theme.isLittleH && "font-playfair")}>My Profile</h1>
+                                                </div>
+                                                <div className={`rounded-3xl p-8 shadow-sm border ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
+                                                    <h2 className="text-xl font-bold text-slate-800 mb-6">Personal Information</h2>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-semibold text-slate-600">Full Name</label>
+                                                            <div className={`w-full px-4 py-3 rounded-xl border font-medium ${theme.isLittleH ? 'bg-white border-bakery-accent/30 text-bakery-primary' : 'bg-slate-50 border-slate-100 text-slate-800'}`}>{profileData?.name}</div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-semibold text-slate-600">Email Address</label>
+                                                            <div className={`w-full px-4 py-3 rounded-xl border font-medium ${theme.isLittleH ? 'bg-[#FDF5EC] border-[#8B8E7B]/20 text-[#565A47]' : 'bg-slate-50 border-slate-100 text-slate-800'}`}>{profileData?.email}</div>
+                                                        </div>
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-semibold text-slate-600">Phone Number</label>
+                                                            <div className={`w-full px-4 py-3 rounded-xl border font-medium ${theme.isLittleH ? 'bg-[#FDF5EC] border-[#8B8E7B]/20 text-[#565A47]' : 'bg-slate-50 border-slate-100 text-slate-800'}`}>{profileData?.mobile}</div>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1127,16 +1127,19 @@ const ProfilePage = () => {
 
                                         {activeTab === 'orders' && (
                                             <div className="space-y-6">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <h1 className={cn("text-3xl font-black text-slate-800", theme.isLittleH && "font-playfair")}>Order History</h1>
+                                                </div>
                                                 {orders.length === 0 ? (
                                                     <div className="text-center py-20">
-                                                        <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                        <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${theme.isLittleH ? 'bg-[#FDF5EC]' : 'bg-slate-50'}`}>
                                                             <Package className="w-10 h-10 text-slate-300" />
                                                         </div>
                                                         <h3 className="text-lg font-bold text-slate-800 mb-2">No orders yet</h3>
                                                         <p className="text-slate-500 max-w-xs mx-auto">Looks like you haven't placed any orders yet. Start exploring our menu!</p>
                                                     </div>
                                                 ) : orders.map(order => (
-                                                    <div key={order._id} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 hover:shadow-lg hover:border-emerald-100 transition-all duration-300 group">
+                                                    <div key={order._id} className={`rounded-3xl p-6 shadow-sm border hover:shadow-lg transition-all duration-300 group ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/20 hover:border-bakery-primary/50' : 'bg-white border-slate-100 hover:border-emerald-100'}`}>
 
                                                         {/* Header */}
                                                         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-6 border-b border-slate-50">
@@ -1151,7 +1154,7 @@ const ProfilePage = () => {
                                                                         </span>
                                                                         <span className={cn(
                                                                             "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border",
-                                                                            order.status === 'delivered' ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                                                                            order.status === 'delivered' ? (theme.isLittleH ? "bg-[#FDF5EC] text-[#565A47] border-[#8B8E7B]/20" : "bg-emerald-50 text-emerald-700 border-emerald-100") :
                                                                                 order.status === 'cancelled' ? "bg-red-50 text-red-700 border-red-100" :
                                                                                     ['waiting_for_rider', 'pending'].includes(order.status) ? "bg-amber-50 text-amber-700 border-amber-100" :
                                                                                         "bg-blue-50 text-blue-700 border-blue-100"
@@ -1181,7 +1184,7 @@ const ProfilePage = () => {
                                                         </div>
 
                                                         {/* Items Preview */}
-                                                        <div className="mb-6 bg-slate-50/50 rounded-2xl p-4 space-y-3">
+                                                        <div className={`mb-6 rounded-2xl p-4 space-y-3 ${theme.isLittleH ? 'bg-[#FDF5EC]' : 'bg-slate-50'}`}>
                                                             {order.items?.slice(0, 3).map((item, idx) => (
                                                                 <div key={idx} className="flex justify-between items-center text-sm">
                                                                     <div className="flex items-center gap-3">
@@ -1217,7 +1220,7 @@ const ProfilePage = () => {
 
                                                                 <button
                                                                     onClick={() => handleReorder(order._id)}
-                                                                    className="flex-1 md:flex-none py-2.5 px-4 rounded-xl bg-emerald-50 text-emerald-600 font-bold text-sm hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                                                                    className={`flex-1 md:flex-none py-2.5 px-4 rounded-xl font-bold text-sm transition-colors flex items-center justify-center gap-2 ${theme.isLittleH ? 'bg-[#FDF5EC] text-[#565A47] hover:bg-[#8B8E7B]/20' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'}`}
                                                                 >
                                                                     <RotateCcw className="w-4 h-4" /> Reorder
                                                                 </button>
@@ -1242,60 +1245,74 @@ const ProfilePage = () => {
                                         )}
 
                                         {activeTab === 'addresses' && (
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                {addresses.map(addr => (
-                                                    <div key={addr._id} className="bg-white rounded-2xl p-6 shadow-sm border-2 border-transparent hover:border-cafe-emerald transition-all relative group">
-                                                        <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            {!addr.isDefault && (
+                                            <div className="space-y-6">
+                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                                                    <h1 className={cn("text-3xl font-black text-slate-800", theme.isLittleH && "font-playfair")}>Saved Addresses</h1>
+                                                    <button
+                                                        onClick={handleAddAddressClick}
+                                                        className={cn("px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2", theme.isLittleH ? "bg-bakery-primary text-[#FAF1E8] hover:bg-bakery-accent" : "bg-cafe-emerald text-white hover:bg-cafe-teal")}
+                                                    >
+                                                        <Plus className="w-5 h-5" /> Add Address
+                                                    </button>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    {addresses.map(addr => (
+                                                        <div key={addr._id} className={`rounded-2xl p-6 shadow-sm border-2 transition-all relative group ${theme.isLittleH ? 'bg-bakery-light border-transparent hover:border-[#565A47]' : 'bg-white border-transparent hover:border-cafe-emerald'}`}>
+                                                            <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                {!addr.isDefault && (
+                                                                    <button
+                                                                        onClick={() => handleSetDefaultAddress(addr._id)}
+                                                                        className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-amber-100 hover:text-amber-600 transition-colors"
+                                                                        title="Set as Default"
+                                                                    >
+                                                                        <Star className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
                                                                 <button
-                                                                    onClick={() => handleSetDefaultAddress(addr._id)}
-                                                                    className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-amber-100 hover:text-amber-600 transition-colors"
-                                                                    title="Set as Default"
+                                                                    onClick={() => handleEditAddress(addr)}
+                                                                    className={`p-2 bg-slate-100 text-slate-600 rounded-lg hover:text-white transition-colors ${theme.isLittleH ? 'hover:bg-[#565A47]' : 'hover:bg-cafe-emerald'}`}
                                                                 >
-                                                                    <Star className="w-4 h-4" />
+                                                                    <Edit2 className="w-4 h-4" />
                                                                 </button>
-                                                            )}
-                                                            <button
-                                                                onClick={() => handleEditAddress(addr)}
-                                                                className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-cafe-emerald hover:text-white transition-colors"
-                                                            >
-                                                                <Edit2 className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteAddress(addr._id)}
-                                                                className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
-                                                            >
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteAddress(addr._id)}
+                                                                    className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                            <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
+                                                                {addr.label || addr.tag || 'Home'}
+                                                                {addr.isDefault && (
+                                                                    <span className={`flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${theme.isLittleH ? 'bg-[#FDF5EC] text-[#565A47]' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                                        <Star className="w-3 h-3 fill-current" /> Default
+                                                                    </span>
+                                                                )}
+                                                            </h3>
+                                                            <p className="text-sm text-slate-500 leading-relaxed mb-4">
+                                                                {addr.addressLine}
+                                                            </p>
                                                         </div>
-                                                        <h3 className="font-bold text-slate-800 mb-2 flex items-center gap-2">
-                                                            {addr.label || addr.tag || 'Home'}
-                                                            {addr.isDefault && (
-                                                                <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase rounded-full">
-                                                                    <Star className="w-3 h-3 fill-current" /> Default
-                                                                </span>
-                                                            )}
-                                                        </h3>
-                                                        <p className="text-sm text-slate-500 leading-relaxed mb-4">
-                                                            {addr.addressLine}
-                                                        </p>
-                                                    </div>
-                                                ))}
+                                                    ))}
 
-                                                <button
-                                                    onClick={handleAddAddressClick}
-                                                    className="border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400 hover:border-cafe-emerald hover:text-cafe-emerald hover:bg-cafe-emerald/5 transition-all group min-h-[160px]"
-                                                >
-                                                    <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-white flex items-center justify-center mb-3 transition-colors">
-                                                        <Plus className="w-6 h-6" />
-                                                    </div>
-                                                    <span className="font-bold text-sm">Add New Address</span>
-                                                </button>
+                                                    <button
+                                                        onClick={handleAddAddressClick}
+                                                        className={`border-2 border-dashed border-slate-200 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-400 transition-all group min-h-[160px] ${theme.isLittleH ? 'hover:border-[#565A47] hover:text-[#565A47] hover:bg-[#565A47]/5' : 'hover:border-cafe-emerald hover:text-cafe-emerald hover:bg-cafe-emerald/5'}`}
+                                                    >
+                                                        <div className="w-12 h-12 rounded-full bg-slate-50 group-hover:bg-white flex items-center justify-center mb-3 transition-colors">
+                                                            <Plus className="w-6 h-6" />
+                                                        </div>
+                                                        <span className="font-bold text-sm">Add New Address</span>
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
 
                                         {activeTab === 'reviews' && (
                                             <div className="space-y-4">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <h1 className={cn("text-3xl font-black text-slate-800", theme.isLittleH && "font-playfair")}>My Reviews</h1>
+                                                </div>
                                                 {!Array.isArray(reviews) || reviews.length === 0 ? (
                                                     <div className="text-center py-12 text-slate-400">No reviews found.</div>
                                                 ) : reviews.map(review => {
@@ -1305,7 +1322,7 @@ const ProfilePage = () => {
                                                         : (review.type === 'site' || !review.orderId) ? "General Cafe Experience" : `Order #${review.orderId?.orderNumber || (typeof review.orderId === 'string' ? review.orderId : 'Unknown')}`;
 
                                                     return (
-                                                        <div key={review._id} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                                                        <div key={review._id} className={`rounded-2xl p-6 shadow-sm border ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
                                                             <div className="flex items-start justify-between mb-4">
                                                                 <div>
                                                                     <h3 className="font-bold text-slate-800 text-lg">
@@ -1341,7 +1358,7 @@ const ProfilePage = () => {
                                                                                             key={`rider-${i}`}
                                                                                             className={cn(
                                                                                                 "w-3.5 h-3.5",
-                                                                                                i < review.riderRating ? "fill-emerald-400 text-emerald-400" : "text-slate-200"
+                                                                                                i < review.riderRating ? (theme.isLittleH ? "fill-[#565A47] text-[#565A47]" : "fill-emerald-400 text-emerald-400") : "text-slate-200"
                                                                                             )}
                                                                                         />
                                                                                     ))}
@@ -1386,18 +1403,17 @@ const ProfilePage = () => {
                                             </div>
                                         )}
 
-                                        {/* Edit Profile Modal */}
                                         <AnimatePresence>
                                             {showEditProfileModal && (
-                                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
                                                     <motion.div
-                                                        initial={{ opacity: 0, scale: 0.9 }}
+                                                        initial={{ opacity: 0, scale: 0.95 }}
                                                         animate={{ opacity: 1, scale: 1 }}
-                                                        exit={{ opacity: 0, scale: 0.9 }}
-                                                        className="bg-white rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+                                                        exit={{ opacity: 0, scale: 0.95 }}
+                                                        className={cn("w-full max-w-md overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
                                                     >
-                                                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                                                            <h3 className="text-xl font-bold text-slate-800">Edit Profile</h3>
+                                                        <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FAF1E8] border-[#8B8E7B]/15" : "bg-slate-50 border-slate-100")}>
+                                                            <h3 className={cn("text-xl font-bold text-slate-800", theme.isLittleH && "font-playfair text-[#565A47]")}>Edit Profile</h3>
                                                             <button onClick={() => setShowEditProfileModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                                                 <X className="w-5 h-5 text-slate-400" />
                                                             </button>
@@ -1412,7 +1428,7 @@ const ProfilePage = () => {
                                                                         type="text"
                                                                         value={editForm.name}
                                                                         onChange={e => setEditForm({ ...editForm, name: e.target.value })}
-                                                                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 font-medium"
+                                                                        className={`w-full pl-12 pr-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'} font-medium`}
                                                                         placeholder="Your Name"
                                                                     />
                                                                 </div>
@@ -1426,7 +1442,7 @@ const ProfilePage = () => {
                                                                         type="email"
                                                                         value={editForm.email}
                                                                         onChange={e => setEditForm({ ...editForm, email: e.target.value })}
-                                                                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 font-medium"
+                                                                        className={`w-full pl-12 pr-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'} font-medium`}
                                                                         placeholder="your.email@example.com"
                                                                     />
                                                                 </div>
@@ -1447,7 +1463,7 @@ const ProfilePage = () => {
 
                                                             <button
                                                                 onClick={handleSaveProfile}
-                                                                className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all flex items-center justify-center gap-2 mt-4"
+                                                                className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233]' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white ${theme.isLittleH ? '' : 'rounded-xl'} font-bold shadow-lg transition-all flex items-center justify-center gap-2 mt-4`}
                                                             >
                                                                 <Save className="w-4 h-4" /> Save Changes
                                                             </button>
@@ -1460,14 +1476,14 @@ const ProfilePage = () => {
                                         {/* Address Modal */}
                                         <AnimatePresence>
                                             {showAddressModal && (
-                                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
                                                     <motion.div
-                                                        initial={{ opacity: 0, scale: 0.9 }}
+                                                        initial={{ opacity: 0, scale: 0.95 }}
                                                         animate={{ opacity: 1, scale: 1 }}
-                                                        exit={{ opacity: 0, scale: 0.9 }}
-                                                        className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+                                                        exit={{ opacity: 0, scale: 0.95 }}
+                                                        className={cn("w-full max-w-lg overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
                                                     >
-                                                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                                        <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FAF1E8] border-[#8B8E7B]/15" : "bg-slate-50 border-slate-100")}>
                                                             <h3 className="text-xl font-bold text-slate-800">
                                                                 {editingAddressId ? 'Edit Address' : 'Add New Address'}
                                                             </h3>
@@ -1494,7 +1510,7 @@ const ProfilePage = () => {
                                                                     <select
                                                                         value={newAddress.tag}
                                                                         onChange={e => setNewAddress({ ...newAddress, tag: e.target.value })}
-                                                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                                     >
                                                                         <option>Home</option>
                                                                         <option>Work</option>
@@ -1507,7 +1523,7 @@ const ProfilePage = () => {
                                                                         type="text"
                                                                         value={newAddress.pincode}
                                                                         onChange={e => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                                                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                                         placeholder="560001"
                                                                         required
                                                                     />
@@ -1520,7 +1536,7 @@ const ProfilePage = () => {
                                                                     type="text"
                                                                     value={newAddress.flatNo}
                                                                     onChange={e => setNewAddress({ ...newAddress, flatNo: e.target.value })}
-                                                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                                    className={`w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 ${theme.isLittleH ? 'focus:ring-[#565A47]/50' : 'focus:ring-cafe-emerald/50'}`}
                                                                     placeholder="A-101, Tea Garden Apts"
                                                                     required
                                                                 />
@@ -1532,7 +1548,7 @@ const ProfilePage = () => {
                                                                     type="text"
                                                                     value={newAddress.street}
                                                                     onChange={e => setNewAddress({ ...newAddress, street: e.target.value })}
-                                                                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                                    className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                                     placeholder="Green St, Indiranagar"
                                                                     required
                                                                 />
@@ -1545,7 +1561,7 @@ const ProfilePage = () => {
                                                                         type="text"
                                                                         value={newAddress.area}
                                                                         onChange={e => setNewAddress({ ...newAddress, area: e.target.value })}
-                                                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                                         placeholder="Indiranagar"
                                                                         required
                                                                     />
@@ -1556,7 +1572,7 @@ const ProfilePage = () => {
                                                                         type="text"
                                                                         value={newAddress.city}
                                                                         onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
-                                                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                                         placeholder="Bangalore"
                                                                         required
                                                                     />
@@ -1569,7 +1585,7 @@ const ProfilePage = () => {
                                                                     id="isDefault"
                                                                     checked={newAddress.isDefault}
                                                                     onChange={e => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
-                                                                    className="w-5 h-5 rounded border-slate-300 text-cafe-emerald focus:ring-cafe-emerald"
+                                                                    className={`w-5 h-5 rounded border-slate-300 ${theme.isLittleH ? 'text-[#565A47] focus:ring-[#565A47]' : 'text-cafe-emerald focus:ring-cafe-emerald'}`}
                                                                 />
                                                                 <label htmlFor="isDefault" className="text-sm font-medium text-slate-700 cursor-pointer">
                                                                     Set as Default Address
@@ -1579,7 +1595,7 @@ const ProfilePage = () => {
                                                             <button
                                                                 type="submit"
                                                                 disabled={savingAddress}
-                                                                className="w-full py-4 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all flex items-center justify-center gap-2 mt-4"
+                                                                className={`w-full py-4 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233]' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30 rounded-xl'} text-white font-bold shadow-lg transition-all flex items-center justify-center gap-2 mt-4`}
                                                             >
                                                                 {savingAddress ? 'Saving...' : <>Save Address <Save className="w-5 h-5" /></>}
                                                             </button>
@@ -1590,8 +1606,8 @@ const ProfilePage = () => {
                                         </AnimatePresence>
 
                                         {activeTab === 'settings' && (
-                                            <div className="bg-white rounded-3xl p-8 shadow-sm border border-slate-100">
-                                                <h2 className="text-xl font-bold text-slate-800 mb-6">Preferences</h2>
+                                            <div className={`rounded-3xl p-8 shadow-sm border ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
+                                                <h2 className={cn("text-xl font-bold text-slate-800 mb-6", theme.isLittleH && "font-playfair")}>Preferences</h2>
 
                                                 <div className="space-y-6">
                                                     <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
@@ -1608,7 +1624,7 @@ const ProfilePage = () => {
                                                             onClick={() => toggleNotification('email')}
                                                             className={cn(
                                                                 "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.email ? "bg-cafe-emerald" : "bg-slate-300"
+                                                                profileData?.notificationPreferences?.email ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
                                                             )}
                                                         >
                                                             <div className={cn(
@@ -1632,7 +1648,7 @@ const ProfilePage = () => {
                                                             onClick={() => toggleNotification('sms')}
                                                             className={cn(
                                                                 "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.sms ? "bg-cafe-emerald" : "bg-slate-300"
+                                                                profileData?.notificationPreferences?.sms ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
                                                             )}
                                                         >
                                                             <div className={cn(
@@ -1656,7 +1672,7 @@ const ProfilePage = () => {
                                                             onClick={() => toggleNotification('push')}
                                                             className={cn(
                                                                 "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.push ? "bg-cafe-emerald" : "bg-slate-300"
+                                                                profileData?.notificationPreferences?.push ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
                                                             )}
                                                         >
                                                             <div className={cn(
@@ -1680,7 +1696,7 @@ const ProfilePage = () => {
                                                             onClick={() => toggleNotification('offers')}
                                                             className={cn(
                                                                 "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.offers ? "bg-cafe-emerald" : "bg-slate-300"
+                                                                profileData?.notificationPreferences?.offers ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
                                                             )}
                                                         >
                                                             <div className={cn(
@@ -1703,14 +1719,14 @@ const ProfilePage = () => {
             {/* Review Modal */}
             <AnimatePresence>
                 {showReviewModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-white rounded-3xl w-full max-w-md overflow-hidden relative"
+                            className={cn("w-full max-w-lg overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
                         >
-                            <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FDF5EC] border-[#8B8E7B]/20" : "bg-slate-50 border-slate-100")}>
                                 <h3 className="text-xl font-bold text-slate-800">Rate your experience</h3>
                                 <button
                                     onClick={() => setShowReviewModal(false)}
@@ -1760,7 +1776,7 @@ const ProfilePage = () => {
                                                     className={cn(
                                                         "w-8 h-8 transition-colors",
                                                         star <= reviewForm.riderRating
-                                                            ? "fill-emerald-400 text-emerald-400"
+                                                            ? (theme.isLittleH ? "fill-[#565A47] text-[#565A47]" : "fill-emerald-400 text-emerald-400")
                                                             : "text-slate-200"
                                                     )}
                                                 />
@@ -1775,14 +1791,14 @@ const ProfilePage = () => {
                                         value={reviewForm.comment}
                                         onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
                                         placeholder="Tell us what you liked..."
-                                        className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50 min-h-[100px] resize-none"
+                                        className={`w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 ${theme.isLittleH ? 'focus:ring-[#565A47]/50' : 'focus:ring-cafe-emerald/50'} min-h-[100px] resize-none`}
                                     />
                                 </div>
 
                                 <button
                                     disabled={submittingReview}
                                     type="submit"
-                                    className="w-full py-3.5 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all"
+                                    className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233] shadow-[#565A47]/30' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white rounded-xl font-bold shadow-lg transition-all`}
                                 >
                                     {submittingReview ? 'Submitting...' : 'Submit Review'}
                                 </button>

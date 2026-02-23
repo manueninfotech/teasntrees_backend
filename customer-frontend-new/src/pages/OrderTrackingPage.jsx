@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Package, Clock, MapPin, CheckCircle, Loader2, UserCheck, CreditCard, StickyNote, Bike, ShieldCheck, FileText, XCircle } from 'lucide-react';
 import { orderService } from '../services/orderService';
 import { useSocket } from '../context/SocketContext';
+import { useBrand } from '../context/BrandContext';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
 
@@ -47,6 +48,7 @@ const OrderTrackingPage = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
     const { socket } = useSocket();
+    const { theme } = useBrand();
     const [order, setOrder] = useState(null);
     const [deliveryInfo, setDeliveryInfo] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -241,7 +243,7 @@ const OrderTrackingPage = () => {
     if (loading) {
         return (
             <div className="min-h-screen pt-24 flex items-center justify-center bg-slate-50">
-                <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                <Loader2 className={`w-8 h-8 animate-spin ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-600'}`} />
             </div>
         );
     }
@@ -300,7 +302,7 @@ const OrderTrackingPage = () => {
     const deliveryOtp = deliveryInfo?.deliveryOtp || order.delivery?.deliveryOtp;
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 bg-slate-50">
+        <div className={cn("min-h-screen pt-24 pb-12 px-4", theme.isLittleH ? "bg-[#FAF1E8]" : "bg-slate-50")}>
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -359,7 +361,7 @@ const OrderTrackingPage = () => {
                         </div>
                         <div className={clsx(
                             "w-12 h-12 rounded-full flex items-center justify-center",
-                            order.status === 'delivered' ? "bg-emerald-100 text-emerald-600" : "bg-emerald-100 text-emerald-600"
+                            theme.isLittleH ? "bg-[#FDF5EC] text-[#565A47]" : "bg-emerald-100 text-emerald-600"
                         )}>
                             {order.status === 'delivered' ? <CheckCircle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
                         </div>
@@ -424,7 +426,7 @@ const OrderTrackingPage = () => {
                                             isCurrent
                                                 ? "bg-cafe-orange border-cafe-orange text-white shadow-lg shadow-orange-200 scale-110"
                                                 : isCompleted
-                                                    ? "bg-white border-emerald-500 text-emerald-600"
+                                                    ? (theme.isLittleH ? "bg-white border-[#565A47] text-[#565A47]" : "bg-white border-emerald-500 text-emerald-600")
                                                     : "bg-white border-slate-200 text-slate-300"
                                         )}>
                                             <Icon className={clsx("w-5 h-5", isCurrent && "animate-pulse")} />
@@ -434,7 +436,7 @@ const OrderTrackingPage = () => {
                                                 {step.label}
                                             </p>
                                             {isCurrent && (
-                                                <p className="text-sm text-emerald-600 font-medium">
+                                                <p className={`text-sm ${theme.isLittleH ? 'text-[#8B8E7B]' : 'text-emerald-600'} font-medium`}>
                                                     {index === steps.length - 1 ? 'Successfully Delivered' :
                                                         index === 3 ? 'Searching for nearby riders...' :
                                                             index < 3 ? 'Processing your order...' : 'Rider is on the way'}
@@ -452,7 +454,7 @@ const OrderTrackingPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                         <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <MapPin className="w-5 h-5 text-emerald-600" /> Delivery Address
+                            <MapPin className={`w-5 h-5 ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-600'}`} /> Delivery Address
                         </h2>
                         <p className="text-slate-600 text-sm leading-relaxed">
                             {order.deliveryAddress?.address || "No address provided"}
@@ -467,7 +469,7 @@ const OrderTrackingPage = () => {
 
                     <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
                         <h2 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <CreditCard className="w-5 h-5 text-emerald-600" /> Payment Info
+                            <CreditCard className={`w-5 h-5 ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-600'}`} /> Payment Info
                         </h2>
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-slate-500 text-sm">Method</span>
@@ -477,7 +479,7 @@ const OrderTrackingPage = () => {
                             <span className="text-slate-500 text-sm">Status</span>
                             <span className={clsx(
                                 "px-2 py-1 rounded-lg text-xs font-bold",
-                                order.paymentStatus === 'paid' ? "bg-emerald-100 text-emerald-700" : "bg-orange-100 text-orange-700"
+                                order.paymentStatus === 'paid' ? (theme.isLittleH ? "bg-[#FDF5EC] text-[#565A47]" : "bg-emerald-100 text-emerald-700") : "bg-orange-100 text-orange-700"
                             )}>
                                 {order.paymentStatus?.toUpperCase() || 'PENDING'}
                             </span>
@@ -498,7 +500,7 @@ const OrderTrackingPage = () => {
                             </div>
                         ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between font-bold text-lg text-emerald-800">
+                    <div className={`mt-4 pt-4 border-t border-slate-100 flex justify-between font-bold text-lg ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-800'}`}>
                         <span>Total Paid</span>
                         <span>₹{order.total}</span>
                     </div>

@@ -4,12 +4,15 @@ import { Heart, ArrowRight } from 'lucide-react';
 import { useWishlist } from '../context/WishlistContext';
 import MenuCard from '../components/MenuCard';
 import { Link } from 'react-router-dom';
+import { useBrand } from '../context/BrandContext';
+import { cn } from '../lib/utils';
 
 const WishlistPage = () => {
     const { wishlistItems } = useWishlist();
+    const { theme } = useBrand();
 
     return (
-        <div className="min-h-screen pt-24 pb-20 bg-slate-50">
+        <div className={cn("min-h-screen pt-24 pb-20 transition-colors duration-300", theme.isLittleH ? "bg-bakery-bg" : "bg-slate-50")}>
             <div className="container mx-auto px-4 lg:px-8">
                 {/* Header */}
                 <div className="flex flex-col items-center justify-center mb-12 text-center">
@@ -20,7 +23,7 @@ const WishlistPage = () => {
                     >
                         <Heart className="w-8 h-8 fill-current" />
                     </motion.div>
-                    <h1 className="text-4xl font-black text-slate-800 mb-2">My Wishlist</h1>
+                    <h1 className={cn("text-4xl font-black text-slate-800 mb-2", theme.isLittleH && "font-playfair")}>My Wishlist</h1>
                     <p className="text-slate-500 max-w-md">
                         Your personal collection of favorites. Order them now or save them for later!
                     </p>
@@ -37,7 +40,7 @@ const WishlistPage = () => {
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200"
+                        className={cn("flex flex-col items-center justify-center py-20 rounded-3xl border border-dashed transition-all", theme.isLittleH ? "bg-bakery-light border-bakery-accent/30" : "bg-white border-slate-200 shadow-sm")}
                     >
                         <Heart className="w-16 h-16 text-slate-200 mb-4" />
                         <h2 className="text-2xl font-bold text-slate-800 mb-2">Your wishlist is empty</h2>
@@ -46,7 +49,10 @@ const WishlistPage = () => {
                         </p>
                         <Link
                             to="/menu"
-                            className="flex items-center gap-2 px-8 py-3 bg-cafe-emerald text-white rounded-xl font-bold hover:bg-cafe-teal transition-all shadow-lg hover:shadow-xl active:scale-95"
+                            className={cn(
+                                "flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl active:scale-95",
+                                theme.isLittleH ? "bg-bakery-primary text-[#FAF1E8] hover:bg-bakery-accent" : "bg-cafe-emerald text-white hover:bg-cafe-teal"
+                            )}
                         >
                             Browse Menu <ArrowRight className="w-4 h-4" />
                         </Link>

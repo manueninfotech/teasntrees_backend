@@ -54,7 +54,17 @@ export default {
                     teal: "#14b8a6",
                     orange: "#fb923c",
                     purple: "#a855f7",
+                },
+                // Bakery specific colors (From Logo)
+                bakery: {
+                    primary: "#565A47", // Dark Olive text
+                    bg: "#FAF1E8", // Warm beige background
+                    light: "#FDF5EC", // Lighter beige
+                    accent: "#8B8E7B", // Lighter olive
                 }
+            },
+            fontFamily: {
+                playfair: ['"Playfair Display"', 'serif'],
             },
             borderRadius: {
                 lg: "var(--radius)",
@@ -87,6 +97,7 @@ export default {
             },
             backgroundImage: {
                 'cafe-gradient': 'linear-gradient(135deg, #ecfdf5 0%, #ffffff 50%, #f0fdfa 100%)', // Emerald-50 -> White -> Teal-50
+                'bakery-gradient': 'linear-gradient(135deg, #FDF5EC 0%, #ffffff 50%, #FAF1E8 100%)', // Warm beige
             }
         },
     },

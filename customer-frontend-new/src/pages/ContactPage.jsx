@@ -83,10 +83,170 @@ const ContactPage = () => {
 
     if (isLoading) {
         return (
-            <div className="min-h-screen pt-24 pb-20 bg-slate-50 flex items-center justify-center">
+            <div className={`min-h-screen pt-24 pb-20 ${theme.isLittleH ? 'bg-[#FAF1E8]' : 'bg-slate-50'} flex items-center justify-center`}>
                 <div className="flex flex-col items-center gap-4">
                     <Loader2 className={`w-10 h-10 ${theme.textColorClass} animate-spin`} />
-                    <p className="text-slate-500 font-medium">Loading contact details...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (theme.isLittleH) {
+        return (
+            <div className="min-h-screen pt-28 pb-20 bg-[#FAF1E8] font-sans selection:bg-[#565A47] selection:text-[#FAF1E8]">
+                <div className="container mx-auto px-4 lg:px-8">
+                    {/* Header */}
+                    <div className="text-center max-w-3xl mx-auto mb-20 border-b border-[#8B8E7B]/20 pb-12">
+                        <span className="uppercase tracking-[0.3em] text-[#8B8E7B] text-sm font-semibold mb-4 block">Inquiries & Orders</span>
+                        <h1 className="text-5xl lg:text-7xl font-playfair font-bold text-[#565A47] mb-6">Let's Connect</h1>
+                        <p className="text-[#8B8E7B] text-lg font-light leading-relaxed max-w-2xl mx-auto">
+                            Whether you're planning a wedding, placing a custom cake order, or simply have a question about our daily bake, we would be delighted to assist you.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 max-w-7xl mx-auto">
+
+                        {/* Elegant Form */}
+                        <div className="lg:col-span-7">
+                            {isSubmitted ? (
+                                <div className="h-full flex flex-col items-center justify-center text-center bg-[#FDF5EC] p-12 border border-[#8B8E7B]/20">
+                                    <h2 className="text-3xl font-playfair font-bold text-[#565A47] mb-4">Message Received</h2>
+                                    <p className="text-[#8B8E7B] font-light max-w-sm mx-auto mb-8">
+                                        Thank you for your inquiry. Our artisan team will review your message and respond within 24 hours.
+                                    </p>
+                                    <button
+                                        onClick={() => setIsSubmitted(false)}
+                                        className="text-xs uppercase tracking-widest text-[#565A47] border-b border-[#565A47] pb-1 hover:text-black transition-colors"
+                                    >
+                                        Send Another Message
+                                    </button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleSubmit} className="space-y-8 bg-[#FDF5EC] p-10 lg:p-14 border border-[#8B8E7B]/10">
+                                    <h2 className="text-2xl font-playfair font-bold text-[#565A47] mb-6">Send an Inquiry</h2>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="relative group">
+                                            <input type="text" id="firstName" required value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                                                className="w-full bg-transparent border-b border-[#8B8E7B]/30 py-3 text-[#565A47] focus:outline-none focus:border-[#565A47] transition-colors peer placeholder-transparent font-light" placeholder="First Name" />
+                                            <label htmlFor="firstName" className="absolute left-0 -top-3.5 text-[#8B8E7B] text-xs uppercase tracking-widest transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-3 peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:-top-3.5 peer-focus:text-xs peer-focus:uppercase peer-focus:tracking-widest peer-focus:text-[#565A47]">First Name</label>
+                                        </div>
+                                        <div className="relative group">
+                                            <input type="text" id="lastName" required value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                                                className="w-full bg-transparent border-b border-[#8B8E7B]/30 py-3 text-[#565A47] focus:outline-none focus:border-[#565A47] transition-colors peer placeholder-transparent font-light" placeholder="Last Name" />
+                                            <label htmlFor="lastName" className="absolute left-0 -top-3.5 text-[#8B8E7B] text-xs uppercase tracking-widest transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-3 peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:-top-3.5 peer-focus:text-xs peer-focus:uppercase peer-focus:tracking-widest peer-focus:text-[#565A47]">Last Name</label>
+                                        </div>
+                                    </div>
+
+                                    <div className="relative group">
+                                        <input type="email" id="email" required value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            className="w-full bg-transparent border-b border-[#8B8E7B]/30 py-3 text-[#565A47] focus:outline-none focus:border-[#565A47] transition-colors peer placeholder-transparent font-light" placeholder="Email Address" />
+                                        <label htmlFor="email" className="absolute left-0 -top-3.5 text-[#8B8E7B] text-xs uppercase tracking-widest transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-3 peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:-top-3.5 peer-focus:text-xs peer-focus:uppercase peer-focus:tracking-widest peer-focus:text-[#565A47]">Email Address</label>
+                                    </div>
+
+                                    <div className="relative">
+                                        <select id="subject" required value={formData.subject} onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                            className="w-full bg-transparent border-b border-[#8B8E7B]/30 py-3 text-[#565A47] focus:outline-none focus:border-[#565A47] transition-colors appearance-none font-light">
+                                            <option value="" disabled className="text-[#8B8E7B]">Select Inquiry Type</option>
+                                            <option value="Custom Cake">Custom Cake Order</option>
+                                            <option value="Event Catering">Event Catering</option>
+                                            <option value="General Inquiry">General Question</option>
+                                        </select>
+                                        <div className="absolute right-0 top-4 pointer-events-none text-[#8B8E7B] text-xs">▼</div>
+                                    </div>
+
+                                    <div className="relative group pt-4">
+                                        <textarea id="message" required rows={4} value={formData.message} onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                                            className="w-full bg-transparent border-b border-[#8B8E7B]/30 py-3 text-[#565A47] focus:outline-none focus:border-[#565A47] transition-colors peer placeholder-transparent resize-none font-light" placeholder="Message Details"></textarea>
+                                        <label htmlFor="message" className="absolute left-0 top-0 text-[#8B8E7B] text-xs uppercase tracking-widest transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-6 peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:top-0 peer-focus:text-xs peer-focus:uppercase peer-focus:tracking-widest peer-focus:text-[#565A47]">Message Details</label>
+                                    </div>
+
+                                    {error && <div className="text-red-800 text-sm font-light italic">{error}</div>}
+
+                                    <button
+                                        type="submit"
+                                        disabled={isSubmitting}
+                                        className="w-full py-4 bg-[#565A47] text-[#FAF1E8] uppercase tracking-widest text-sm font-bold hover:bg-[#3f4233] transition-colors disabled:opacity-70 flex justify-center items-center gap-3"
+                                    >
+                                        {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Submit Inquiry"}
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+
+                        {/* Contact Information */}
+                        <div className="lg:col-span-5 space-y-12">
+                            <div>
+                                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[#565A47] mb-8">Visit the Bakery</h3>
+                                <div className="space-y-6">
+                                    <div className="flex gap-4 items-start">
+                                        <MapPin className="w-5 h-5 text-[#8B8E7B] mt-1 shrink-0" strokeWidth={1.5} />
+                                        <div>
+                                            <div className="font-playfair text-xl text-[#565A47] mb-1">LittleH Patisserie</div>
+                                            <div className="font-light text-[#8B8E7B] leading-relaxed">
+                                                {settings?.address || "Laxmipuram, Guntur, Andhra Pradesh"}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-4 items-center">
+                                        <Phone className="w-5 h-5 text-[#8B8E7B] shrink-0" strokeWidth={1.5} />
+                                        <a href={`tel:${settings?.contactPhone?.replace(/\s/g, '') || "+917286833999"}`} className="font-light text-[#565A47] hover:text-black hover:underline transition-all">
+                                            {settings?.contactPhone || "+91 72868 33999"}
+                                        </a>
+                                    </div>
+                                    <div className="flex gap-4 items-center">
+                                        <Mail className="w-5 h-5 text-[#8B8E7B] shrink-0" strokeWidth={1.5} />
+                                        <a href={`mailto:${settings?.contactEmail || "hello@littlehbakery.in"}`} className="font-light text-[#565A47] hover:text-black hover:underline transition-all">
+                                            {settings?.contactEmail || "hello@littlehbakery.in"}
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[#565A47] mb-6">Baking Hours</h3>
+                                <ul className="space-y-4 font-light text-[#8B8E7B]">
+                                    {settings?.operatingHours ? (
+                                        (() => {
+                                            const openDay = Object.values(settings.operatingHours).find(d => d.isOpen);
+                                            return openDay ? (
+                                                <li className="flex justify-between border-b border-[#8B8E7B]/10 pb-2">
+                                                    <span>Open Daily</span>
+                                                    <span className="text-[#565A47] font-medium">{openDay.open} - {openDay.close}</span>
+                                                </li>
+                                            ) : (
+                                                <li className="text-red-800 italic">Temporarily Closed</li>
+                                            );
+                                        })()
+                                    ) : (
+                                        <li className="flex justify-between border-b border-[#8B8E7B]/10 pb-2">
+                                            <span>Open Daily</span>
+                                            <span className="text-[#565A47] font-medium">08:00 AM - 10:00 PM</span>
+                                        </li>
+                                    )}
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-[#565A47] mb-6">Follow Our Craft</h3>
+                                <div className="flex gap-6">
+                                    {['instagram', 'facebook', 'twitter'].map(platform => {
+                                        if (settings?.socialMedia?.[platform] || platform === 'instagram') {
+                                            const Icon = platform === 'instagram' ? Instagram : (platform === 'facebook' ? Facebook : Twitter);
+                                            return (
+                                                <a key={platform} href={settings?.socialMedia?.[platform] || '#'} className="text-[#8B8E7B] hover:text-[#565A47] transition-colors group">
+                                                    <div className="w-12 h-12 rounded-full border border-[#8B8E7B]/30 flex items-center justify-center group-hover:border-[#565A47] transition-colors bg-[#FDF5EC]">
+                                                        <Icon strokeWidth={1.5} className="w-5 h-5" />
+                                                    </div>
+                                                </a>
+                                            );
+                                        }
+                                        return null;
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         );

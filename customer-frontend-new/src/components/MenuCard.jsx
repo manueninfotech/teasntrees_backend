@@ -5,6 +5,7 @@ import { cn } from '../lib/utils';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useBrand } from '../context/BrandContext';
+import { Sparkles } from 'lucide-react';
 
 const MenuCard = ({ product }) => {
     const { addToCart } = useCart();
@@ -75,6 +76,108 @@ const MenuCard = ({ product }) => {
         e.stopPropagation();
         toggleWishlistContext(product);
     };
+
+    if (theme.isLittleH) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="group relative cursor-pointer flex flex-col h-full bg-[#FDF5EC] border border-[#8B8E7B]/10 hover:border-[#565A47]/30 transition-all duration-500 overflow-hidden"
+            >
+                {/* Image Area */}
+                <div className="relative w-full aspect-square overflow-hidden bg-[#FAF1E8]">
+                    {imageUrl && !imageError ? (
+                        <img
+                            src={imageUrl}
+                            alt={product.name}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            onError={() => setImageError(true)}
+                        />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[#8B8E7B]/50">
+                            <Sparkles className="w-8 h-8" strokeWidth={1} />
+                        </div>
+                    )}
+
+                    {/* Wishlist Button */}
+                    <button
+                        onClick={handleToggleWishlist}
+                        className={cn(
+                            "absolute top-4 right-4 p-2.5 bg-[#FDF5EC] rounded-full transition-all duration-300 z-20 shadow-sm",
+                            isWishlisted
+                                ? "text-rose-700"
+                                : "text-[#8B8E7B] hover:text-[#565A47]"
+                        )}
+                    >
+                        <Heart className={cn("w-4 h-4 transition-transform active:scale-75", isWishlisted && "fill-current")} strokeWidth={isWishlisted ? 2 : 1.5} />
+                    </button>
+
+                    {/* Tags */}
+                    {product.tags?.length > 0 && (
+                        <div className="absolute bottom-4 left-4 flex flex-wrap gap-2 z-10">
+                            {product.tags.map(tag => (
+                                <span
+                                    key={tag}
+                                    className="px-3 py-1 bg-[#FDF5EC] text-[9px] uppercase tracking-widest text-[#565A47] font-semibold"
+                                >
+                                    {tag.replace(/-/g, ' ')}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Content Area */}
+                <div className="p-6 flex flex-col flex-1">
+                    <div className="mb-2 flex justify-between items-start gap-4">
+                        <h3 className="font-playfair font-bold text-2xl text-[#565A47] leading-tight group-hover:text-black transition-colors">
+                            {product.name}
+                        </h3>
+                        <span className="text-xl font-medium text-[#565A47] shrink-0">₹{price}</span>
+                    </div>
+
+                    <div className="text-[10px] uppercase tracking-[0.2em] text-[#8B8E7B] mb-4">
+                        {product.category?.name || 'Artisan Pastry'}
+                    </div>
+
+                    <p className="text-sm text-[#8B8E7B] leading-relaxed font-light mb-auto flex-1">
+                        {product.description}
+                    </p>
+
+                    {/* Size Selection */}
+                    {product.sizeOptions?.length > 0 && (
+                        <div className="mt-6 pt-6 border-t border-[#8B8E7B]/10">
+                            <div className="text-[10px] uppercase tracking-widest text-[#8B8E7B] mb-3">Select Portion</div>
+                            <div className="flex flex-wrap gap-2">
+                                {product.sizeOptions.map(o => (
+                                    <button
+                                        key={o.size}
+                                        onClick={(e) => handleSizeSelect(e, o)}
+                                        className={cn(
+                                            "text-xs px-4 py-2 border transition-all duration-300 font-medium",
+                                            selectedSize?.size === o.size
+                                                ? "bg-[#565A47] text-[#FAF1E8] border-[#565A47]"
+                                                : "bg-transparent text-[#565A47] border-[#8B8E7B]/30 hover:border-[#565A47]"
+                                        )}
+                                    >
+                                        {o.size}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Add to Cart Button */}
+                    <button
+                        onClick={handleAddToCart}
+                        className="mt-6 w-full py-4 border border-[#565A47] text-[#565A47] group-hover:bg-[#565A47] group-hover:text-[#FAF1E8] transition-all duration-500 uppercase tracking-widest text-xs font-bold flex justify-center items-center gap-2"
+                    >
+                        <Plus className="w-4 h-4" /> Add to Order
+                    </button>
+                </div>
+            </motion.div>
+        );
+    }
 
     return (
         <motion.div

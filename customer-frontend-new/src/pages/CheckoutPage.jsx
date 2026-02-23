@@ -314,7 +314,7 @@ const CheckoutPage = () => {
 
     if (cartItems.length === 0 && !isRedirecting) {
         return (
-            <div className="min-h-screen pt-24 pb-20 bg-slate-50 flex items-center justify-center p-4">
+            <div className={cn("min-h-screen pt-24 pb-20 flex items-center justify-center p-4", theme.isLittleH ? "bg-bakery-bg" : "bg-slate-50")}>
                 <div className="text-center">
                     <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-400">
                         <ShoppingBag className="w-10 h-10" />
@@ -323,7 +323,7 @@ const CheckoutPage = () => {
                     <p className="text-slate-500 mb-8">Add some delicious items to checkout.</p>
                     <button
                         onClick={() => navigate('/menu')}
-                        className={`px-8 py-3 bg-gradient-to-r ${theme.gradientClass} text-white rounded-xl font-bold hover:shadow-xl active:scale-95 flex items-center gap-2 transition-all shadow-lg mx-auto`}
+                        className={`px-8 py-3 ${theme.isLittleH ? 'bg-[#565A47] text-[#FAF1E8]' : `bg-gradient-to-r ${theme.gradientClass} text-white`} rounded-xl font-bold hover:shadow-xl active:scale-95 flex items-center gap-2 transition-all shadow-lg mx-auto`}
                     >
                         Browse Menu
                     </button>
@@ -337,14 +337,14 @@ const CheckoutPage = () => {
     const calculatedGrandTotal = (cartTotal + tax + deliveryFee).toFixed(2);
 
     return (
-        <div className="min-h-screen pt-24 pb-20 bg-slate-50">
+        <div className={cn("min-h-screen pt-24 pb-20 transition-colors duration-300", theme.isLittleH ? "bg-bakery-bg" : "bg-slate-50")}>
             <div className="container mx-auto px-4 lg:px-8 max-w-6xl">
 
                 <div className="flex items-center gap-4 mb-8">
                     <button onClick={() => navigate(-1)} className="p-2 hover:bg-white rounded-full transition-colors">
                         <ChevronLeft className="w-6 h-6 text-slate-600" />
                     </button>
-                    <h1 className="text-2xl font-bold text-slate-800">Checkout</h1>
+                    <h1 className={cn("text-2xl font-bold text-slate-800", theme.isLittleH && "font-playfair")}>Checkout</h1>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8">
@@ -353,10 +353,10 @@ const CheckoutPage = () => {
                     <div className="flex-1 space-y-6">
 
                         {/* Address Section */}
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                        <div className={cn("rounded-3xl p-6 shadow-sm border", theme.isLittleH ? "bg-bakery-light border-bakery-accent/20" : "bg-white border-slate-100")}>
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
-                                    <span className={`w-8 h-8 rounded-full ${theme.primaryColorClass} text-white flex items-center justify-center text-sm font-bold`}>1</span>
+                                <h2 className={cn("text-xl font-bold text-slate-800 flex items-center gap-3", theme.isLittleH && "font-playfair")}>
+                                    <span className={`w-8 h-8 rounded-full ${theme.primaryColorClass} text-white flex items-center justify-center text-sm font-bold shadow-md`}>1</span>
                                     Delivery Address
                                 </h2>
                             </div>
@@ -366,10 +366,12 @@ const CheckoutPage = () => {
                                     <div
                                         key={addr._id}
                                         onClick={() => setSelectedAddress(addr._id)}
-                                        className={`
-                                            cursor-pointer rounded-2xl p-5 border-2 transition-all relative
-                                            ${selectedAddress === addr._id ? `border-${theme.primaryColor} bg-${theme.primaryColor}/5` : 'border-slate-100 hover:border-slate-200'}
-                                        `}
+                                        className={cn(
+                                            "cursor-pointer rounded-2xl p-5 border-2 transition-all relative",
+                                            selectedAddress === addr._id
+                                                ? (theme.isLittleH ? "border-[#565A47] bg-[#FDF5EC]" : `border-${theme.primaryColor} bg-${theme.primaryColor}/5`)
+                                                : (theme.isLittleH ? "border-bakery-accent/10 hover:border-bakery-primary/30" : "border-slate-100 hover:border-slate-200")
+                                        )}
                                     >
                                         <div className="flex items-start justify-between">
                                             <div>
@@ -387,7 +389,7 @@ const CheckoutPage = () => {
 
                                 <button
                                     onClick={() => setShowAddressModal(true)}
-                                    className={`border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 hover:border-${theme.primaryColor} ${theme.textColorClass.replace('text-', 'hover:text-')} ${theme.primaryColorClass.replace('bg-', 'hover:bg-')}/5 transition-all min-h-[120px]`}
+                                    className={`border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 ${theme.isLittleH ? 'hover:border-[#565A47] hover:text-[#565A47] hover:bg-[#565A47]/5' : `hover:border-${theme.primaryColor} ${theme.textColorClass.replace('text-', 'hover:text-')} ${theme.primaryColorClass.replace('bg-', 'hover:bg-')}/5`} transition-all min-h-[120px]`}
                                 >
                                     <Plus className="w-6 h-6 mb-2" />
                                     <span className="font-bold text-sm">Add New Address</span>
@@ -396,9 +398,9 @@ const CheckoutPage = () => {
                         </div>
 
                         {/* Payment Section */}
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-                            <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3 mb-6">
-                                <span className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-sm font-bold">2</span>
+                        <div className={cn("rounded-3xl p-6 shadow-sm border", theme.isLittleH ? "bg-bakery-light border-bakery-accent/20" : "bg-white border-slate-100")}>
+                            <h2 className={cn("text-xl font-bold text-slate-800 flex items-center gap-3 mb-6", theme.isLittleH && "font-playfair")}>
+                                <span className="w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center text-sm font-bold shadow-md">2</span>
                                 Payment Method
                             </h2>
 
@@ -440,8 +442,8 @@ const CheckoutPage = () => {
 
                     {/* Right Column: Order Summary */}
                     <div className="lg:w-96 flex-shrink-0">
-                        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 sticky top-24">
-                            <h2 className="text-xl font-bold text-slate-800 mb-6">Order Summary</h2>
+                        <div className={cn("rounded-3xl p-6 shadow-sm border sticky top-24", theme.isLittleH ? "bg-bakery-light border-bakery-accent/20" : "bg-white border-slate-100")}>
+                            <h2 className={cn("text-xl font-bold text-slate-800 mb-6", theme.isLittleH && "font-playfair")}>Order Summary</h2>
 
                             {error && (
                                 <div className="mb-4 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm">
@@ -468,7 +470,7 @@ const CheckoutPage = () => {
                                     return acc;
                                 }, {})).map(([brandName, items]) => (
                                     <div key={brandName} className="mb-4 last:mb-0">
-                                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 border-b border-slate-100 pb-1">
+                                        <div className={cn("text-[10px] font-bold uppercase tracking-wider mb-2 border-b pb-1", theme.isLittleH ? "text-bakery-primary/60 border-bakery-accent/10 font-playfair" : "text-slate-400 border-slate-100")}>
                                             {brandName === 'teasntrees' ? 'TEAS N TREES' : 'LITTLEH BAKERY'}
                                         </div>
                                         <div className="space-y-3">
@@ -521,7 +523,7 @@ const CheckoutPage = () => {
                             <button
                                 onClick={handlePlaceOrder}
                                 disabled={loading}
-                                className="w-full py-4 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                className={`w-full py-4 ${theme.isLittleH ? 'bg-[#565A47] text-[#FAF1E8] shadow-[#565A47]/30 hover:bg-[#3f4233]' : 'bg-cafe-emerald text-white shadow-cafe-emerald/30 hover:bg-cafe-teal'} rounded-xl font-bold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2`}
                             >
                                 {loading ? 'Placing Order...' : <>Place Order <ArrowRight className="w-5 h-5" /></>}
                             </button>
@@ -533,18 +535,17 @@ const CheckoutPage = () => {
                     </div>
                 </div>
 
-                {/* Add Address Modal */}
                 <AnimatePresence>
                     {showAddressModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.9 }}
+                                initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+                                exit={{ opacity: 0, scale: 0.95 }}
+                                className={cn("w-full max-w-lg overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
                             >
-                                <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                                    <h3 className="text-xl font-bold text-slate-800">Add New Address</h3>
+                                <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FAF1E8] border-[#8B8E7B]/15" : "bg-slate-50 border-slate-100")}>
+                                    <h3 className={cn("text-xl font-bold text-slate-800", theme.isLittleH && "font-playfair")}>Add New Address</h3>
                                     <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                                         <X className="w-5 h-5 text-slate-400" />
                                     </button>
@@ -566,7 +567,7 @@ const CheckoutPage = () => {
                                             <select
                                                 value={newAddress.tag}
                                                 onChange={e => setNewAddress({ ...newAddress, tag: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                             >
                                                 <option>Home</option>
                                                 <option>Work</option>
@@ -579,7 +580,7 @@ const CheckoutPage = () => {
                                                 type="text"
                                                 value={newAddress.pincode}
                                                 onChange={e => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                 placeholder="560001"
                                                 required
                                             />
@@ -592,7 +593,7 @@ const CheckoutPage = () => {
                                             type="text"
                                             value={newAddress.flatNo}
                                             onChange={e => setNewAddress({ ...newAddress, flatNo: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                            className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                             placeholder="A-101, Tea Garden Apts"
                                             required
                                         />
@@ -604,7 +605,7 @@ const CheckoutPage = () => {
                                             type="text"
                                             value={newAddress.street}
                                             onChange={e => setNewAddress({ ...newAddress, street: e.target.value })}
-                                            className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                            className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                             placeholder="Green St, Indiranagar"
                                             required
                                         />
@@ -617,7 +618,7 @@ const CheckoutPage = () => {
                                                 type="text"
                                                 value={newAddress.area}
                                                 onChange={e => setNewAddress({ ...newAddress, area: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                 placeholder="Indiranagar"
                                                 required
                                             />
@@ -628,7 +629,7 @@ const CheckoutPage = () => {
                                                 type="text"
                                                 value={newAddress.city}
                                                 onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
-                                                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-cafe-emerald/50"
+                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
                                                 placeholder="Bangalore"
                                                 required
                                             />
@@ -638,7 +639,7 @@ const CheckoutPage = () => {
                                     <button
                                         type="submit"
                                         disabled={savingAddress}
-                                        className="w-full py-4 bg-cafe-emerald text-white rounded-xl font-bold shadow-lg shadow-cafe-emerald/30 hover:bg-cafe-teal transition-all flex items-center justify-center gap-2 mt-4"
+                                        className={`w-full py-4 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233]' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30 rounded-xl'} text-white font-bold shadow-lg transition-all flex items-center justify-center gap-2 mt-4`}
                                     >
                                         {savingAddress ? 'Saving...' : <>Save Address <Save className="w-5 h-5" /></>}
                                     </button>

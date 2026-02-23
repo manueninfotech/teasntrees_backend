@@ -8,6 +8,7 @@ import CategoryTabs from '../components/CategoryTabs';
 import MenuCard from '../components/MenuCard';
 import { productService } from '../services/productService';
 import { useBrand } from '../context/BrandContext';
+import { Sparkles, Cookie } from 'lucide-react';
 
 // Debounce hook for search
 const useDebounce = (value, delay) => {
@@ -118,6 +119,113 @@ const MenuPage = () => {
         setSearchTerm('');
         setSearchParams({});
     };
+
+    if (theme.isLittleH) {
+        return (
+            <div className="min-h-screen bg-[#FAF1E8] pb-20 font-sans selection:bg-[#565A47] selection:text-[#FAF1E8]">
+                {/* Chic Header */}
+                <div className="pt-28 pb-12 bg-[#FDF5EC] border-b border-[#8B8E7B]/20 mb-8">
+                    <div className="container mx-auto px-4 lg:px-8 text-center">
+                        <div className="flex justify-center mb-4">
+                            <Cookie className="w-8 h-8 text-[#565A47]" strokeWidth={1.5} />
+                        </div>
+                        <h1 className="text-4xl lg:text-6xl font-playfair font-bold text-[#565A47] mb-4">Artisan Menu</h1>
+                        <p className="text-[#8B8E7B] font-light max-w-xl mx-auto tracking-wide">
+                            Discover our daily selection of handcrafted pastries, bespoke cakes, and delicate sweets.
+                        </p>
+                    </div>
+                </div>
+
+                <CategoryTabs
+                    categories={categories}
+                    activeCategory={activeCategory}
+                    onSelect={(cat) => setActiveCategory(cat)}
+                />
+
+                <div className="container mx-auto px-4 lg:px-8 py-8">
+                    {/* Minimalist Search Area */}
+                    <div className="flex flex-col md:flex-row items-center justify-between mb-12 gap-6 pb-6 border-b border-[#8B8E7B]/10">
+                        <h2 className="text-2xl font-playfair italic text-[#565A47] self-start md:self-center">
+                            {activeCategory === 'all' ? 'Signature Collection' : 'Curated Selection'}
+                        </h2>
+
+                        <div className="relative w-full md:w-96 group">
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search our bakery..."
+                                className="w-full bg-[#FDF5EC] border-none rounded-none py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-[#565A47]/30 transition-all font-light text-[#565A47] placeholder-[#8B8E7B]/60"
+                            />
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8B8E7B] w-4 h-4" strokeWidth={1.5} />
+
+                            {searchTerm && (
+                                <button
+                                    onClick={() => setSearchTerm('')}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8B8E7B] hover:text-[#565A47] transition-colors"
+                                >
+                                    <XCircle className="w-4 h-4" strokeWidth={1.5} />
+                                </button>
+                            )}
+                            <div className="absolute bottom-0 left-0 w-full h-[1px] bg-[#8B8E7B]/30 group-focus-within:bg-[#565A47] transition-colors" />
+                        </div>
+                    </div>
+
+                    {/* Active Filters Display */}
+                    {(queryQ || querySearch) && (
+                        <div className="mb-10 flex flex-wrap items-center gap-4 justify-center">
+                            {queryQ && (
+                                <span className="text-xs uppercase tracking-widest text-[#565A47] bg-[#FDF5EC] border border-[#565A47]/20 px-4 py-2 flex items-center gap-2">
+                                    Global: {queryQ}
+                                    <button onClick={() => setSearchParams({})} className="hover:text-red-900 transition-colors ml-2"><XCircle className="w-3 h-3" /></button>
+                                </span>
+                            )}
+                            {querySearch && (
+                                <span className="text-xs uppercase tracking-widest text-[#565A47] bg-[#FDF5EC] border border-[#565A47]/20 px-4 py-2 flex items-center gap-2">
+                                    Filter: {querySearch}
+                                    <button onClick={() => setSearchTerm('')} className="hover:text-red-900 transition-colors ml-2"><XCircle className="w-3 h-3" /></button>
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {isLoading && (
+                        <div className="flex justify-center items-center h-64">
+                            <Loader2 className="w-8 h-8 text-[#565A47] animate-spin" strokeWidth={1} />
+                        </div>
+                    )}
+
+                    {!isLoading && isError && (
+                        <div className="text-center py-20 font-playfair italic text-red-900/70 text-lg">
+                            We apologize, but we could not retrieve our menu at this time.
+                        </div>
+                    )}
+
+                    {/* Masonry-style CSS Grid for items */}
+                    <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
+                        <AnimatePresence mode="popLayout">
+                            {displayProducts.map((product) => (
+                                <MenuCard key={product._id} product={product} />
+                            ))}
+                        </AnimatePresence>
+                    </motion.div>
+
+                    {displayProducts.length === 0 && !isLoading && (
+                        <div className="text-center py-32 space-y-4">
+                            <Sparkles className="w-8 h-8 text-[#8B8E7B]/40 mx-auto" strokeWidth={1} />
+                            <p className="font-playfair text-xl text-[#8B8E7B]">Our ovens are empty for this selection.</p>
+                            <button
+                                onClick={clearAll}
+                                className="text-xs uppercase tracking-widest text-[#565A47] border-b border-[#565A47] pb-1 hover:text-black transition-colors"
+                            >
+                                View Full Menu
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50/50 pb-20">

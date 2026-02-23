@@ -120,6 +120,199 @@ const ReviewsPage = () => {
         }
     };
 
+    if (theme.isLittleH) {
+        return (
+            <div className="min-h-screen pt-28 pb-20 bg-[#FAF1E8] font-sans selection:bg-[#565A47] selection:text-[#FAF1E8]">
+                <div className="container mx-auto px-4 lg:px-8">
+                    {/* Header Section */}
+                    <div className="text-center max-w-4xl mx-auto mb-20 border-b border-[#8B8E7B]/20 pb-12">
+                        <span className="uppercase tracking-[0.3em] text-[#8B8E7B] text-sm font-semibold mb-6 block">Testimonials</span>
+                        <h1 className="text-5xl lg:text-7xl font-playfair font-bold text-[#565A47] mb-8 leading-tight">
+                            Words of <span className="italic font-light">Affection</span>
+                        </h1>
+                        <p className="text-[#8B8E7B] text-xl font-light leading-relaxed max-w-2xl mx-auto">
+                            Read the lovely experiences shared by our community, whose joy is the greatest testament to our craft.
+                        </p>
+                    </div>
+
+                    {/* Reviews Grid */}
+                    <div className="max-w-6xl mx-auto mb-24">
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center py-20">
+                                <div className="w-10 h-10 border-2 border-[#565A47] border-t-transparent rounded-full animate-spin mb-4" />
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                {/* Static Reviews */}
+                                {(littlehReviewsData).map((review, idx) => (
+                                    <motion.div
+                                        key={`static-${review.id}`}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: idx * 0.1 }}
+                                        className="bg-[#FDF5EC] rounded-none p-10 border border-[#8B8E7B]/10 relative group hover:border-[#565A47]/30 transition-colors"
+                                    >
+                                        <Quote className="absolute top-6 right-6 w-12 h-12 text-[#565A47] opacity-5 group-hover:opacity-10 transition-opacity" />
+
+                                        <div className="flex items-center gap-1 mb-6">
+                                            {[...Array(review.rating)].map((_, i) => (
+                                                <Star key={i} className="w-4 h-4 text-[#565A47] fill-[#565A47]" strokeWidth={1} />
+                                            ))}
+                                        </div>
+
+                                        <p className="text-[#565A47] text-xl leading-loose font-playfair italic mb-8 flex-grow">
+                                            "{review.text}"
+                                        </p>
+
+                                        <div className="flex items-center gap-4 mt-auto border-t border-[#8B8E7B]/10 pt-6">
+                                            <div className="w-12 h-12 bg-[#FAF1E8] flex items-center justify-center font-bold text-[#565A47] border border-[#8B8E7B]/20">
+                                                {review.name[0]}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-[#565A47] text-sm uppercase tracking-widest">{review.name}</h4>
+                                                <span className="text-xs text-[#8B8E7B] italic">{review.platform}</span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+
+                                {/* Dynamic Reviews */}
+                                {dynamicReviews.map((review, idx) => (
+                                    <motion.div
+                                        key={review._id}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ delay: (idx + littlehReviewsData.length) * 0.1 }}
+                                        className="bg-[#FDF5EC] rounded-none p-10 border border-[#8B8E7B]/10 relative group hover:border-[#565A47]/30 transition-colors"
+                                    >
+                                        <Quote className="absolute top-6 right-6 w-12 h-12 text-[#565A47] opacity-5 group-hover:opacity-10 transition-opacity" />
+
+                                        <div className="flex items-center gap-1 mb-6">
+                                            {[...Array(review.foodRating || 5)].map((_, i) => (
+                                                <Star key={i} className="w-4 h-4 text-[#565A47] fill-[#565A47]" strokeWidth={1} />
+                                            ))}
+                                        </div>
+
+                                        <p className="text-[#565A47] text-xl leading-loose font-playfair italic mb-8 flex-grow">
+                                            "{review.review}"
+                                        </p>
+
+                                        <div className="flex items-center gap-4 mt-auto border-t border-[#8B8E7B]/10 pt-6">
+                                            <div className="w-12 h-12 bg-[#FAF1E8] flex items-center justify-center font-bold text-[#565A47] border border-[#8B8E7B]/20">
+                                                {(review.customerId?.name || 'Customer')[0]}
+                                            </div>
+                                            <div>
+                                                <h4 className="font-bold text-[#565A47] text-sm uppercase tracking-widest">{review.customerId?.name || 'Verified Customer'}</h4>
+                                                <span className="text-xs text-[#8B8E7B] italic">
+                                                    {new Date(review.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Internal Review Form */}
+                    <div className="max-w-2xl mx-auto bg-[#FDF5EC] p-12 border border-[#8B8E7B]/20 relative">
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#FAF1E8] px-4">
+                            <MessageSquarePlus className="w-8 h-8 text-[#565A47]" strokeWidth={1} />
+                        </div>
+
+                        <div className="text-center mb-10 pt-4">
+                            <h2 className="text-3xl font-playfair font-bold text-[#565A47]">Share Your Experience</h2>
+                        </div>
+
+                        <AnimatePresence mode="wait">
+                            {isSubmitted ? (
+                                <motion.div
+                                    key="success"
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="text-center py-10"
+                                >
+                                    <h3 className="text-2xl font-playfair font-bold text-[#565A47] mb-4">With Gratitude</h3>
+                                    <p className="text-[#8B8E7B] font-light mb-8 leading-relaxed max-w-sm mx-auto">
+                                        Your feedback has been received and will be displayed shortly. Thank you for your support.
+                                    </p>
+                                    <button
+                                        onClick={() => {
+                                            setIsSubmitted(false);
+                                            setRating(0);
+                                            setComment('');
+                                        }}
+                                        className="text-xs uppercase tracking-widest text-[#565A47] border-b border-[#565A47] pb-1 hover:text-black transition-colors"
+                                    >
+                                        Write Another Review
+                                    </button>
+                                </motion.div>
+                            ) : (
+                                <motion.form
+                                    key="form"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    onSubmit={handleSubmit}
+                                    className="space-y-8"
+                                >
+                                    <div className="flex flex-col items-center gap-4 mb-4">
+                                        <div className="flex gap-4">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <button
+                                                    key={star}
+                                                    type="button"
+                                                    onClick={() => setRating(star)}
+                                                    onMouseEnter={() => setHoverRating(star)}
+                                                    onMouseLeave={() => setHoverRating(0)}
+                                                    className="focus:outline-none transition-transform hover:scale-110"
+                                                >
+                                                    <Star
+                                                        className={cn(
+                                                            "w-10 h-10 transition-colors",
+                                                            (hoverRating || rating) >= star
+                                                                ? "text-[#565A47] fill-[#565A47]"
+                                                                : "text-[#8B8E7B]/30"
+                                                        )}
+                                                        strokeWidth={1}
+                                                    />
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="relative group pt-4">
+                                        <textarea
+                                            required
+                                            value={comment}
+                                            onChange={(e) => setComment(e.target.value)}
+                                            rows={5}
+                                            className="w-full bg-transparent border-b border-[#8B8E7B]/30 py-3 text-[#565A47] focus:outline-none focus:border-[#565A47] transition-colors peer placeholder-transparent resize-none font-light"
+                                            placeholder="Your thoughts..."
+                                        />
+                                        <label className="absolute left-0 top-0 text-[#8B8E7B] text-xs uppercase tracking-widest transition-all peer-placeholder-shown:text-base peer-placeholder-shown:top-6 peer-placeholder-shown:normal-case peer-placeholder-shown:tracking-normal peer-focus:top-0 peer-focus:text-xs peer-focus:uppercase peer-focus:tracking-widest peer-focus:text-[#565A47]">
+                                            Your Experience
+                                        </label>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={rating === 0 || isSubmitting}
+                                        className="w-full py-4 bg-[#565A47] text-[#FAF1E8] uppercase tracking-widest text-sm font-bold hover:bg-[#3f4233] transition-colors disabled:opacity-70 flex items-center justify-center gap-3 mt-4"
+                                    >
+                                        {isSubmitting ? "Submitting..." : "Publish Review"}
+                                    </button>
+                                </motion.form>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen pt-24 pb-20 bg-slate-50">
             <div className="container mx-auto px-4 lg:px-8">
