@@ -6,13 +6,10 @@ import Category from '../../models/Category.js';
 // Get all categories
 export const getAllCategories = async (req, res) => {
     try {
-        const { brand } = req.query;
         const query = { isActive: true };
 
-        if (req.user?.activeBrand) {
-            query.brand = req.user.activeBrand;
-        } else if (brand) {
-            query.brand = brand;
+        if (req.activeBrand) {
+            query.brand = req.activeBrand;
         }
 
         const categories = await Category.find(query)

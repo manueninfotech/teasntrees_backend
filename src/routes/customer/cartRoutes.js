@@ -12,7 +12,7 @@ import {
 } from '../../controllers/customer/cartController.js';
 import { authenticate } from '../../middlewares/auth.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // All routes require authentication
 router.use(authenticate);
