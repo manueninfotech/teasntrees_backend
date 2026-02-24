@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     LayoutDashboard,
@@ -27,29 +27,32 @@ export default function Layout() {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const { brand } = useParams();
+    const b = brand || 'teasntrees';
+
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-        { icon: FolderTree, label: 'Categories', path: '/categories' },
-        { icon: Package, label: 'Products', path: '/products' },
-        { icon: Calendar, label: 'Seasonal Items', path: '/products/seasonal' },
-        { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-        { icon: Bike, label: 'Riders', path: '/riders' },
-        { icon: UserCog, label: 'Managers', path: '/managers' },
-        { icon: Truck, label: 'Deliveries', path: '/deliveries' },
-        { icon: Wallet, label: 'Payouts', path: '/payouts' },
-        { icon: Users, label: 'Customers', path: '/customers' },
-        { icon: Mail, label: 'Messages', path: '/messages' },
-        { icon: MessageSquare, label: 'Reviews', path: '/reviews' },
-        { icon: ShoppingCart, label: 'Cart Insights', path: '/cart-analytics' },
-        { icon: Shield, label: 'All Accounts', path: '/users' },
-        { icon: History, label: 'System Logs', path: '/activity-logs' },
-        { icon: Settings, label: 'Settings', path: '/settings' },
-        { icon: User, label: 'My Profile', path: '/profile' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: `/${b}` },
+        { icon: FolderTree, label: 'Categories', path: `/${b}/categories` },
+        { icon: Package, label: 'Products', path: `/${b}/products` },
+        { icon: Calendar, label: 'Seasonal Items', path: `/${b}/products/seasonal` },
+        { icon: ShoppingCart, label: 'Orders', path: `/${b}/orders` },
+        { icon: Bike, label: 'Riders', path: `/${b}/riders` },
+        { icon: UserCog, label: 'Managers', path: `/${b}/managers` },
+        { icon: Truck, label: 'Deliveries', path: `/${b}/deliveries` },
+        { icon: Wallet, label: 'Payouts', path: `/${b}/payouts` },
+        { icon: Users, label: 'Customers', path: `/${b}/customers` },
+        { icon: Mail, label: 'Messages', path: `/${b}/messages` },
+        { icon: MessageSquare, label: 'Reviews', path: `/${b}/reviews` },
+        { icon: ShoppingCart, label: 'Cart Insights', path: `/${b}/cart-analytics` },
+        { icon: Shield, label: 'All Accounts', path: `/${b}/users` },
+        { icon: History, label: 'System Logs', path: `/${b}/activity-logs` },
+        { icon: Settings, label: 'Settings', path: `/${b}/settings` },
+        { icon: User, label: 'My Profile', path: `/${b}/profile` },
     ];
 
     const isActive = (path) => {
