@@ -3,14 +3,54 @@
 
 import Cart from '../../models/Cart.js';
 
+const isItemForBrand = (item, brand) => {
+    if (!brand) return true;
+    const effectiveBrand = item.product?.brand || item.brand || null;
+    if (effectiveBrand) return effectiveBrand === brand;
+
+    // Legacy fallback only when brand info is unavailable on both cart item and product
+    return brand === 'teasntrees';
+};
+
+const filterItemsByBrand = (items, brand) => items.filter(item => isItemForBrand(item, brand));
+
+const applyCartBrandFilter = (filter, brand) => {
+    if (!brand) return filter;
+
+    // Backward compatibility: older cart items may not have brand saved.
+    // Treat missing/null brand as teasntrees (legacy default).
+    if (brand === 'teasntrees') {
+        filter.$or = [
+            { 'items.brand': 'teasntrees' },
+            { 'items.brand': { $exists: false } },
+            { 'items.brand': null }
+        ];
+        return filter;
+    }
+
+    filter['items.brand'] = brand;
+    return filter;
+};
+
 // Get cart analytics
 export const getCartAnalytics = async (req, res) => {
     try {
+        const brand = req.activeBrand;
+        // build a common base filter for items
+        const baseFilter = { 'items.0': { $exists: true } };
+        applyCartBrandFilter(baseFilter, brand);
+
         // Total carts with items
-        const activeCarts = await Cart.find({ 'items.0': { $exists: true } });
+        const activeCarts = await Cart.find(baseFilter)
+            .populate('items.product', 'name brand');
         const totalActiveCarts = activeCarts.length;
 
-        // Empty carts (considered abandoned)
+        // Empty carts (considered abandoned) ignore brand since no items
+        const emptyFilter = {};
+        if (brand) {
+            // carts where items are present but filtered by brand? actually empty carts have no items so brand irrelevant
+            // keep as empty
+        }
         const emptyCarts = await Cart.find({ items: { $size: 0 } });
         const totalAbandonedCarts = emptyCarts.length;
 
@@ -20,11 +60,14 @@ export const getCartAnalytics = async (req, res) => {
         const itemFrequency = {};
 
         for (const cart of activeCarts) {
-            totalCartValue += cart.subtotal;
-            totalItemsInCarts += cart.items.length;
+            const scopedItems = filterItemsByBrand(cart.items, brand);
+            if (!scopedItems.length) continue;
+
+            totalCartValue += scopedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            totalItemsInCarts += scopedItems.length;
 
             // Track popular items
-            for (const item of cart.items) {
+            for (const item of scopedItems) {
                 if (!item.product) continue; // Skip items with no product reference
                 const productId = item.product.toString();
                 if (!itemFrequency[productId]) {
@@ -59,10 +102,12 @@ export const getCartAnalytics = async (req, res) => {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        const abandonedWithItems = await Cart.find({
+        const abandonedFilter = {
             'items.0': { $exists: true },
             updatedAt: { $lt: sevenDaysAgo }
-        }).countDocuments();
+        };
+        applyCartBrandFilter(abandonedFilter, brand);
+        const abandonedWithItems = await Cart.find(abandonedFilter).countDocuments();
 
         res.json({
             success: true,
@@ -89,51 +134,63 @@ export const getCartAnalytics = async (req, res) => {
 // Get abandoned carts details
 export const getAbandonedCarts = async (req, res) => {
     try {
-        const { days = 7, page = 1, limit = 10 } = req.query;
+        const brand = req.activeBrand;
+        const days = Math.max(parseInt(req.query.days, 10) || 7, 1);
+        const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+        const limit = Math.max(parseInt(req.query.limit, 10) || 10, 1);
 
         const daysAgo = new Date();
-        daysAgo.setDate(daysAgo.getDate() - parseInt(days));
+        daysAgo.setDate(daysAgo.getDate() - days);
 
         const skip = (page - 1) * limit;
 
-        const abandonedCarts = await Cart.find({
+        const cartFilter = {
             'items.0': { $exists: true },
             updatedAt: { $lt: daysAgo }
-        })
+        };
+        applyCartBrandFilter(cartFilter, brand);
+        const abandonedCarts = await Cart.find(cartFilter)
             .populate('userId', 'name mobile email')
-            .populate('items.product', 'name price')
+            .populate('items.product', 'name price brand')
             .sort({ updatedAt: -1 })
-            .limit(parseInt(limit))
+            .limit(limit)
             .skip(skip);
 
-        const total = await Cart.countDocuments({
+        const totalFilter = {
             'items.0': { $exists: true },
             updatedAt: { $lt: daysAgo }
-        });
+        };
+        applyCartBrandFilter(totalFilter, brand);
+        const total = await Cart.countDocuments(totalFilter);
 
         res.json({
             success: true,
             data: {
                 abandonedCarts: abandonedCarts
                     .filter(cart => cart.userId) // Filter out carts with missing users
-                    .map(cart => ({
+                    .map(cart => {
+                        const scopedItems = filterItemsByBrand(cart.items, brand).map(item => ({
+                            ...item.toObject(),
+                            name: item.product ? item.product.name : (item.name || 'Unknown Product')
+                        }));
+                        const scopedSubtotal = scopedItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+
+                        return {
                         userId: cart.userId._id,
                         userName: cart.userId.name,
                         userMobile: cart.userId.mobile,
-                        items: cart.items.map(item => ({
-                            ...item.toObject(),
-                            name: item.product ? item.product.name : (item.name || 'Unknown Product')
-                        })),
-                        subtotal: cart.subtotal,
-                        itemCount: cart.items.length,
+                        items: scopedItems,
+                        subtotal: scopedSubtotal,
+                        itemCount: scopedItems.length,
                         lastUpdated: cart.updatedAt,
                         daysAbandoned: Math.floor((new Date() - cart.updatedAt) / (1000 * 60 * 60 * 24))
-                    })),
+                    };})
+                    .filter(cart => cart.itemCount > 0),
                 pagination: {
-                    currentPage: parseInt(page),
+                    currentPage: page,
                     totalPages: Math.ceil(total / limit),
                     totalAbandoned: total,
-                    limit: parseInt(limit)
+                    limit
                 }
             }
         });

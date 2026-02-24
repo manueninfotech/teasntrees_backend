@@ -44,7 +44,9 @@ export const getAllCategories = async (req, res) => {
 // Get single category by ID
 export const getCategoryById = async (req, res) => {
     try {
-        const category = await Category.findById(req.params.id);
+        const filter = { _id: req.params.id };
+        if (req.activeBrand) filter.brand = req.activeBrand;
+        const category = await Category.findOne(filter);
         if (!category) {
             return res.status(404).json({
                 success: false,
@@ -68,9 +70,10 @@ export const getCategoryById = async (req, res) => {
 // create new category
 export const createCategory = async (req, res) => {
     try {
-        const { name, description, icon, displayOrder, brand } = req.body;
+        const { name, description, icon, displayOrder } = req.body;
+        const activeBrand = req.activeBrand || 'teasntrees';
         // check if category already exists
-        const existingCategory = await Category.findOne({ name });
+        const existingCategory = await Category.findOne({ name, brand: activeBrand });
         if (existingCategory) {
             return res.status(400).json({
                 success: false,
@@ -82,7 +85,7 @@ export const createCategory = async (req, res) => {
             description,
             icon,
             displayOrder,
-            brand: brand || 'teasntrees'
+            brand: activeBrand
         });
 
         // Emit Socket.io event DIRECTLY
@@ -122,8 +125,9 @@ export const createCategory = async (req, res) => {
 // update category
 export const updateCategory = async (req, res) => {
     try {
-        const { name, description, icon, displayOrder, brand } = req.body;
-        const category = await Category.findById(req.params.id);
+        const { name, description, icon, displayOrder } = req.body;
+        const activeBrand = req.activeBrand || 'teasntrees';
+        const category = await Category.findOne({ _id: req.params.id, brand: activeBrand });
         if (!category) {
             return res.status(404).json({
                 success: false,
@@ -132,7 +136,7 @@ export const updateCategory = async (req, res) => {
         }
         // check if name is being changed and if it already exists
         if (name && name != category.name) {
-            const existingCategory = await Category.findOne({ name });
+            const existingCategory = await Category.findOne({ name, brand: activeBrand });
             if (existingCategory) {
                 return res.status(400).json({
                     success: false,
@@ -144,7 +148,7 @@ export const updateCategory = async (req, res) => {
         category.description = description || category.description;
         category.icon = icon || category.icon;
         category.displayOrder = displayOrder !== undefined ? displayOrder : category.displayOrder;
-        if (brand) category.brand = brand;
+        category.brand = activeBrand;
 
         await category.save();
 
@@ -184,7 +188,9 @@ export const updateCategory = async (req, res) => {
 // Delete category
 export const deleteCategory = async (req, res) => {
     try {
-        const category = await Category.findById(req.params.id);
+        const filter = { _id: req.params.id };
+        if (req.activeBrand) filter.brand = req.activeBrand;
+        const category = await Category.findOne(filter);
         if (!category) {
             return res.status(404).json({
                 success: false,
