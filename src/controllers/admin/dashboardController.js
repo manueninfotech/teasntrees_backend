@@ -5,7 +5,7 @@ import Product from '../../models/Product.js';
 // Get dashboard statistics
 export const getDashboardStats = async (req, res) => {
     try {
-        const { brand } = req.query;
+        const brand = req.activeBrand;
         const queryOrder = brand ? { brand } : {};
         const queryProduct = brand ? { brand } : {};
 
@@ -111,7 +111,8 @@ export const getDashboardStats = async (req, res) => {
 // Get revenue analytics
 export const getRevenueAnalytics = async (req, res) => {
     try {
-        const { period = 'week', brand } = req.query; // week, month, year
+        const { period = 'week' } = req.query; // week, month, year
+        const brand = req.activeBrand;
         const queryOrder = brand ? { brand } : {};
 
         let startDate = new Date();

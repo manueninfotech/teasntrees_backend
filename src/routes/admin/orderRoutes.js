@@ -15,7 +15,7 @@ import {
 } from '../../middlewares/validators/orderValidator.js';
 import { logActivity } from '../../middlewares/activityLogger.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get order stats (must be before /:id)
 router.get('/stats', getOrderStats);

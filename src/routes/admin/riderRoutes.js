@@ -10,7 +10,7 @@ import {
 } from '../../controllers/admin/riderController.js';
 import { logActivity } from '../../middlewares/activityLogger.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get all riders
 router.get('/', getAllRiders);

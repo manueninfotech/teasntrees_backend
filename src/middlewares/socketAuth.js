@@ -32,7 +32,8 @@ export const socketAuth = async (socket, next) => {
             userId: user._id.toString(),
             role: user.role,
             mobile: user.mobile,
-            name: user.name
+            name: user.name,
+            brand: socket.handshake.auth.brand || user.preferences?.activeBrand || 'teasntrees'
         };
 
         next();

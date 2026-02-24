@@ -3,7 +3,7 @@ import { getAllMessages, updateMessageStatus, deleteMessage } from '../../contro
 import { authenticate } from '../../middlewares/auth.js';
 import { checkRole } from '../../middlewares/roleCheck.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 router.use(authenticate);
 router.use(checkRole(['admin', 'manager']));

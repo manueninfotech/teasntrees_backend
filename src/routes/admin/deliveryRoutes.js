@@ -5,7 +5,7 @@ import {
     getDeliveryStats
 } from '../../controllers/admin/deliveryController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get delivery stats
 router.get('/stats', getDeliveryStats);

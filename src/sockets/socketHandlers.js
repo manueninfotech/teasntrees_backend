@@ -5,12 +5,16 @@ import { SOCKET_EVENTS, SOCKET_ROOMS } from './socketEvents.js';
  */
 export const setupSocketHandlers = (io) => {
     io.on(SOCKET_EVENTS.CONNECTION, (socket) => {
-        const { userId, role, name } = socket.user;
+        const { userId, role, name, brand } = socket.user;
+        console.log(`🔌 User ${name} (${role}) connected to Brand: ${brand}`);
 
         // Join user-specific room
         socket.join(SOCKET_ROOMS.user(userId));
 
-        // Join role-based room
+        // Join brand-specific role room (CRITICAL for brand isolation)
+        socket.join(SOCKET_ROOMS.brandRole(brand, role));
+
+        // Also join legacy global role room for now to avoid breaking existing logic elsewhere
         socket.join(SOCKET_ROOMS.role(role));
 
         // Notify user of successful connection

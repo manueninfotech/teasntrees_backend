@@ -20,7 +20,7 @@ import customerRoutes from './customerRoutes.js';
 import payoutRoutes from './payoutRoutes.js';
 import managerRoutes from './managerRoutes.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Apply IP whitelist (production only), authentication, and admin role check
 router.use(checkAdminIP);
