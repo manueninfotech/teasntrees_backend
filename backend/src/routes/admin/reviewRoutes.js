@@ -12,7 +12,7 @@ import {
     getReviewStats
 } from '../../controllers/admin/reviewController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get all reviews with filters
 router.get('/', getAllReviews);

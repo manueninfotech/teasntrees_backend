@@ -11,11 +11,9 @@ export const getAllCategories = async (req, res) => {
         const order = req.query.order === 'desc' ? -1 : 1;
         const skip = (page - 1) * limit;
 
-        const { brand } = req.query;
-
         let filter = {};
-        if (brand) {
-            filter.brand = brand;
+        if (req.activeBrand) {
+            filter.brand = req.activeBrand;
         }
 
         const categories = await Category.find(filter)

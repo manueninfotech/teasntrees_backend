@@ -7,7 +7,7 @@ import {
     getActivityStats
 } from '../../controllers/admin/activityController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get all activity logs (with filters)
 router.get('/', getAllActivityLogs);

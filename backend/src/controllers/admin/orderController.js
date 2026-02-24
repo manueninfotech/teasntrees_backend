@@ -14,7 +14,8 @@ import activityLogService from "../../services/activityLogService.js";
 ========================================================= */
 export const getAllOrders = async (req, res) => {
     try {
-        const { status, customerId, startDate, endDate, brand } = req.query;
+        const { status, customerId, startDate, endDate } = req.query;
+        const brand = req.activeBrand;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
@@ -361,12 +362,11 @@ export const cancelOrder = async (req, res) => {
 ========================================================= */
 export const getOrderStats = async (req, res) => {
     try {
-        const { brand } = req.query;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         const queryBase = {};
-        if (brand) queryBase.brand = brand;
+        if (req.activeBrand) queryBase.brand = req.activeBrand;
 
         const [
             totalOrders,

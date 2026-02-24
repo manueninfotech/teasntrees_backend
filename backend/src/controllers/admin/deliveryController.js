@@ -7,7 +7,8 @@ import activityLogService from '../../services/activityLogService.js';
 ----------------------------------- */
 export const getAllDeliveries = async (req, res) => {
     try {
-        const { status, riderId, startDate, endDate, brand } = req.query;
+        const { status, riderId, startDate, endDate } = req.query;
+        const brand = req.activeBrand;
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
@@ -120,7 +121,7 @@ export const cancelDelivery = async (req, res) => {
 ----------------------------------- */
 export const getDeliveryStats = async (req, res) => {
     try {
-        const { brand } = req.query;
+        const brand = req.activeBrand;
         const query = {};
 
         if (brand) {

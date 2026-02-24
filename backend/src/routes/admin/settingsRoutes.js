@@ -7,7 +7,7 @@ import {
 } from '../../controllers/admin/settingsController.js';
 import { logActivity } from '../../middlewares/activityLogger.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get delivery zones
 router.get('/delivery-zones', getDeliveryZones);

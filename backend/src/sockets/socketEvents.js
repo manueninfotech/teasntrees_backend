@@ -83,6 +83,9 @@ export const SOCKET_ROOMS = {
     // Role-based rooms
     role: (role) => `role:${role}`,
 
+    // Brand-Role based rooms (Isolated)
+    brandRole: (brand, role) => `brand:${brand}:role:${role}`,
+
     // Order-specific rooms
     order: (orderId) => `order:${orderId}`,
 

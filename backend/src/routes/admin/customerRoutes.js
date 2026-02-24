@@ -8,7 +8,7 @@ import {
     deleteCustomer
 } from '../../controllers/admin/customerController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get customer stats
 router.get('/stats', getCustomerStats);

@@ -15,7 +15,7 @@ import {
 } from '../../middlewares/validators/userValidator.js';
 import { logActivity } from '../../middlewares/activityLogger.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get user stats
 router.get('/stats', getUserStats);

@@ -7,7 +7,8 @@ import activityLogService from '../../services/activityLogService.js';
 // Get all reviews with filters
 export const getAllReviews = async (req, res) => {
     try {
-        const { page = 1, limit = 20, status, productId, riderId, rating, brand } = req.query;
+        const { page = 1, limit = 20, status, productId, riderId, rating } = req.query;
+        const brand = req.activeBrand;
 
         const query = {};
         if (brand) query.brand = brand;
@@ -364,7 +365,7 @@ export const getRiderReviews = async (req, res) => {
 
 export const getReviewStats = async (req, res) => {
     try {
-        const { brand } = req.query;
+        const brand = req.activeBrand;
         const query = brand ? { brand } : {};
 
         const totalReviews = await Review.countDocuments(query);

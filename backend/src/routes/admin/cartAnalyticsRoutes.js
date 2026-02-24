@@ -7,7 +7,7 @@ import {
     getAbandonedCarts
 } from '../../controllers/admin/cartAnalyticsController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get cart analytics overview
 router.get('/', getCartAnalytics);

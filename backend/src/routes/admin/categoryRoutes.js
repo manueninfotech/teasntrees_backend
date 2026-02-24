@@ -13,7 +13,7 @@ import {
 } from '../../middlewares/validators/categoryValidator.js';
 import { logActivity } from '../../middlewares/activityLogger.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 // Get all categories
 router.get('/', getAllCategories);
 

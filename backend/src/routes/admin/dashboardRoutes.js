@@ -6,7 +6,7 @@ import {
     getRecentOrders
 } from '../../controllers/admin/dashboardController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get dashboard statistics
 router.get('/stats', getDashboardStats);

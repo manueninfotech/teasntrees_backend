@@ -3,7 +3,7 @@ import { getPayoutStats, processPayout } from '../../controllers/admin/payoutCon
 import { authenticate } from '../../middlewares/auth.js';
 import { checkRole } from '../../middlewares/roleCheck.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Protect all routes (Admin only)
 router.use(authenticate);

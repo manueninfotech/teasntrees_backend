@@ -8,7 +8,7 @@ import {
     deleteManager
 } from '../../controllers/admin/managerController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 router.get('/', getAllManagers);
 router.get('/pending', getPendingManagers);

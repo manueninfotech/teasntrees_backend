@@ -9,14 +9,12 @@ export const getAllMessages = async (req, res) => {
         const limit = parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
         const status = req.query.status;
-        const brand = req.query.brand;
-
         let query = {};
         if (status) {
             query.status = status;
         }
-        if (brand) {
-            query.brand = brand;
+        if (req.activeBrand) {
+            query.brand = req.activeBrand;
         }
 
         const messages = await Contact.find(query)

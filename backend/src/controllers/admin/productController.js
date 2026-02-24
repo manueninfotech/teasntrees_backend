@@ -31,8 +31,8 @@ export const getAllProducts = async (req, res) => {
         if (tags) {
             query.tags = { $in: tags.split(',') };
         }
-        if (brand) {
-            query.brand = brand;
+        if (req.activeBrand) {
+            query.brand = req.activeBrand;
         }
 
         const products = await Product.find(query)
@@ -119,9 +119,10 @@ export const createProduct = async (req, res) => {
             isSeasonal,
             availableMonths,
             sizeOptions,
-            variants,
-            brand
+            variants
         } = req.body;
+
+        const brand = req.activeBrand;
 
         // verify category exists
         const categoryExists = await Category.findById(category);
@@ -449,9 +450,8 @@ export const bulkUpdateProducts = async (req, res) => {
 // Get all seasonal products
 export const getSeasonalProducts = async (req, res) => {
     try {
-        const { brand } = req.query;
         const query = { isSeasonal: true };
-        if (brand) query.brand = brand;
+        if (req.activeBrand) query.brand = req.activeBrand;
 
         const products = await Product.find(query)
             .populate('category', 'name icon')
@@ -475,12 +475,11 @@ export const getSeasonalProducts = async (req, res) => {
 // Get products that are currently out of season
 export const getOutOfSeasonProducts = async (req, res) => {
     try {
-        const { brand } = req.query;
         const { getCurrentMonth } = await import('../../utils/seasonUtils.js');
         const currentMonth = getCurrentMonth();
 
         const query = { isSeasonal: true };
-        if (brand) query.brand = brand;
+        if (req.activeBrand) query.brand = req.activeBrand;
 
         const seasonalProducts = await Product.find(query)
             .populate('category', 'name icon')
@@ -562,9 +561,8 @@ export const updateProductSeason = async (req, res) => {
 // Get product stats
 export const getProductStats = async (req, res) => {
     try {
-        const { brand } = req.query;
         const query = {};
-        if (brand) query.brand = brand;
+        if (req.activeBrand) query.brand = req.activeBrand;
 
         const [
             totalProducts,

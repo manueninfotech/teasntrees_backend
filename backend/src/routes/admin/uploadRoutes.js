@@ -2,7 +2,7 @@ import express from 'express';
 import { uploadImage, deleteImage, uploadMultipleImages } from '../../controllers/admin/uploadController.js';
 import upload from '../../middlewares/upload.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Upload single image
 router.post('/image', upload.single('image'), uploadImage);

@@ -22,7 +22,7 @@ import {
 import { logActivity } from '../../middlewares/activityLogger.js';
 import upload from '../../middlewares/upload.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Get all products
 router.get('/', getAllProducts);
