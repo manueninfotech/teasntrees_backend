@@ -11,7 +11,7 @@ import {
 } from '../../controllers/rider/deliveryController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // All routes require auth
 router.use(riderAuth);

@@ -8,7 +8,7 @@ import customerRoutes from './customerRoutes.js';
 import deliveryRoutes from './deliveryRoutes.js';
 import profileRoutes from './profileRoutes.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Auth routes (public + protected inside)
 router.use('/auth', authRoutes);
