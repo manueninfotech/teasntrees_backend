@@ -6,10 +6,12 @@ import activityLogService from '../../services/activityLogService.js';
 export const getProducts = async (req, res) => {
     try {
         const { category, search, page = 1, limit = 20 } = req.query;
-        let query = {};
+        const brand = req.params.brand || 'teasntrees';
+        let query = { brand };
 
         if (category) query.category = category;
         if (search) query.name = { $regex: search, $options: 'i' };
+
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
