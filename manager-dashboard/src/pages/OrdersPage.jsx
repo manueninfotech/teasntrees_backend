@@ -19,6 +19,7 @@ import {
     ChevronDown,
     Check
 } from 'lucide-react';
+import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useRefresh } from '../context/RefreshContext';
@@ -155,12 +156,9 @@ const OrdersPage = () => {
         const fetchOrders = async () => {
             try {
                 // Fetch ALL orders (limit 100 for now to ensure we see them spread out)
-                const res = await fetch('http://localhost:5000/api/manager/orders?limit=100', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await res.json();
-                if (data.success) {
-                    setOrders(data.data);
+                const res = await api.get('/manager/orders?limit=100');
+                if (res.data.success) {
+                    setOrders(res.data.data);
                 }
             } catch (err) {
                 console.error("Failed to fetch orders", err);
@@ -207,14 +205,7 @@ const OrdersPage = () => {
         setOrders(prev => prev.map(o => o._id === orderId ? { ...o, status } : o));
 
         try {
-            await fetch(`http://localhost:5000/api/manager/orders/${orderId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ status })
-            });
+            await api.patch(`/manager/orders/${orderId}/status`, { status });
         } catch (err) {
             console.error("Failed to update status", err);
             // Revert on failure logic could go here

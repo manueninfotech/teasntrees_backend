@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, ShoppingBag, Clock, AlertTriangle, ChevronRight, User } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useAuth } from '../context/AuthContext';
 import { useRefresh } from '../context/RefreshContext';
-import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 
 // --- Components ---
@@ -194,10 +195,8 @@ const DashboardHome = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/manager/dashboard/stats', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const data = await response.json();
+                const response = await api.get('/manager/dashboard/stats');
+                const data = response.data;
                 if (data.success) {
                     setStats(data.data);
                 }
@@ -289,10 +288,8 @@ const DashboardHome = () => {
 
         const delayedRefetch = () => {
             setTimeout(() => {
-                fetch('http://localhost:5000/api/manager/dashboard/stats', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                }).then(res => res.json()).then(data => {
-                    if (data.success) setStats(data.data);
+                api.get('/manager/dashboard/stats').then(response => {
+                    if (response.data.success) setStats(response.data.data);
                 }).catch(e => console.error(e));
             }, 2000); // 2 second delay to safely sync
         }
@@ -357,7 +354,7 @@ const DashboardHome = () => {
                         setSelectedOrder(order);
                         setIsModalOpen(true);
                     }}
-                    onClickViewAll={() => navigate('/orders')}
+                    onClickViewAll={() => navigate(`/teasntrees/orders`)}
                 />
 
                 {/* Side Widget (Riders) */}
@@ -422,3 +419,4 @@ const DashboardHome = () => {
 };
 
 export default DashboardHome;
+

@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard,
@@ -17,6 +17,8 @@ export default function DashboardLayout() {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const { brand } = useParams();
+    const b = brand || 'teasntrees';
 
     const handleLogout = () => {
         logout();
@@ -24,14 +26,13 @@ export default function DashboardLayout() {
     };
 
     const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-        { icon: Package, label: 'Products', path: '/products' },
-        { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-        { icon: Bike, label: 'Riders', path: '/riders' },
-        { icon: Truck, label: 'Deliveries', path: '/deliveries' },
-        { icon: Users, label: 'Customers', path: '/customers' },
-        // { icon: Settings, label: 'Settings', path: '/settings' },
-        { icon: User, label: 'My Profile', path: '/profile' },
+        { icon: LayoutDashboard, label: 'Dashboard', path: `/${b}` },
+        { icon: Package, label: 'Products', path: `/${b}/products` },
+        { icon: ShoppingCart, label: 'Orders', path: `/${b}/orders` },
+        { icon: Bike, label: 'Riders', path: `/${b}/riders` },
+        { icon: Truck, label: 'Deliveries', path: `/${b}/deliveries` },
+        { icon: Users, label: 'Customers', path: `/${b}/customers` },
+        { icon: User, label: 'My Profile', path: `/${b}/profile` },
     ];
 
     const isActive = (path) => {

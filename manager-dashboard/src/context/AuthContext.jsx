@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import api from '../utils/api';
 
 const AuthContext = createContext();
 
@@ -18,13 +19,8 @@ export const AuthProvider = ({ children }) => {
     const verifyOtp = async (mobile, idToken) => {
         try {
             console.log('Exchanging Firebase Token for Backend JWT');
-            const response = await fetch('http://localhost:5000/api/manager/auth/firebase-login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ idToken }),
-            });
-
-            const data = await response.json();
+            const response = await api.post('/manager/auth/firebase-login', { idToken });
+            const data = response.data;
 
             if (!response.ok || !data.success) {
                 throw new Error(data.message || 'Firebase login failed');
@@ -60,17 +56,8 @@ export const AuthProvider = ({ children }) => {
     // Step 3: Complete Profile
     const completeProfile = async (profileData) => {
         try {
-            const token = localStorage.getItem('manager_token'); // Might be partial token
-            const response = await fetch('http://localhost:5000/api/manager/auth/complete-profile', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(profileData),
-            });
-
-            const data = await response.json();
+            const response = await api.post('/manager/auth/complete-profile', profileData);
+            const data = response.data;
 
             if (!response.ok || !data.success) {
                 throw new Error(data.message || 'Profile update failed');

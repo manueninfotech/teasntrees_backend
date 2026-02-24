@@ -16,6 +16,7 @@ import {
     ChevronLeft
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import { useRefresh } from '../context/RefreshContext';
 import OrderDetailsModal from '../components/OrderDetailsModal';
 
@@ -187,10 +188,8 @@ const CustomersPage = () => {
                 limit: 12,
                 ...(searchQuery && { search: searchQuery })
             });
-            const res = await fetch(`http://localhost:5000/api/manager/customers?${params}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const res = await api.get(`/manager/customers?${params}`);
+            const data = res.data;
             if (data.success) {
                 setCustomers(data.data.customers);
                 setPagination(data.data.pagination);
@@ -217,10 +216,8 @@ const CustomersPage = () => {
             const fetchOrders = async () => {
                 setLoadingOrders(true);
                 try {
-                    const res = await fetch(`http://localhost:5000/api/manager/customers/${selectedCustomer._id}/orders`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    const data = await res.json();
+                    const res = await api.get(`/manager/customers/${selectedCustomer._id}/orders`);
+                    const data = res.data;
                     if (data.success) {
                         setCustomerOrders(data.data);
                     }

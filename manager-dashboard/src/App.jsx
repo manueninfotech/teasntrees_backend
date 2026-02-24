@@ -28,20 +28,28 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<Navigate to="/teasntrees" replace />} />
 
-      <Route path="/" element={
-        <ProtectedRoute>
-          <DashboardLayout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<DashboardHome />} />
-        <Route path="orders" element={<OrdersPage />} />
-        <Route path="riders" element={<RidersPage />} />
-        <Route path="deliveries" element={<DeliveriesPage />} />
-        <Route path="customers" element={<CustomersPage />} />
-        <Route path="products" element={<ProductsPage />} />
-        <Route path="profile" element={<ProfilePage />} />
+      <Route path="/:brand">
+        <Route path="login" element={<LoginPage />} />
+
+        <Route element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<DashboardHome />} />
+          <Route path="orders" element={<OrdersPage />} />
+          <Route path="riders" element={<RidersPage />} />
+          <Route path="deliveries" element={<DeliveriesPage />} />
+          <Route path="customers" element={<CustomersPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
       </Route>
+
+      {/* Catch-all */}
+      <Route path="*" element={<Navigate to="/teasntrees" replace />} />
     </Routes>
   );
 }

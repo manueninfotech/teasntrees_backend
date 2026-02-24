@@ -12,9 +12,13 @@ export const SocketProvider = ({ children }) => {
     useEffect(() => {
         if (!token || !user) return;
 
+        // Dynamically extract brand from URL path
+        const pathSegments = window.location.pathname.split('/');
+        const activeBrand = pathSegments[1] || 'teasntrees';
+
         // Connect to backend
         const newSocket = io("http://localhost:5000", {
-            auth: { token }, // Pass JWT in handshake
+            auth: { token, brand: activeBrand }, // Pass JWT and Brand in handshake
             transports: ["websocket"],
         });
 

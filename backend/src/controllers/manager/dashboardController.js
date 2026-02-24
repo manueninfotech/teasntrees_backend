@@ -5,11 +5,13 @@ import Rider from '../../models/Rider.js';
 
 export const getDashboardStats = async (req, res) => {
     try {
+        const brand = req.params.brand || 'teasntrees';
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         // 1. Orders Today & Sales
         const todayOrders = await Order.find({
+            brand,
             createdAt: { $gte: today }
         });
 
@@ -18,9 +20,8 @@ export const getDashboardStats = async (req, res) => {
             .filter(order => order.paymentStatus === 'paid')
             .reduce((sum, order) => sum + (order.total || 0), 0);
 
-        // 2. Pending Orders (global or assignable?)
-        // Managers manage orders, so seeing all pending is good.
         const pendingOrders = await Order.countDocuments({
+            brand,
             status: 'pending'
         });
 
@@ -37,21 +38,22 @@ export const getDashboardStats = async (req, res) => {
         // 4. Delayed Deliveries (e.g. status not delivered AND created > 1 hour ago? or estimatedDeliveryTime passed?)
         // Let's assume delayed if status is in-progress and estimatedDeliveryTime < now
         const delayedOrders = await Order.countDocuments({
+            brand,
             status: { $in: ['out_for_delivery', 'preparing', 'in_transit'] },
             estimatedDeliveryTime: { $lt: new Date() }
         });
 
-        // 5. Low Stock Products
         const lowStockProducts = await Product.countDocuments({
+            brand,
             isAvailable: false
         });
 
         // 6. Recent Orders (Last 5)
-        const recentOrders = await Order.find()
+        const recentOrders = await Order.find({ brand })
             .sort({ createdAt: -1 })
             .limit(5)
-            .populate('customerId', 'name mobile') // Get customer details
-            .select('orderNumber items total subtotal status createdAt paymentStatus paymentMethod deliveryAddress specialInstructions customerId'); // Select correct fields
+            .populate('customerId', 'name mobile')
+            .select('orderNumber items total subtotal status createdAt paymentStatus paymentMethod deliveryAddress specialInstructions customerId');
 
         // 7. Active Riders List (Limit 5)
         const activeRidersList = await Rider.find({ isApproved: true, isActive: true })

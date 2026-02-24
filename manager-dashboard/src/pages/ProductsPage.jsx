@@ -17,6 +17,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import { useRefresh } from '../context/RefreshContext';
 
 const EditProductModal = ({ product, onClose, onUpdate }) => {
@@ -186,10 +187,8 @@ const ProductsPage = () => {
                 limit: 12,
                 ...(search && { search })
             });
-            const res = await fetch(`http://localhost:5000/api/manager/products?${params}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const res = await api.get(`/manager/products?${params}`);
+            const data = res.data;
             if (data.success) {
                 setProducts(data.data);
                 setTotalPages(data.pagination.totalPages);
@@ -221,14 +220,7 @@ const ProductsPage = () => {
                 p._id === product._id ? { ...p, isAvailable: !p.isAvailable } : p
             ));
 
-            await fetch(`http://localhost:5000/api/manager/products/${product._id}/availability`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ isAvailable: !product.isAvailable })
-            });
+            await api.patch(`/manager/products/${product._id}/availability`, { isAvailable: !product.isAvailable });
         } catch (err) {
             console.error("Failed to toggle availability", err);
             // Revert on failure
@@ -238,15 +230,8 @@ const ProductsPage = () => {
 
     // Handle Full Update (Price + Status)
     const handleUpdate = async (id, updates) => {
-        const res = await fetch(`http://localhost:5000/api/manager/products/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(updates)
-        });
-        const data = await res.json();
+        const res = await api.put(`/manager/products/${id}`, updates);
+        const data = res.data;
         if (data.success) {
             setProducts(prev => prev.map(p =>
                 p._id === id ? { ...p, ...updates } : p
@@ -410,3 +395,4 @@ const ProductsPage = () => {
 };
 
 export default ProductsPage;
+

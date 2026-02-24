@@ -10,6 +10,7 @@ export const getActiveDeliveries = async (req, res) => {
             limit = 20
         } = req.query;
 
+        const brand = req.params.brand || 'teasntrees';
         const skip = (page - 1) * limit;
 
         // Only true active delivery states (Delivery domain)
@@ -24,6 +25,7 @@ export const getActiveDeliveries = async (req, res) => {
         ];
 
         const deliveries = await Delivery.find({
+            brand,
             status: { $in: activeStatuses }
         })
             .populate('riderId', 'name mobile currentLocation isOnline')
@@ -34,6 +36,7 @@ export const getActiveDeliveries = async (req, res) => {
             .limit(Number(limit));
 
         const total = await Delivery.countDocuments({
+            brand,
             status: { $in: activeStatuses }
         });
 

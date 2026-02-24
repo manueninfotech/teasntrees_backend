@@ -17,6 +17,7 @@ import {
     X
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
+import api from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useRefresh } from '../context/RefreshContext';
 
@@ -174,16 +175,12 @@ const RidersPage = () => {
         }
         try {
             // Fetch Active
-            const resActive = await fetch('http://localhost:5000/api/manager/riders?type=assigned', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const dataActive = await resActive.json();
+            const resActive = await api.get('/manager/riders?type=assigned');
+            const dataActive = resActive.data;
 
             // Fetch Pending
-            const resPending = await fetch('http://localhost:5000/api/manager/riders?type=pending', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const dataPending = await resPending.json();
+            const resPending = await api.get('/manager/riders?type=pending');
+            const dataPending = resPending.data;
 
             if (dataActive.success && dataPending.success) {
                 const activeList = dataActive.data || [];
@@ -245,11 +242,8 @@ const RidersPage = () => {
     // Actions
     const handleApprove = async (riderId) => {
         try {
-            const res = await fetch(`http://localhost:5000/api/manager/riders/${riderId}/approve`, {
-                method: 'PUT',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const res = await api.put(`/manager/riders/${riderId}/approve`);
+            const data = res.data;
 
             if (data.success) {
                 // Optimistic UI Update
@@ -270,11 +264,8 @@ const RidersPage = () => {
     const handleReject = async (riderId) => {
         if (!confirm('Are you sure you want to reject this rider? This action cannot be undone.')) return;
         try {
-            const res = await fetch(`http://localhost:5000/api/manager/riders/${riderId}/reject`, {
-                method: 'DELETE', // Assuming DELETE for reject as implemented
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const res = await api.delete(`/manager/riders/${riderId}/reject`);
+            const data = res.data;
 
             if (data.success) {
                 setRiders(prev => prev.filter(r => r._id !== riderId));

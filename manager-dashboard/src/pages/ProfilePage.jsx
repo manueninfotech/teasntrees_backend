@@ -13,6 +13,7 @@ import {
     ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 
 export default function ProfilePage() {
     const { token } = useAuth();
@@ -33,10 +34,8 @@ export default function ProfilePage() {
 
     const fetchProfile = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/manager/profile', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
+            const res = await api.get('/manager/profile');
+            const data = res.data;
             if (data.success) {
                 setProfile(data.data);
                 setFormData({
@@ -58,15 +57,8 @@ export default function ProfilePage() {
         setMessage(null);
 
         try {
-            const res = await fetch('http://localhost:5000/api/manager/profile', {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(formData)
-            });
-            const data = await res.json();
+            const res = await api.put('/manager/profile', formData);
+            const data = res.data;
             if (data.success) {
                 setProfile(data.data);
                 setMessage({ type: 'success', text: 'Profile updated successfully!' });

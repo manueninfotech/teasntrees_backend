@@ -13,6 +13,7 @@ import {
     ShoppingBag
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
 import { useRefresh } from '../context/RefreshContext';
 
@@ -81,13 +82,10 @@ const DeliveriesPage = () => {
     // Fetch Deliveries
     const fetchDeliveries = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/manager/deliveries/active', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                setDeliveries(data.data);
-                if (data.data.length > 0) setSelectedDelivery(data.data[0]);
+            const res = await api.get('/manager/deliveries/active');
+            if (res.data.success) {
+                setDeliveries(res.data.data);
+                if (res.data.data.length > 0) setSelectedDelivery(res.data.data[0]);
             }
         } catch (err) {
             console.error("Failed to fetch deliveries", err);

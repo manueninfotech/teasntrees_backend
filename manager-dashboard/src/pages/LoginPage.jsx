@@ -71,7 +71,7 @@ const LoginPage = () => {
 
             if (authResult.success) {
                 if (authResult.isLoggedIn) {
-                    navigate('/');
+                    navigate('/teasntrees');
                 } else if (authResult.needsProfile) {
                     setStep('PROFILE');
                 } else if (authResult.requiresApproval) {
