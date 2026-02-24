@@ -150,38 +150,47 @@ import './models/Counter.js';
 import connectDB from './config/db.js';
 connectDB();
 
+import { brandMiddleware } from './middlewares/brandMiddleware.js';
+
 /* =======================
    ROUTES
 ======================= */
-// Customer
-app.use('/api/customer/auth', customerAuthRoutes);
-app.use('/api/customer/profile', customerProfileRoutes);
-app.use('/api/customer/products', customerProductRoutes);
-app.use('/api/customer/categories', customerCategoryRoutes);
-app.use('/api/customer/cart', customerCartRoutes);
-app.use('/api/customer/orders', customerOrderRoutes);
-app.use('/api/customer/deliveries', customerDeliveryRoutes);
-app.use('/api/customer/reviews', customerReviewRoutes);
-app.use('/api/customer/address', customerAddressRoutes);
-app.use('/api/customer/wishlist', customerWishlistRoutes);
-app.use('/api/customer/settings', customerSettingsRoutes);
-app.use('/api/customer/upload', customerUploadRoutes);
-app.use('/api/v1/contact', customerContactRoutes);
-app.use('/api/customer/payments', customerPaymentRoutes);
+// Customer Sub-Router to group routes under /api/:brand
+const customerApiRouter = express.Router({ mergeParams: true });
+customerApiRouter.use(brandMiddleware);
+
+// Mount customer routes to the sub-router
+customerApiRouter.use('/auth', customerAuthRoutes);
+customerApiRouter.use('/profile', customerProfileRoutes);
+customerApiRouter.use('/products', customerProductRoutes);
+customerApiRouter.use('/categories', customerCategoryRoutes);
+customerApiRouter.use('/cart', customerCartRoutes);
+customerApiRouter.use('/orders', customerOrderRoutes);
+customerApiRouter.use('/deliveries', customerDeliveryRoutes);
+customerApiRouter.use('/reviews', customerReviewRoutes);
+customerApiRouter.use('/address', customerAddressRoutes);
+customerApiRouter.use('/wishlist', customerWishlistRoutes);
+customerApiRouter.use('/settings', customerSettingsRoutes);
+customerApiRouter.use('/upload', customerUploadRoutes);
+customerApiRouter.use('/contact', customerContactRoutes);
+customerApiRouter.use('/payments', customerPaymentRoutes);
+
+// Finally mount the customer sub-router to the main app
+app.use('/api/:brand/customer', customerApiRouter);
 
 // Admin
-app.use('/api/admin/auth', adminAuthRoutes);
-app.use('/api/admin/profile', adminProfileRoutes);
-app.use('/api/v1/admin/contact', adminContactRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/admin/payouts', payoutRoutes);
+app.use('/api/:brand/admin/auth', brandMiddleware, adminAuthRoutes);
+app.use('/api/:brand/admin/profile', brandMiddleware, adminProfileRoutes);
+app.use('/api/:brand/v1/admin/contact', brandMiddleware, adminContactRoutes);
+app.use('/api/:brand/admin', brandMiddleware, adminRoutes);
+app.use('/api/:brand/admin/payouts', brandMiddleware, payoutRoutes);
 
 // Rider
 app.use('/api/rider/auth', riderAuthRoutes);
 app.use('/api/rider/deliveries', riderDeliveryRoutes);
 
 // Manager
-app.use('/api/manager', managerRoutes);
+app.use('/api/:brand/manager', brandMiddleware, managerRoutes);
 
 // Basic routes
 app.get('/', (req, res) => {

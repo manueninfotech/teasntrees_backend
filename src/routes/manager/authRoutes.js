@@ -6,7 +6,7 @@ import { completeProfile, refreshAccessToken, logout, firebaseLogin } from '../.
 import { authenticate } from '../../middlewares/auth.js';
 import { authLimiter } from '../../middlewares/rateLimiter.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Public routes (with rate limiting)
 router.post('/firebase-login', authLimiter, firebaseLogin);
