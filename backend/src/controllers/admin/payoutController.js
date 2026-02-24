@@ -6,12 +6,16 @@ import activityLogService from '../../services/activityLogService.js';
 // Get payout summary (Amount owed to each rider)
 export const getPayoutStats = async (req, res) => {
     try {
+        const brand = req.activeBrand;
+        const match = {
+            status: 'delivered',
+            isPaid: false
+        };
+        if (brand) match.brand = brand;
+
         const stats = await Delivery.aggregate([
             {
-                $match: {
-                    status: 'delivered',
-                    isPaid: false
-                }
+                $match: match
             },
             {
                 $group: {
@@ -57,12 +61,15 @@ export const processPayout = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Rider ID is required' });
         }
 
+        const brand = req.activeBrand;
+        const filter = {
+            riderId: riderId,
+            status: 'delivered',
+            isPaid: false
+        };
+        if (brand) filter.brand = brand;
         const result = await Delivery.updateMany(
-            {
-                riderId: riderId,
-                status: 'delivered',
-                isPaid: false
-            },
+            filter,
             {
                 $set: {
                     isPaid: true,

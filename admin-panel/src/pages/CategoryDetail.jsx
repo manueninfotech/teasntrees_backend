@@ -5,7 +5,7 @@ import CategoryModal from '../components/CategoryModal';
 import { ArrowLeft, Edit, Trash2, Package } from 'lucide-react';
 
 export default function CategoryDetail() {
-    const { id } = useParams();
+    const { id, brand: urlBrand } = useParams();
     const navigate = useNavigate();
     const [category, setCategory] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function CategoryDetail() {
 
         try {
             await api.delete(`/admin/categories/${id}`);
-            navigate('/categories');
+            navigate(`/${urlBrand}/categories`);
         } catch (error) {
             console.error('Failed to delete category:', error);
             setError(error.response?.data?.message || 'Failed to delete category');
@@ -69,7 +69,7 @@ export default function CategoryDetail() {
             <div className="text-center py-12">
                 <p className="text-gray-500 mb-4">Category not found</p>
                 <button
-                    onClick={() => navigate('/categories')}
+                    onClick={() => navigate(`/${urlBrand}/categories`)}
                     className="btn-primary"
                 >
                     Back to Categories
@@ -84,7 +84,7 @@ export default function CategoryDetail() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate('/categories')}
+                        onClick={() => navigate(`/${urlBrand}/categories`)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                         <ArrowLeft className="w-6 h-6 text-gray-600" />

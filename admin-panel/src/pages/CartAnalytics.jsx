@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import {
     ShoppingCart, TrendingUp, Users, Clock,
     ChevronRight, ArrowRight, RefreshCw, Eye,
@@ -29,6 +30,7 @@ const PopularSkeleton = () => (
 );
 
 const CartAnalytics = () => {
+    const { brand: urlBrand } = useParams();
     const queryClient = useQueryClient();
     const { socket } = useSocket();
 
@@ -38,15 +40,17 @@ const CartAnalytics = () => {
 
     // Fetch Stats
     const { data: stats, isLoading: statsLoading, isFetching: statsFetching, refetch: refetchStats } = useQuery({
-        queryKey: ['cart-analytics-stats'],
+        queryKey: ['cart-analytics-stats', urlBrand],
         queryFn: async () => {
             const response = await api.get('/admin/cart-analytics');
             const data = response.data.data;
-            localStorage.setItem('cart-analytics-stats-cache', JSON.stringify(data));
+            const cacheKey = `cart-analytics-stats-cache-${urlBrand || 'all'}`;
+            localStorage.setItem(cacheKey, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('cart-analytics-stats-cache');
+            const cacheKey = `cart-analytics-stats-cache-${urlBrand || 'all'}`;
+            const cached = localStorage.getItem(cacheKey);
             return cached ? JSON.parse(cached) : undefined;
         },
         placeholderData: (previousData) => previousData,
@@ -55,16 +59,16 @@ const CartAnalytics = () => {
 
     // Fetch Abandoned Carts
     const { data: abandonedData, isLoading: tableLoading, isFetching: tableFetching, refetch: refetchAbandoned } = useQuery({
-        queryKey: ['cart-abandoned', page],
+        queryKey: ['cart-abandoned', page, urlBrand],
         queryFn: async () => {
-            const response = await api.get(`/admin/cart-analytics/abandoned?page=${page}&limit=10`);
+            const response = await api.get(`/admin/cart-analytics/abandoned?days=1&page=${page}&limit=10`);
             const data = response.data.data;
-            const cacheKey = `cart-abandoned-cache-${page}`;
+            const cacheKey = `cart-abandoned-cache-${urlBrand || 'all'}-${page}`;
             localStorage.setItem(cacheKey, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cacheKey = `cart-abandoned-cache-${page}`;
+            const cacheKey = `cart-abandoned-cache-${urlBrand || 'all'}-${page}`;
             const cached = localStorage.getItem(cacheKey);
             return cached ? JSON.parse(cached) : undefined;
         },
@@ -81,9 +85,6 @@ const CartAnalytics = () => {
     // --- Chart Data Preparation ---
     const chartData = useMemo(() => {
         if (!abandonedCarts.length) return [];
-        // Group by days abandoned usually makes sense, or just map the top 10 carts by value for visualization
-        // Let's create a "Value Distribution" chart from the current page data (or ideal full data if available, but page data is fast)
-        // Better: Mock a timeline based on "lastUpdated"
         const timeline = abandonedCarts
             .sort((a, b) => new Date(a.lastUpdated) - new Date(b.lastUpdated))
             .map(c => ({
@@ -97,7 +98,7 @@ const CartAnalytics = () => {
     useEffect(() => {
         if (!socket) return;
         const handleUpdate = () => {
-            queryClient.invalidateQueries({ queryKey: ['cart-analytics-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['cart-analytics-stats', urlBrand] });
             queryClient.invalidateQueries({ queryKey: ['cart-abandoned'] });
         };
         socket.on('cart:updated', handleUpdate);
@@ -111,7 +112,7 @@ const CartAnalytics = () => {
     const handleExport = async () => {
         setIsExporting(true);
         try {
-            const response = await api.get('/admin/cart-analytics/abandoned?limit=1000');
+            const response = await api.get('/admin/cart-analytics/abandoned?days=1&limit=1000');
             if (response.data.success) {
                 const data = response.data.data.abandonedCarts;
                 const csvContent = "data:text/csv;charset=utf-8,Customer Name,Mobile,Cart Value,Items,Days Abandoned,Last Active\n" +

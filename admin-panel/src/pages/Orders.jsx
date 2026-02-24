@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { ShoppingBag, Search, Filter, Eye, Calendar, DollarSign, Clock, TrendingUp, User, MapPin, Package, ArrowRight, RefreshCw } from 'lucide-react';
 import OrderStatusBadge from '../components/OrderStatusBadge';
 import OrderDetailsModal from '../components/OrderDetailsModal';
@@ -15,6 +16,7 @@ const OrderCardSkeleton = () => (
 );
 
 export default function Orders() {
+    const { brand: urlBrand } = useParams();
     const queryClient = useQueryClient();
     const { socket } = useSocket();
 
@@ -30,7 +32,7 @@ export default function Orders() {
 
     // Fetch Stats
     const { data: stats, isLoading: statsLoading } = useQuery({
-        queryKey: ['orders-stats'],
+        queryKey: ['orders-stats', urlBrand],
         queryFn: async () => {
             const response = await api.get('/admin/orders/stats');
             const data = response.data.data;
@@ -48,7 +50,7 @@ export default function Orders() {
 
     // Fetch Orders
     const { data: ordersData, isLoading: loading, isFetching, refetch } = useQuery({
-        queryKey: ['orders', pagination.currentPage, searchTerm],
+        queryKey: ['orders', pagination.currentPage, searchTerm, urlBrand],
         queryFn: async () => {
             const params = new URLSearchParams({
                 page: pagination.currentPage,
@@ -80,8 +82,8 @@ export default function Orders() {
     useEffect(() => {
         if (!socket) return;
         const handleUpdate = () => {
-            queryClient.invalidateQueries({ queryKey: ['orders'] });
-            queryClient.invalidateQueries({ queryKey: ['orders-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['orders', urlBrand] });
+            queryClient.invalidateQueries({ queryKey: ['orders-stats', urlBrand] });
         };
         socket.on('order:new', handleUpdate);
         socket.on('order:status-updated', handleUpdate);

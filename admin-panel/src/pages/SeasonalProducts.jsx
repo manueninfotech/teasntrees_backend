@@ -16,7 +16,7 @@ import {
     RefreshCw,
     ArrowRight
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSocket } from '../context/SocketContext';
 
@@ -32,6 +32,7 @@ export default function SeasonalProducts() {
     const queryClient = useQueryClient();
     const { socket } = useSocket();
     const navigate = useNavigate();
+    const { brand: urlBrand } = useParams();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('seasonal');
@@ -47,7 +48,7 @@ export default function SeasonalProducts() {
     const { data: seasonalProducts = [], isLoading: seasonalLoading } = useQuery({
         queryKey: ['products-seasonal-all'],
         queryFn: async () => {
-            const response = await api.get('/admin/products/seasonal/all');
+            const response = await api.get(`${urlBrand}/admin/products/seasonal/all`);
             const data = response.data.data || [];
             localStorage.setItem('products-seasonal-all-cache', JSON.stringify(data));
             return data;
@@ -146,7 +147,12 @@ export default function SeasonalProducts() {
                 <div className="p-8">
                     {filteredProducts.length > 0 ? (
                         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-                            {filteredProducts.map((product) => (
+                            {filteredProducts.map((product) => {
+                                const categoryName = typeof product.category === 'object' && product.category !== null
+                                    ? product.category.name
+                                    : 'Uncategorized';
+
+                                return (
                                 <div key={product._id} className="group bg-white rounded-[2rem] border-2 border-gray-50 overflow-hidden hover:shadow-2xl transition-all">
                                     <div className="h-44 flex items-center justify-center relative bg-gray-50">
                                         {product.image ? (
@@ -164,6 +170,7 @@ export default function SeasonalProducts() {
                                         <div>
                                             <h3 className="font-black text-gray-900 uppercase truncate text-sm">{product.name}</h3>
                                             <p className="text-[10px] text-gray-400 font-bold line-clamp-1">{product.description}</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mt-1">{categoryName}</p>
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <span className="text-xl font-black text-gray-900">₹{product.price}</span>
@@ -177,13 +184,14 @@ export default function SeasonalProducts() {
                                             </div>
                                         )}
                                         <div className="flex gap-2 pt-4">
-                                            <button onClick={() => navigate(`/products/${product._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View</button>
+                                            <button onClick={() => navigate(`/${urlBrand}/products/${product._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View</button>
                                             <button onClick={() => { setEditingProduct(product); setShowModal(true); }} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Edit</button>
                                             <button onClick={() => deleteProduct(product._id)} className="px-4 py-3 bg-red-50 text-red-300 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="text-center py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-100 text-gray-200 font-black uppercase tracking-widest">

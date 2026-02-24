@@ -94,6 +94,10 @@ export default function Products() {
     const paginationInfo = productsData?.pagination || { totalPages: 1, totalItems: 0 };
     const categories = categoriesData || [];
     const stats = statsData || { totalProducts: 0, categoriesCount: 0, newIntroProducts: 0, hiddenProducts: 0 };
+    const categoryNameById = useMemo(
+        () => new Map(categories.map((cat) => [cat._id, cat.name])),
+        [categories]
+    );
 
     useEffect(() => {
         if (!socket) return;
@@ -224,7 +228,12 @@ export default function Products() {
             <div className="min-h-[400px]">
                 {products.length > 0 ? (
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                        {products.map((product) => (
+                        {products.map((product) => {
+                            const categoryName = typeof product.category === 'object' && product.category !== null
+                                ? product.category.name
+                                : categoryNameById.get(product.category) || 'Uncategorized';
+
+                            return (
                             <div key={product._id} className={`group bg-white rounded-[2rem] shadow-sm border-2 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all ${selectedProducts.has(product._id) ? 'border-indigo-600 ring-4 ring-indigo-50' : 'border-gray-50'}`}>
                                 <div className="h-56 bg-gray-50 flex items-center justify-center relative">
                                     {product.image ? (
@@ -246,6 +255,7 @@ export default function Products() {
                                             {product.isSeasonal && <span className="bg-orange-50 text-orange-600 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md">Seasonal</span>}
                                         </div>
                                         <p className="text-xs text-gray-400 font-bold line-clamp-1 mb-2">{product.description}</p>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">{categoryName}</p>
 
                                     </div>
                                     <div className="flex justify-between items-center">
@@ -257,13 +267,14 @@ export default function Products() {
                                         </div>
                                     </div>
                                     <div className="flex gap-2 pt-2">
-                                        <button onClick={() => navigate(`/products/${product._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View</button>
+                                        <button onClick={() => navigate(`/${urlBrand}/products/${product._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View</button>
                                         <button onClick={() => { setEditingProduct(product); setShowModal(true); }} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Edit</button>
                                         <button onClick={() => deleteProduct(product._id)} className="px-4 py-3 bg-red-50 text-red-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <div className="text-center py-32 bg-white rounded-3xl border-2 border-dashed border-gray-100">

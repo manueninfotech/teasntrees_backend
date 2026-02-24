@@ -5,7 +5,7 @@ import ProductModal from '../components/ProductModal';
 import { ArrowLeft, Edit, Trash2, Calendar, Tag } from 'lucide-react';
 
 export default function ProductDetail() {
-    const { id } = useParams();
+    const { id, brand: urlBrand } = useParams();
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export default function ProductDetail() {
 
         try {
             await api.delete(`/admin/products/${id}`);
-            navigate('/products');
+            navigate(`/${urlBrand}/products`);
         } catch (error) {
             console.error('Failed to delete product:', error);
             setError(error.response?.data?.message || 'Failed to delete product');
@@ -56,7 +56,7 @@ export default function ProductDetail() {
             <div className="text-center py-12">
                 <p className="text-gray-500 mb-4">Product not found</p>
                 <button
-                    onClick={() => navigate('/products')}
+                    onClick={() => navigate(`/${urlBrand}/products`)}
                     className="btn-primary"
                 >
                     Back to Products
@@ -71,7 +71,7 @@ export default function ProductDetail() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => navigate('/products')}
+                        onClick={() => navigate(`/${urlBrand}/products`)}
                         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     >
                         <ArrowLeft className="w-6 h-6 text-gray-600" />

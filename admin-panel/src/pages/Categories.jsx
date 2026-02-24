@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import CategoryModal from '../components/CategoryModal';
-import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -16,7 +15,6 @@ import {
     Eye,
     ArrowRight,
     LayoutGrid,
-    ListFilter,
     RefreshCw
 } from 'lucide-react';
 
@@ -30,10 +28,9 @@ const CardSkeleton = () => (
 
 export default function Categories() {
     const navigate = useNavigate();
+    const { brand: urlBrand } = useParams();
     const { socket } = useSocket();
     const queryClient = useQueryClient();
-
-    const [searchParams] = useSearchParams();
 
     const [searchTerm, setSearchTerm] = useState('');
     const [showModal, setShowModal] = useState(false);
@@ -41,22 +38,20 @@ export default function Categories() {
     const [error, setError] = useState(null);
 
     const [pagination, setPagination] = useState({ currentPage: 1, limit: 12 });
-    const [filters, setFilters] = useState({ sortBy: 'displayOrder', order: 'asc', brand: searchParams.get('brand') || '' });
 
     const { data, isLoading: loading, isFetching, refetch } = useQuery({
-        queryKey: ['categories', pagination.currentPage, searchTerm, filters],
+        queryKey: ['categories', pagination.currentPage, searchTerm, urlBrand],
         queryFn: async () => {
-            const params = new URLSearchParams({ page: pagination.currentPage, limit: pagination.limit, sortBy: filters.sortBy, order: filters.order });
+            const params = new URLSearchParams({ page: pagination.currentPage, limit: pagination.limit, sortBy: 'displayOrder', order: 'asc' });
             if (searchTerm) params.append('search', searchTerm);
-            if (filters.brand) params.append('brand', filters.brand);
             const response = await api.get(`/admin/categories?${params.toString()}`);
             const data = response.data;
-            const cacheKey = `categories-cache-${pagination.currentPage}-${filters.sortBy}-${filters.brand}`;
+            const cacheKey = `categories-cache-${urlBrand || 'all'}-${pagination.currentPage}-${searchTerm || 'all'}`;
             localStorage.setItem(cacheKey, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cacheKey = `categories-cache-${pagination.currentPage}-${filters.sortBy}-${filters.brand}`;
+            const cacheKey = `categories-cache-${urlBrand || 'all'}-${pagination.currentPage}-${searchTerm || 'all'}`;
             const cached = localStorage.getItem(cacheKey);
             return cached ? JSON.parse(cached) : undefined;
         },
@@ -116,29 +111,12 @@ export default function Categories() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
                 <StatCard label="Total Categories" value={totalCount} icon={LayoutGrid} theme="blue" desc="Groups in use" loading={loading && !data} />
-                <StatCard label="Sort Mode" value={filters.sortBy === 'displayOrder' ? 'Custom' : 'By Name'} icon={ListFilter} theme="purple" desc="Order of items" />
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-4">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
                 <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input type="text" placeholder="Search categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="input pl-12 text-sm font-bold" />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <select value={filters.brand} onChange={(e) => setFilters({ ...filters, brand: e.target.value })} className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700">
-                        <option value="">All Brands</option>
-                        <option value="teasntrees">Teas N Trees</option>
-                        <option value="littleh">LittleH Bakery</option>
-                    </select>
-                    <select value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })} className="input text-xs font-black uppercase">
-                        <option value="displayOrder">Sort: Display Order</option>
-                        <option value="name">Sort: Name</option>
-                        <option value="createdAt">Sort: Created Date</option>
-                    </select>
-                    <select value={filters.order} onChange={(e) => setFilters({ ...filters, order: e.target.value })} className="input text-xs font-black uppercase">
-                        <option value="asc">Direction: Ascending</option>
-                        <option value="desc">Direction: Descending</option>
-                    </select>
                 </div>
             </div>
 
@@ -162,7 +140,7 @@ export default function Categories() {
                                         </p>
                                     </div>
                                     <div className="flex gap-2 mt-6">
-                                        <button onClick={() => navigate(`/categories/${category._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View Products</button>
+                                        <button onClick={() => navigate(`/${urlBrand}/categories/${category._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View Products</button>
                                         <button onClick={() => { setEditingCategory(category); setShowModal(true); }} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Edit</button>
                                         <button onClick={() => deleteCategory(category._id)} className="px-4 py-3 bg-red-50 text-red-300 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
                                     </div>

@@ -7,7 +7,11 @@ import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 export const getAllManagers = async (req, res) => {
     try {
         const { isApproved, isActive, search, page = 1, limit = 10 } = req.query;
+        const brand = req.activeBrand;
         let query = {}; // No need to filter by role: 'manager' as Manager model handles it
+
+        // apply brand scope if available
+        if (brand) query.brand = brand;
 
         if (isApproved === 'true') query.isApproved = true;
         if (isApproved === 'false') query.isApproved = false;
@@ -60,9 +64,10 @@ export const getPendingManagers = async (req, res) => {
     try {
         // Find managers where isApproved is STRICTLY null (Pending)
         // Rejected managers (false) should not appear in pending list
-        const managers = await Manager.find({
-            isApproved: null
-        })
+        const brand = req.activeBrand;
+        const query = { isApproved: null };
+        if (brand) query.brand = brand;
+        const managers = await Manager.find(query)
             .select('-password -__v')
             .sort({ createdAt: -1 });
 
@@ -140,10 +145,11 @@ export const rejectManager = async (req, res) => {
     try {
         const { id } = req.params;
         const { reason } = req.body;
+        const brand = req.activeBrand;
 
         const manager = await Manager.findById(id);
 
-        if (!manager) {
+        if (!manager || (brand && manager.brand !== brand)) {
             return res.status(404).json({ success: false, message: 'Manager not found' });
         }
 
@@ -194,10 +200,11 @@ export const toggleManagerStatus = async (req, res) => {
     try {
         const { id } = req.params;
         const { isActive } = req.body;
+        const brand = req.activeBrand;
 
         const manager = await Manager.findById(id);
 
-        if (!manager) {
+        if (!manager || (brand && manager.brand !== brand)) {
             return res.status(404).json({ success: false, message: 'Manager not found' });
         }
 
@@ -230,11 +237,13 @@ export const toggleManagerStatus = async (req, res) => {
 export const deleteManager = async (req, res) => {
     try {
         const { id } = req.params;
-        const manager = await Manager.findByIdAndDelete(id);
-
-        if (!manager) {
+        const brand = req.activeBrand;
+        // ensure we only delete within brand scope
+        const manager = await Manager.findById(id);
+        if (!manager || (brand && manager.brand !== brand)) {
             return res.status(404).json({ success: false, message: 'Manager not found' });
         }
+        await Manager.findByIdAndDelete(id);
 
         await activityLogService.log(req, {
             action: 'delete',

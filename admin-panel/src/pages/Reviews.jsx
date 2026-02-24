@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { MessageSquare, Star, Check, X, Trash2, ArrowRight } from 'lucide-react';
 import api from '../utils/api';
 import ReviewDetailsModal from '../components/ReviewDetailsModal';
@@ -14,6 +15,7 @@ const CardSkeleton = () => (
 );
 
 const Reviews = () => {
+    const { brand: urlBrand } = useParams();
     const queryClient = useQueryClient();
     const { socket } = useSocket();
 
@@ -27,7 +29,7 @@ const Reviews = () => {
 
     // Fetch Stats
     const { data: stats, isLoading: statsLoading } = useQuery({
-        queryKey: ['reviews-stats'],
+        queryKey: ['reviews-stats', urlBrand],
         queryFn: async () => {
             const response = await api.get('/admin/reviews/stats');
             const data = response.data.data;
@@ -44,7 +46,7 @@ const Reviews = () => {
 
     // Fetch Reviews
     const { data: reviewsData, isLoading: loading } = useQuery({
-        queryKey: ['reviews', reviewType, activeTab, page],
+        queryKey: ['reviews', reviewType, activeTab, page, urlBrand],
         queryFn: async () => {
             const params = { page, limit: 10, type: reviewType };
             if (activeTab !== 'all') params.status = activeTab;
@@ -70,8 +72,8 @@ const Reviews = () => {
     useEffect(() => {
         if (!socket) return;
         const handleUpdate = () => {
-            queryClient.invalidateQueries({ queryKey: ['reviews'] });
-            queryClient.invalidateQueries({ queryKey: ['reviews-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['reviews', urlBrand] });
+            queryClient.invalidateQueries({ queryKey: ['reviews-stats', urlBrand] });
         };
         socket.on('review:new', handleUpdate);
         socket.on('review:updated', handleUpdate);

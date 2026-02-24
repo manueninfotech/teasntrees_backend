@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
     Truck, Package, Bike, Clock,
     CheckCircle2, XCircle, Search,
@@ -18,6 +19,7 @@ const TableSkeleton = () => (
 );
 
 const Deliveries = () => {
+    const { brand: urlBrand } = useParams();
     const { socket } = useSocket();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +32,7 @@ const Deliveries = () => {
 
     // Fetch Stats
     const { data: stats, isLoading: statsLoading } = useQuery({
-        queryKey: ['deliveries-stats'],
+        queryKey: ['deliveries-stats', urlBrand],
         queryFn: async () => {
             const response = await api.get('/admin/deliveries/stats');
             const data = response.data.data;
@@ -47,7 +49,7 @@ const Deliveries = () => {
 
     // Fetch Deliveries
     const { data: deliveryData, isLoading: loading, isFetching: deliveriesFetching, refetch: refetchDeliveries } = useQuery({
-        queryKey: ['deliveries', page, statusFilter],
+        queryKey: ['deliveries', page, statusFilter, urlBrand],
         queryFn: async () => {
             const params = new URLSearchParams({ page, limit: 10, sortBy: 'createdAt', order: 'desc' });
             if (statusFilter !== 'all') params.append('status', statusFilter);
@@ -80,8 +82,8 @@ const Deliveries = () => {
     useEffect(() => {
         if (!socket) return;
         const handleUpdate = () => {
-            queryClient.invalidateQueries({ queryKey: ['deliveries-stats'] });
-            queryClient.invalidateQueries({ queryKey: ['deliveries'] });
+            queryClient.invalidateQueries({ queryKey: ['deliveries-stats', urlBrand] });
+            queryClient.invalidateQueries({ queryKey: ['deliveries', urlBrand] });
         };
         socket.on('delivery:status-updated', handleUpdate);
         socket.on('order:status-updated', handleUpdate);

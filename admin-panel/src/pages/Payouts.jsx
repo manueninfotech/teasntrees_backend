@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
     Wallet, IndianRupee, Clock, CheckCircle2,
     ArrowRight, Loader2, RefreshCw, AlertCircle,
@@ -17,6 +18,7 @@ const TableSkeleton = () => (
 );
 
 const Payouts = () => {
+    const { brand: urlBrand } = useParams();
     const queryClient = useQueryClient();
     const [selectedRider, setSelectedRider] = useState(null);
     const [payoutReference, setPayoutReference] = useState('');
@@ -25,7 +27,7 @@ const Payouts = () => {
     const { socket } = useSocket();
 
     const { data: stats = [], isLoading: loading, isFetching, refetch } = useQuery({
-        queryKey: ['payouts-stats'],
+        queryKey: ['payouts-stats', urlBrand],
         queryFn: async () => {
             const response = await api.get('/admin/payouts/stats');
             const data = response.data.data || [];
@@ -43,7 +45,7 @@ const Payouts = () => {
     useEffect(() => {
         if (!socket) return;
         const handleUpdate = () => {
-            queryClient.invalidateQueries(['payouts-stats']);
+            queryClient.invalidateQueries(['payouts-stats', urlBrand]);
         };
         socket.on('payout:updated', handleUpdate);
         socket.on('payout:processed', handleUpdate);
@@ -77,7 +79,7 @@ const Payouts = () => {
 
             if (response.data.success) {
                 showNotification('success', response.data.message);
-                queryClient.invalidateQueries({ queryKey: ['payouts-stats'] });
+                queryClient.invalidateQueries({ queryKey: ['payouts-stats', urlBrand] });
                 setSelectedRider(null);
             }
         } catch (error) {

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import api from '../utils/api';
 import {
     TrendingUp,
@@ -18,26 +18,22 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function Dashboard() {
     const navigate = useNavigate();
+    const { brand: urlBrand } = useParams();
     const { socket } = useSocket();
     const queryClient = useQueryClient();
 
-    const [brandFilter, setBrandFilter] = useState('');
-
     const { data: stats, isLoading: loading, isFetching, refetch } = useQuery({
-        queryKey: ['dashboard-stats', brandFilter],
+        queryKey: ['dashboard-stats', urlBrand],
         queryFn: async () => {
-            const params = new URLSearchParams();
-            if (brandFilter) params.append('brand', brandFilter);
-
-            const response = await api.get(`/admin/dashboard/stats?${params.toString()}`);
+            const response = await api.get('/admin/dashboard/stats');
             const data = response.data.data;
             // Cache data in localStorage for instant load on refresh
-            localStorage.setItem(`dashboard-stats-cache-${brandFilter}`, JSON.stringify(data));
+            localStorage.setItem(`dashboard-stats-cache-${urlBrand || 'all'}`, JSON.stringify(data));
             return data;
         },
         // Use cached data immediately on mount for instant load
         initialData: () => {
-            const cached = localStorage.getItem(`dashboard-stats-cache-${brandFilter}`);
+            const cached = localStorage.getItem(`dashboard-stats-cache-${urlBrand || 'all'}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         // Keep previous data visible during refetches - no loading states!
@@ -54,7 +50,7 @@ export default function Dashboard() {
 
     useEffect(() => {
         if (!socket) return;
-        const handleUpdate = () => { queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] }); };
+        const handleUpdate = () => { queryClient.invalidateQueries({ queryKey: ['dashboard-stats', urlBrand] }); };
         socket.on('user:registered', handleUpdate);
         socket.on('user:deleted', handleUpdate);
         socket.on('product:created', handleUpdate);
@@ -92,15 +88,6 @@ export default function Dashboard() {
                     <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-1 italic">Overview of your business</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <select
-                        value={brandFilter}
-                        onChange={(e) => setBrandFilter(e.target.value)}
-                        className="input text-xs font-bold uppercase border-indigo-200 bg-indigo-50 text-indigo-700"
-                    >
-                        <option value="">All Brands</option>
-                        <option value="teasntrees">Teas N Trees</option>
-                        <option value="littleh">LittleH Bakery</option>
-                    </select>
                     <button
                         onClick={() => refetch()}
                         disabled={isSyncing}
@@ -124,12 +111,12 @@ export default function Dashboard() {
                             <h2 className="text-xl font-black uppercase text-gray-900 tracking-tight">Recent Activity</h2>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Latest incoming orders</p>
                         </div>
-                        <button onClick={() => navigate('/orders')} className="p-3 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all"><ArrowRight className="w-5 h-5" /></button>
+                        <button onClick={() => navigate(`/${urlBrand}/orders`)} className="p-3 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all"><ArrowRight className="w-5 h-5" /></button>
                     </div>
                     <div className="space-y-4 flex-1">
                         {stats?.recentOrders?.length > 0 ? (
                             stats.recentOrders.map((order) => (
-                                <div key={order._id} onClick={() => navigate('/orders')} className="flex items-center justify-between p-5 bg-gray-50/50 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100 transition-all cursor-pointer border border-transparent hover:border-gray-100 group">
+                                <div key={order._id} onClick={() => navigate(`/${urlBrand}/orders`)} className="flex items-center justify-between p-5 bg_gray-50/50 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100 transition-all cursor-pointer border border-transparent hover:border-gray-100 group">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                                             <ShoppingCart className="w-6 h-6 text-indigo-600" />
@@ -157,12 +144,12 @@ export default function Dashboard() {
                             <h2 className="text-xl font-black uppercase text-gray-900 tracking-tight">Best Sellers</h2>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Top performing products</p>
                         </div>
-                        <button onClick={() => navigate('/products')} className="p-3 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all"><TrendingUp className="w-5 h-5" /></button>
+                        <button onClick={() => navigate(`/${urlBrand}/products`)} className="p-3 bg-gray-50 rounded-2xl hover:bg-black hover:text-white transition-all"><TrendingUp className="w-5 h-5" /></button>
                     </div>
                     <div className="space-y-4 flex-1">
                         {stats?.topProducts?.length > 0 ? (
                             stats.topProducts.map((product) => (
-                                <div key={product._id} onClick={() => navigate('/products')} className="flex items-center justify-between p-5 bg-gray-50/50 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100 transition-all cursor-pointer border border-transparent hover:border-gray-100 group">
+                                <div key={product._id} onClick={() => navigate(`/${urlBrand}/products`)} className="flex items-center justify-between p-5 bg-gray-50/50 rounded-3xl hover:bg-white hover:shadow-xl hover:shadow-gray-100 transition-all cursor-pointer border border-transparent hover:border-gray-100 group">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
                                             <Package className="w-6 h-6 text-orange-500" />

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import contactService from '../services/contactService';
 import {
@@ -9,12 +10,13 @@ import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 export default function MessagesPage() {
+    const { brand: urlBrand } = useParams();
     const [page, setPage] = useState(1);
     const [statusFilter, setStatusFilter] = useState('');
     const queryClient = useQueryClient();
 
     const { data, isLoading } = useQuery({
-        queryKey: ['messages', page, statusFilter],
+        queryKey: ['messages', page, statusFilter, urlBrand],
         queryFn: () => contactService.getMessages({ page, limit: 10, status: statusFilter }),
         keepPreviousData: true
     });
@@ -22,7 +24,7 @@ export default function MessagesPage() {
     const updateStatusMutation = useMutation({
         mutationFn: ({ id, status }) => contactService.updateMessageStatus(id, status),
         onSuccess: () => {
-            queryClient.invalidateQueries(['messages']);
+            queryClient.invalidateQueries(['messages', urlBrand]);
             toast.success('Message status updated');
         },
         onError: (error) => toast.error(error.message || 'Failed to update status')
@@ -31,7 +33,7 @@ export default function MessagesPage() {
     const deleteMutation = useMutation({
         mutationFn: (id) => contactService.deleteMessage(id),
         onSuccess: () => {
-            queryClient.invalidateQueries(['messages']);
+            queryClient.invalidateQueries(['messages', urlBrand]);
             toast.success('Message deleted');
         },
         onError: (error) => toast.error(error.message || 'Failed to delete message')

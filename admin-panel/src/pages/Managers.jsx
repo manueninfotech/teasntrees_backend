@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { Users, Clock, Search, Filter, ShieldCheck, UserCog, ArrowRight, RefreshCw, Eye } from 'lucide-react';
 import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
@@ -14,6 +15,7 @@ const CardSkeleton = () => (
 );
 
 export default function Managers() {
+    const { brand: urlBrand } = useParams();
     const queryClient = useQueryClient();
     const { socket } = useSocket();
 
@@ -28,7 +30,7 @@ export default function Managers() {
 
     // Fetch Managers
     const { data: managersData, isLoading: managersLoading, isFetching: managersFetching, refetch: managersRefetch } = useQuery({
-        queryKey: ['managers', filters, searchTerm],
+        queryKey: ['managers', filters, searchTerm, urlBrand],
         queryFn: async () => {
             const params = new URLSearchParams({ limit: 100 });
             if (filters.status === 'active') params.append('isActive', 'true');
@@ -62,7 +64,7 @@ export default function Managers() {
 
     // Fetch Pending Managers
     const { data: pendingManagers = [], isLoading: pendingLoading, isFetching: pendingFetching, refetch: pendingRefetch } = useQuery({
-        queryKey: ['managers-pending'],
+        queryKey: ['managers-pending', urlBrand],
         queryFn: async () => {
             const response = await api.get('/admin/managers/pending');
             const data = response.data.data || [];
@@ -79,7 +81,7 @@ export default function Managers() {
 
     // Fetch Stats
     const { data: stats, isLoading: statsLoading } = useQuery({
-        queryKey: ['managers-stats'],
+        queryKey: ['managers-stats', urlBrand],
         queryFn: async () => {
             const response = await api.get('/admin/managers?limit=1000');
             const all = response.data.data?.managers || [];
@@ -102,9 +104,9 @@ export default function Managers() {
     useEffect(() => {
         if (!socket) return;
         const handleUpdate = () => {
-            queryClient.invalidateQueries({ queryKey: ['managers'] });
-            queryClient.invalidateQueries({ queryKey: ['managers-pending'] });
-            queryClient.invalidateQueries({ queryKey: ['managers-stats'] });
+            queryClient.invalidateQueries({ queryKey: ['managers', urlBrand] });
+            queryClient.invalidateQueries({ queryKey: ['managers-pending', urlBrand] });
+            queryClient.invalidateQueries({ queryKey: ['managers-stats', urlBrand] });
         };
         socket.on('manager:status-updated', handleUpdate);
         socket.on('manager:registered', handleUpdate);
