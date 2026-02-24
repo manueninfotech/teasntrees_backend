@@ -13,30 +13,39 @@ const productSchema = new mongoose.Schema(
       required: true
     },
 
-    brand: {
-      type: String,
-      enum: ['teasntrees', 'littleh'],
-      default: 'teasntrees',
-      required: true
-    },
-
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
       required: true
     },
 
-    // ✅ Used ONLY for single-price products
     price: {
       type: Number,
       required: false,
       min: 0
-      // ❌ no default value (prevents ₹0 bug)
+    },
+
+    // Brand is important for multi‑outlet support.  stored as a simple string
+    // with an enum of the two brands used by the app.  controllers already pass
+    // this value but the schema didn’t enforce it previously.
+    brand: {
+      type: String,
+      enum: ['teasntrees', 'littleh'],
+      required: true,
+      default: 'teasntrees'
     },
 
     image: {
       type: String,
-      default: 'default-image.jpg'
+      // compute default based on brand so new products automatically get the
+      // correct placeholder.  the function form is executed in the context of
+      // the document being created/validated.
+      default: function () {
+        const b = this.brand || 'teasntrees';
+        if (b === 'littleh') return 'default-coffee.png';
+        if (b === 'teasntrees') return 'default-cake.png';
+        return 'default-image.jpg';
+      }
     },
 
     isAvailable: {
@@ -99,7 +108,7 @@ const productSchema = new mongoose.Schema(
       default: []
     },
 
-    // ✅ For size-based products (pizza, sandwich, shakes, burgers)
+    // For size-based products (pizza, sandwich, shakes, burgers)
     sizeOptions: [
       {
         size: {
@@ -128,13 +137,26 @@ const productSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
+    toJSON: {
+      virtuals: true,
+      // transform runs whenever a document is converted to JSON for an API
+      // response.  ensure we never send the old generic placeholder or an
+      // empty string – return a brand‑specific file name so the frontend can
+      // construct the URL without needing extra logic.
+      transform: (doc, ret) => {
+        if (!ret.image || ret.image === 'default-image.jpg') {
+          const b = ret.brand || 'teasntrees';
+          ret.image = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
+        }
+        return ret;
+      }
+    },
     toObject: { virtuals: true }
   }
 );
 
 //
-// ✅ VIRTUAL: displayPrice
+// VIRTUAL: displayPrice
 // - If sizeOptions exist → lowest size price
 // - Else → product price
 //
@@ -146,7 +168,7 @@ productSchema.virtual('displayPrice').get(function () {
 });
 
 //
-// ✅ VALIDATION RULES
+// VALIDATION RULES
 // - Product MUST have either price OR sizeOptions
 // - Product MUST NOT have both
 //
@@ -161,12 +183,21 @@ productSchema.pre('validate', function () {
   if (hasPrice && hasSizeOptions) {
     throw new Error('Product cannot have both price and sizeOptions');
   }
+
+  // if image field is empty/undefined/null we want to populate the brand
+  // specific placeholder before saving.  the default() defined above only
+  // runs when the field is omitted, and updates sometimes set it to null.
+  if (!this.image) {
+    const b = this.brand || 'teasntrees';
+    this.image = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
+  }
 });
 
 //
-// ✅ INDEXES
+// INDEXES
 //
 productSchema.index({ category: 1, isAvailable: 1 });
+productSchema.index({ brand: 1 }); // used heavily in filters
 productSchema.index({ name: 'text', description: 'text' });
 
 export default mongoose.model('Product', productSchema);
