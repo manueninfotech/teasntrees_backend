@@ -45,14 +45,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-            <SocketProvider>
-              <BrowserRouter>
-                <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-                <SocketGlobalRefresh />
-                <Routes>
+        <SocketProvider>
+          <BrowserRouter>
+            <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
+            <SocketGlobalRefresh />
+            <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Navigate to="/teasntrees" replace />} />
+
               <Route
-                path="/"
+                path="/:brand"
                 element={
                   <ProtectedRoute>
                     <Layout />
@@ -79,6 +81,8 @@ function App() {
                 <Route path="payouts" element={<Payouts />} />
                 <Route path="managers" element={<Managers />} />
               </Route>
+
+              <Route path="*" element={<Navigate to="/teasntrees" replace />} />
             </Routes>
           </BrowserRouter>
         </SocketProvider>

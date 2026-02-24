@@ -25,8 +25,13 @@ export const SocketProvider = ({ children }) => {
         const token = user.token;
         console.log('Initializing socket with token...');
 
+        // Dynamically extract brand from URL path
+        // Expected path: /:brand/admin/...
+        const pathSegments = window.location.pathname.split('/');
+        const activeBrand = pathSegments[1] || 'teasntrees';
+
         const newSocket = io('http://localhost:5000', {
-            auth: { token },
+            auth: { token, brand: activeBrand },
             reconnection: true,
             reconnectionAttempts: 5,
             reconnectionDelay: 1000

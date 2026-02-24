@@ -9,12 +9,25 @@ const api = axios.create({
     },
 });
 
-// Add token to requests
+// Add token and brand to requests
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('adminToken');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Extract brand from URL path
+    const path = window.location.pathname;
+    const allowedBrands = ['littleh', 'teasntrees'];
+    const pathSegments = path.split('/');
+    // For admin, the path is expected to be /:brand/admin/...
+    const pathBrand = pathSegments[1]?.toLowerCase();
+    const brand = allowedBrands.includes(pathBrand) ? pathBrand : 'teasntrees';
+
+    if (!config.url.startsWith(`/${brand}`)) {
+        config.url = `/${brand}${config.url}`;
+    }
+
     return config;
 });
 
