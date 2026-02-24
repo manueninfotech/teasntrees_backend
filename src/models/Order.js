@@ -50,7 +50,8 @@ const orderSchema = new mongoose.Schema(
         pickupLocation: {
             type: {
                 type: String,
-                enum: ['Point']
+                enum: ['Point'],
+                default: 'Point'
             },
             coordinates: [Number] // [lng, lat]
         },
@@ -86,7 +87,8 @@ const orderSchema = new mongoose.Schema(
             location: {
                 type: {
                     type: String,
-                    enum: ['Point']
+                    enum: ['Point'],
+                    default: 'Point'
                 },
                 coordinates: [Number] // [lng, lat]
             }

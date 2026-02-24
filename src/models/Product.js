@@ -37,14 +37,12 @@ const productSchema = new mongoose.Schema(
 
     image: {
       type: String,
-      // compute default based on brand so new products automatically get the
-      // correct placeholder.  the function form is executed in the context of
-      // the document being created/validated.
+      // default to brand-specific Cloudinary placeholder URLs
       default: function () {
         const b = this.brand || 'teasntrees';
-        if (b === 'littleh') return 'default-coffee.png';
-        if (b === 'teasntrees') return 'default-cake.png';
-        return 'default-image.jpg';
+        if (b === 'littleh') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1771913436/products/gt4qc5az6vxyiauiellt.jpg';
+        if (b === 'teasntrees') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1771913166/products/xbacarjgxk64umg36aoz.jpg';
+        return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1771913166/products/xbacarjgxk64umg36aoz.jpg';
       }
     },
 
@@ -139,10 +137,6 @@ const productSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      // transform runs whenever a document is converted to JSON for an API
-      // response.  ensure we never send the old generic placeholder or an
-      // empty string – return a brand‑specific file name so the frontend can
-      // construct the URL without needing extra logic.
       transform: (doc, ret) => {
         if (!ret.image || ret.image === 'default-image.jpg') {
           const b = ret.brand || 'teasntrees';
