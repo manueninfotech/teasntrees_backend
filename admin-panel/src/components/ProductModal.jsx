@@ -12,20 +12,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
         isAvailable: true,
         isSeasonal: false,
         availableMonths: [],
-        tags: '',
-        brand: 'teasntrees'
+        tags: ''
     });
-
-    // same helper used across customer frontend; ensures admin preview uses same
-    // brand‑aware default.
-    const resolveImageUrl = (img, brand) => {
-        const b = brand || 'teasntrees';
-        const fallback = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
-        if (img && img !== '') {
-            return img.startsWith('http') ? img : `http://localhost:5000/uploads/${img}`;
-        }
-        return `http://localhost:5000/uploads/${fallback}`;
-    };
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
     const [uploading, setUploading] = useState(false);
@@ -49,8 +37,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                     isAvailable: product.isAvailable ?? true,
                     isSeasonal: product.isSeasonal ?? false,
                     availableMonths: product.availableMonths || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                    tags: product.tags?.join(', ') || '',
-                    brand: product.brand || 'teasntrees'
+                    tags: product.tags?.join(', ') || ''
                 });
                 // Set image preview if editing
                 if (product.image) {
@@ -67,8 +54,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                     isAvailable: true,
                     isSeasonal: false,
                     availableMonths: [],
-                    tags: '',
-                    brand: 'teasntrees'
+                    tags: ''
                 });
                 setImagePreview('');
                 setImageFile(null);
@@ -283,21 +269,6 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                             </select>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                                Brand Selection *
-                            </label>
-                            <select
-                                value={formData.brand}
-                                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                                className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all appearance-none text-gray-900"
-                                required
-                            >
-                                <option value="teasntrees">Teas N Trees</option>
-                                <option value="littleh">LittleH Bakery</option>
-                            </select>
-                        </div>
-
                         <div className="col-span-2 space-y-2">
                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                                 Product Tags
@@ -340,13 +311,13 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                             </label>
                             <div className="space-y-4">
                                 {/* Image Preview */}
-                                <div className="relative w-full h-56 bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 group">
-                                    <img
-                                        src={resolveImageUrl(imagePreview || formData.image, formData.brand)}
-                                        alt="Preview"
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                    />
-                                    {(imagePreview || formData.image) && (
+                                {(imagePreview || formData.image) && (
+                                    <div className="relative w-full h-56 bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 group">
+                                        <img
+                                            src={imagePreview || formData.image}
+                                            alt="Preview"
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        />
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -358,8 +329,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
-                                    )}
-                                </div>
+                                    </div>
+                                )}
 
                                 {/* File Upload */}
                                 <label className="flex flex-col items-center justify-center w-full h-40 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] cursor-pointer hover:bg-gray-100 transition-all group">

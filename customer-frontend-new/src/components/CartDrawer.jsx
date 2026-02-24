@@ -115,7 +115,7 @@ const CartDrawer = () => {
                                                         {/* Item Image */}
                                                         <div className="w-18 h-18 overflow-hidden bg-[#FDF5EC] shrink-0 relative" style={{ width: '72px', height: '72px' }}>
                                                             <img
-                                                                src={resolveImageUrl(item.image, item.brand)}
+                                                                src={item.image}
                                                                 alt={item.name}
                                                                 className="w-full h-full object-cover"
                                                                 onError={(e) => e.target.style.display = 'none'}
@@ -265,7 +265,7 @@ const CartDrawer = () => {
                                                     {/* Item Image */}
                                                     <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 relative">
                                                         <img
-                                                            src={resolveImageUrl(item.image, item.brand)}
+                                                            src={item.image}
                                                             alt={item.name}
                                                             className="w-full h-full object-cover"
                                                             onError={(e) => e.target.style.display = 'none'}
