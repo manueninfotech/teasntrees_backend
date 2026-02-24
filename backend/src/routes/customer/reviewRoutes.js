@@ -8,7 +8,7 @@ import {
 } from '../../controllers/customer/reviewController.js';
 import { authenticate } from '../../middlewares/auth.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Public routes
 router.get('/product/:productId', getProductReviews);

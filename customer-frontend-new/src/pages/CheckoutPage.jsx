@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useBrand } from '../context/BrandContext';
 import AddressModal from '../components/AddressModal';
+import { cn } from '../lib/utils';
 import { userService } from '../services/userService';
 import { orderService } from '../services/orderService';
 import settingsService from '../services/settingsService';
@@ -17,7 +18,7 @@ import clsx from 'clsx';
 const CheckoutPage = () => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
-    const { theme } = useBrand();
+    const { brand, theme } = useBrand();
     const { cartItems, cartTotal, clearCart, checkout } = useCart();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -38,7 +39,7 @@ const CheckoutPage = () => {
     // Initial Data Fetch
     useEffect(() => {
         if (!isAuthenticated) {
-            navigate('/profile');
+            navigate(`/${brand}/profile`);
             return;
         }
 
@@ -85,7 +86,7 @@ const CheckoutPage = () => {
                 key: rzpKey,
                 amount: Math.round(amount * 100),
                 currency: "INR",
-                name: "Teas N Trees",
+                name: theme.isLittleH ? "LittleH Bakery" : "Teas N Trees",
                 description: `Order #${orderId}`,
                 order_id: rzpOrderId,
                 handler: async function (response) {
@@ -102,7 +103,7 @@ const CheckoutPage = () => {
                         const verifyRes = await orderService.verifyRazorpayPayment(verificationData);
 
                         if (verifyRes.success) {
-                            navigate(`/order-success/${orderId}`);
+                            navigate(`/${brand}/order-success/${orderId}`);
                         } else {
                             setError("Payment verification failed. Please contact support.");
                             alert("Payment verification failed. Your order status might be pending.");
@@ -127,7 +128,7 @@ const CheckoutPage = () => {
                         setLoading(false);
                         setError("Payment cancelled by user. You can pay later from your order history.");
                         // Optional: Navigate to orders page or stay on checkout
-                        setTimeout(() => navigate(`/track-order/${orderId}`), 2000);
+                        setTimeout(() => navigate(`/${brand}/track-order/${orderId}`), 2000);
                     }
                 }
             };
@@ -141,7 +142,7 @@ const CheckoutPage = () => {
             setLoading(false);
             // Even if payment init fails, the order is already created as pending
             if (orderId) {
-                setTimeout(() => navigate(`/track-order/${orderId}`), 2000);
+                setTimeout(() => navigate(`/${brand}/track-order/${orderId}`), 2000);
             }
         }
     };
@@ -180,7 +181,7 @@ const CheckoutPage = () => {
                     await handleRazorpayPayment(orderId, parseFloat(calculatedGrandTotal));
                 } else {
                     // COD success
-                    navigate(`/order-success/${orderId}`);
+                    navigate(`/${brand}/order-success/${orderId}`);
                 }
             } else {
                 const msg = response.message || 'Failed to place order';
@@ -322,7 +323,7 @@ const CheckoutPage = () => {
                     <h2 className="text-2xl font-bold text-slate-800 mb-2">Your Cart is Empty</h2>
                     <p className="text-slate-500 mb-8">Add some delicious items to checkout.</p>
                     <button
-                        onClick={() => navigate('/menu')}
+                        onClick={() => navigate(`/${brand}/menu`)}
                         className={`px-8 py-3 ${theme.isLittleH ? 'bg-[#565A47] text-[#FAF1E8]' : `bg-gradient-to-r ${theme.gradientClass} text-white`} rounded-xl font-bold hover:shadow-xl active:scale-95 flex items-center gap-2 transition-all shadow-lg mx-auto`}
                     >
                         Browse Menu
@@ -453,7 +454,7 @@ const CheckoutPage = () => {
                                         <button
                                             onClick={() => {
                                                 clearCart();
-                                                navigate('/menu');
+                                                navigate(`/${brand}/menu`);
                                             }}
                                             className="mt-3 w-full py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-xs font-semibold transition-colors"
                                         >
@@ -463,33 +464,21 @@ const CheckoutPage = () => {
                                 </div>
                             )}
                             <div className="space-y-4 mb-6 max-h-80 overflow-y-auto pr-2 custom-scrollbar">
-                                {Object.entries(cartItems.reduce((acc, item) => {
-                                    const b = item.brand || 'teasntrees';
-                                    if (!acc[b]) acc[b] = [];
-                                    acc[b].push(item);
-                                    return acc;
-                                }, {})).map(([brandName, items]) => (
-                                    <div key={brandName} className="mb-4 last:mb-0">
-                                        <div className={cn("text-[10px] font-bold uppercase tracking-wider mb-2 border-b pb-1", theme.isLittleH ? "text-bakery-primary/60 border-bakery-accent/10 font-playfair" : "text-slate-400 border-slate-100")}>
-                                            {brandName === 'teasntrees' ? 'TEAS N TREES' : 'LITTLEH BAKERY'}
-                                        </div>
-                                        <div className="space-y-3">
-                                            {items.map((item, idx) => (
-                                                <div key={item.key || item._id || idx} className="flex gap-3">
-                                                    <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover bg-slate-100" />
-                                                    <div className="flex-1">
-                                                        <div className="text-sm font-bold text-slate-800 line-clamp-1">{item.name}</div>
-                                                        <div className="text-xs text-slate-500 mb-1">{item.size || 'Regular'}</div>
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="text-xs font-bold text-slate-400">x{item.quantity}</div>
-                                                            <div className="text-sm font-bold text-slate-800">₹{item.price * item.quantity}</div>
-                                                        </div>
-                                                    </div>
+                                <div className="space-y-3">
+                                    {cartItems.map((item, idx) => (
+                                        <div key={item.key || item._id || idx} className="flex gap-3">
+                                            <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover bg-slate-100" />
+                                            <div className="flex-1">
+                                                <div className="text-sm font-bold text-slate-800 line-clamp-1">{item.name}</div>
+                                                <div className="text-xs text-slate-500 mb-1">{item.size || 'Regular'}</div>
+                                                <div className="flex justify-between items-center">
+                                                    <div className="text-xs font-bold text-slate-400">x{item.quantity}</div>
+                                                    <div className="text-sm font-bold text-slate-800">₹{item.price * item.quantity}</div>
                                                 </div>
-                                            ))}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
 
                             <div className="border-t border-dashed border-slate-200 my-4" />

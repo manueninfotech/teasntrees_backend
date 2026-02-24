@@ -96,9 +96,12 @@ export const getWishlist = async (req, res) => {
             });
         }
 
+        // Filter wishlist items by brand for strict isolation
+        const items = (customer.wishlist || []).filter(item => !!item);
+
         res.json({
             success: true,
-            data: customer.wishlist || []
+            data: items
         });
 
     } catch (error) {

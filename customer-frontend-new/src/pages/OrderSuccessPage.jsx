@@ -7,7 +7,7 @@ import { useBrand } from '../context/BrandContext';
 
 const OrderSuccessPage = () => {
     const { orderId } = useParams();
-    const { theme } = useBrand();
+    const { brand, theme } = useBrand();
     const [order, setOrder] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
 
@@ -59,14 +59,14 @@ const OrderSuccessPage = () => {
 
                 <div className="space-y-4">
                     <Link
-                        to={`/track-order/${orderId}`}
+                        to={`/${brand}/track-order/${orderId}`}
                         className="block w-full py-4 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
                     >
                         Track Order <Package className="w-5 h-5" />
                     </Link>
 
                     <Link
-                        to="/"
+                        to={`/${brand || 'teasntrees'}`}
                         className="block w-full py-4 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition-all"
                     >
                         Back to Home

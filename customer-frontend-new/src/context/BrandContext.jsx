@@ -9,44 +9,28 @@ export const useBrand = () => useContext(BrandContext);
 export const BrandProvider = ({ children }) => {
     const location = useLocation();
 
-    const [brand, setBrandState] = useState(() => {
-        return localStorage.getItem('activeBrand') || 'teasntrees';
-    });
-
-    const setBrand = (newBrand) => {
-        if (newBrand === 'teasntrees' || newBrand === 'littleh') {
-            setBrandState(newBrand);
-            localStorage.setItem('activeBrand', newBrand);
-
-            // Sync with backend session if logged in
-            if (localStorage.getItem('token')) {
-                api.put('/customer/profile/preferences/brand', { brand: newBrand })
-                    .catch(err => console.error("Pref sync failed", err));
-            }
-        }
-    };
-
-    // Listen for auth-triggered brand syncs
-    useEffect(() => {
-        const handleSync = () => {
-            const syncedBrand = localStorage.getItem('activeBrand');
-            if (syncedBrand && syncedBrand !== brand) {
-                setBrandState(syncedBrand);
-            }
-        };
-        window.addEventListener('brandSyncFromAuth', handleSync);
-        return () => window.removeEventListener('brandSyncFromAuth', handleSync);
-    }, [brand]);
+    const [brand, setBrandState] = useState('teasntrees');
 
     // Auto-detect brand from URL path
     useEffect(() => {
         const path = location.pathname;
-        if (path.startsWith('/littleh')) {
-            setBrand('littleh');
-        } else if (path.startsWith('/teasntrees') || path === '/') {
-            setBrand('teasntrees');
+        const urlBrand = path.split('/')[1]?.toLowerCase();
+
+        if (urlBrand === 'littleh' || urlBrand === 'teasntrees') {
+            setBrandState(urlBrand);
+        } else {
+            // Default to teasntrees if no valid brand in URL
+            setBrandState('teasntrees');
         }
     }, [location.pathname]);
+
+    // setBrand is now mostly to handle programmatic navigation if needed
+    const setBrand = (newBrand) => {
+        // In the new system, we navigate to the new brand URL instead of just setting state
+        if (newBrand && newBrand !== brand) {
+            window.location.href = `/${newBrand}`;
+        }
+    };
 
     // Derived theme variables
     const theme = {

@@ -34,17 +34,14 @@ export const getCart = async (req, res) => {
             item.product && item.product.isAvailable
         );
 
-        if (availableItems.length !== cart.items.length) {
-            cart.items = availableItems;
-            await cart.save();
-        }
+        const subtotal = availableItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
         res.json({
             success: true,
             data: {
-                items: cart.items,
-                subtotal: cart.subtotal,
-                itemCount: cart.items.length
+                items: availableItems,
+                subtotal: subtotal,
+                itemCount: availableItems.length
             }
         });
 

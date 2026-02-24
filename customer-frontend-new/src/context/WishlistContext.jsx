@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { useBrand } from './BrandContext';
 import { userService } from '../services/userService';
 
 const WishlistContext = createContext();
@@ -8,40 +9,31 @@ export const useWishlist = () => useContext(WishlistContext);
 
 export const WishlistProvider = ({ children }) => {
     const { isAuthenticated } = useAuth();
-    const [wishlistItems, setWishlistItems] = useState(() => {
-        try {
-            const savedCommon = localStorage.getItem('wishlist');
-            return savedCommon ? JSON.parse(savedCommon) : [];
-        } catch (error) {
-            console.error('Failed to load wishlist from local storage', error);
-            return [];
-        }
-    });
+    const { brand } = useBrand();
+    const [wishlistItems, setWishlistItems] = useState([]);
+
+    // We no longer rely solely on localStorage for initial state to avoid brand leakage
+    // unless we use brand-specific keys. For now, let's just fetch from backend/refresh on brand change.
 
     // Sync with backend on login
     useEffect(() => {
+        const fetchWishlist = async () => {
+            try {
+                const items = await userService.getWishlist();
+                setWishlistItems(items || []);
+            } catch (error) {
+                console.error("Failed to fetch wishlist", error);
+            }
+        };
+
         if (isAuthenticated) {
-            const fetchWishlist = async () => {
-                try {
-                    const items = await userService.getWishlist();
-                    setWishlistItems(items || []);
-                    localStorage.setItem('wishlist', JSON.stringify(items || []));
-                } catch (error) {
-                    // Gracefully fall back to local storage if sync fails
-                }
-            };
             fetchWishlist();
+        } else {
+            // On logout or guest session, clear the wishlist items to ensure no leakage
+            setWishlistItems([]);
         }
     }, [isAuthenticated]);
 
-    // Persist to local storage
-    useEffect(() => {
-        try {
-            localStorage.setItem('wishlist', JSON.stringify(wishlistItems));
-        } catch (error) {
-            console.error('Failed to save wishlist to local storage', error);
-        }
-    }, [wishlistItems]);
 
     const addToWishlist = async (product) => {
         // Optimistic Update

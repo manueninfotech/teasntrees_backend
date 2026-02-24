@@ -155,6 +155,7 @@ export const getMyOrders = async (req, res) => {
         const { page = 1, limit = 10, status } = req.query;
 
         const query = { customerId };
+        if (req.activeBrand) query.brand = req.activeBrand;
         if (status) query.status = status;
 
         const skip = (page - 1) * limit;
@@ -193,7 +194,10 @@ export const getOrderById = async (req, res) => {
         const { orderId } = req.params;
         const customerId = req.user.userId;
 
-        const order = await Order.findOne({ _id: orderId, customerId })
+        const query = { _id: orderId, customerId };
+        if (req.activeBrand) query.brand = req.activeBrand;
+
+        const order = await Order.findOne(query)
             .populate('items.product', 'name image price')
             .populate('riderId', 'name mobile');
 

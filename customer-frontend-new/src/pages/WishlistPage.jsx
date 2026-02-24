@@ -9,7 +9,7 @@ import { cn } from '../lib/utils';
 
 const WishlistPage = () => {
     const { wishlistItems } = useWishlist();
-    const { theme } = useBrand();
+    const { brand, theme } = useBrand();
 
     return (
         <div className={cn("min-h-screen pt-24 pb-20 transition-colors duration-300", theme.isLittleH ? "bg-bakery-bg" : "bg-slate-50")}>
@@ -48,10 +48,10 @@ const WishlistPage = () => {
                             Love a product? Click the heart icon to save it here for later.
                         </p>
                         <Link
-                            to="/menu"
+                            to={`/${brand}/menu`}
                             className={cn(
                                 "flex items-center gap-2 px-8 py-3 rounded-xl font-bold transition-all shadow-lg hover:shadow-xl active:scale-95",
-                                theme.isLittleH ? "bg-bakery-primary text-[#FAF1E8] hover:bg-bakery-accent" : "bg-cafe-emerald text-white hover:bg-cafe-teal"
+                                theme.isLittleH ? "bg-[#565A47] text-[#FAF1E8] hover:bg-[#3f4233]" : "bg-cafe-emerald text-white hover:bg-cafe-teal"
                             )}
                         >
                             Browse Menu <ArrowRight className="w-4 h-4" />

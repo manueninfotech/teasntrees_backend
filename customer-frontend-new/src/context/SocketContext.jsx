@@ -18,9 +18,13 @@ export const SocketProvider = ({ children }) => {
         let newSocket;
 
         if (isAuthenticated && token) {
+            // Dynamically extract brand from URL path
+            const pathSegments = window.location.pathname.split('/');
+            const activeBrand = pathSegments[1] || 'teasntrees';
+
             // Initialize Socket
             newSocket = io(BACKEND_URL, {
-                auth: { token },
+                auth: { token, brand: activeBrand },
                 transports: ['websocket'], // force websocket for performance
                 reconnection: true,
                 reconnectionAttempts: 5,

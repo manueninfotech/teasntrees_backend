@@ -9,12 +9,27 @@ const api = axios.create({
     },
 });
 
-// Add interceptor to inject token
+// Add interceptor to inject token and brand
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Extract brand from URL path (e.g., /littleh/menu -> littleh)
+    const path = window.location.pathname;
+    const allowedBrands = ['littleh', 'teasntrees'];
+    const pathBrand = path.split('/')[1]?.toLowerCase();
+
+    const brand = allowedBrands.includes(pathBrand) ? pathBrand : 'teasntrees';
+
+    // Update baseURL dynamicly if needed or just prefix the url
+    // If the url already starts with /brand, skip. 
+    // But we want to structure it as /api/:brand/customer/...
+    if (!config.url.startsWith(`/${brand}`)) {
+        config.url = `/${brand}${config.url}`;
+    }
+
     return config;
 }, (error) => {
     return Promise.reject(error);

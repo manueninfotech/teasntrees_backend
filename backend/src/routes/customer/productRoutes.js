@@ -9,7 +9,7 @@ import {
 } from '../../controllers/customer/productController.js';
 import { optionalAuthenticate } from '../../middlewares/auth.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Public routes - optionally use authentication to fetch brand preference
 router.get('/', optionalAuthenticate, getAllProducts);

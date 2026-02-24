@@ -16,26 +16,27 @@ const CartDrawer = () => {
         updateQuantity,
         cartTotal
     } = useCart();
-    // utility used in several places below – compute full URL and fall back to
-    // the brand‑specific placeholder when no image is provided.
-    const resolveImageUrl = (img, brand) => {
-        const b = brand || 'teasntrees';
-        const fallback = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
-        if (img && img !== '') {
-            return img.startsWith('http') ? img : `http://localhost:5000/uploads/${img}`;
-        }
-        return `http://localhost:5000/uploads/${fallback}`;
-    };
+    const { brand, theme } = useBrand();
+
     const { isAuthenticated } = useAuth();
-    const { theme } = useBrand();
     const navigate = useNavigate();
+
+    // Group items by brand
+    const groupedItems = cartItems.reduce((acc, item) => {
+        const itemBrand = item.brand === 'littleh' ? 'LittleH Bakery' : 'Teas N Trees';
+        if (!acc[itemBrand]) acc[itemBrand] = [];
+        acc[itemBrand].push(item);
+        return acc;
+    }, {});
+
+    const brandOrder = ['Teas N Trees', 'LittleH Bakery'];
 
     const handleCheckout = () => {
         toggleCart();
         if (isAuthenticated) {
-            navigate('/checkout');
+            navigate(`/${brand}/checkout`);
         } else {
-            navigate('/profile');
+            navigate(`/${brand}/profile`);
         }
     };
 
@@ -89,85 +90,90 @@ const CartDrawer = () => {
                                             <p className="text-sm">Add something delicious to get started</p>
                                         </div>
                                         <button
-                                            onClick={() => { toggleCart(); navigate('/menu'); }}
+                                            onClick={() => { toggleCart(); navigate(`/${brand}/menu`); }}
                                             className="px-8 py-3 bg-[#565A47] text-[#FAF1E8] uppercase tracking-widest text-xs font-bold hover:bg-[#3f4233] transition-colors flex items-center gap-2"
                                         >
                                             Browse Menu <ArrowRight className="w-4 h-4" />
                                         </button>
                                     </div>
                                 ) : (
-                                    Object.entries(cartItems.reduce((acc, item) => {
-                                        const b = item.brand || 'teasntrees';
-                                        if (!acc[b]) acc[b] = [];
-                                        acc[b].push(item);
-                                        return acc;
-                                    }, {})).map(([brandName, items]) => (
-                                        <div key={brandName} className="mb-4 last:mb-0">
-                                            <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#8B8E7B] mb-3 ml-1">
-                                                {brandName === 'teasntrees' ? 'Teas N Trees' : 'LittleH Bakery'}
-                                            </div>
-                                            <div className="space-y-3">
-                                                {items.map((item) => (
-                                                    <div
-                                                        key={item.key}
-                                                        className="flex gap-4 p-4 border border-[#8B8E7B]/15 bg-[#FAF1E8] hover:border-[#565A47]/20 transition-colors"
-                                                    >
-                                                        {/* Item Image */}
-                                                        <div className="w-18 h-18 overflow-hidden bg-[#FDF5EC] shrink-0 relative" style={{ width: '72px', height: '72px' }}>
-                                                            <img
-                                                                src={item.image}
-                                                                alt={item.name}
-                                                                className="w-full h-full object-cover"
-                                                                onError={(e) => e.target.style.display = 'none'}
-                                                            />
-                                                        </div>
+                                    <div className="space-y-6">
+                                        {brandOrder.map(brandName => {
+                                            const items = groupedItems[brandName];
+                                            if (!items || items.length === 0) return null;
 
-                                                        {/* Item Details */}
-                                                        <div className="flex-1 flex flex-col justify-between">
-                                                            <div>
-                                                                <div className="flex justify-between items-start">
-                                                                    <h3 className="font-bold text-[#565A47] text-sm leading-tight">{item.name}</h3>
-                                                                    <button
-                                                                        onClick={() => removeFromCart(item.key)}
-                                                                        className="text-[#8B8E7B] hover:text-red-500 transition-colors ml-2"
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                </div>
-                                                                {item.size && (
-                                                                    <div className="text-[10px] text-[#8B8E7B] uppercase tracking-wider mt-1">
-                                                                        {item.size}
-                                                                    </div>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="flex items-center justify-between mt-2">
-                                                                <span className="font-bold text-[#565A47]">₹{item.price * item.quantity}</span>
-
-                                                                {/* Quantity Controls */}
-                                                                <div className="flex items-center gap-2 border border-[#8B8E7B]/20 bg-white">
-                                                                    <button
-                                                                        onClick={() => updateQuantity(item.key, -1)}
-                                                                        className="w-7 h-7 flex items-center justify-center text-[#565A47] hover:bg-[#FDF5EC] transition-colors disabled:opacity-30"
-                                                                        disabled={item.quantity <= 1}
-                                                                    >
-                                                                        <Minus className="w-3 h-3" />
-                                                                    </button>
-                                                                    <span className="text-sm font-bold w-5 text-center text-[#565A47]">{item.quantity}</span>
-                                                                    <button
-                                                                        onClick={() => updateQuantity(item.key, 1)}
-                                                                        className="w-7 h-7 flex items-center justify-center text-[#565A47] hover:bg-[#FDF5EC] transition-colors"
-                                                                    >
-                                                                        <Plus className="w-3 h-3" />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                            return (
+                                                <div key={brandName} className="space-y-3">
+                                                    <div className="flex items-center gap-2 px-1">
+                                                        <div className="h-[1px] flex-1 bg-[#8B8E7B]/20" />
+                                                        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#565A47]/60 whitespace-nowrap px-2">
+                                                            {brandName}
+                                                        </span>
+                                                        <div className="h-[1px] flex-1 bg-[#8B8E7B]/20" />
                                                     </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))
+
+                                                    {items.map((item) => (
+                                                        <div
+                                                            key={item.key}
+                                                            className="flex gap-4 p-4 border border-[#8B8E7B]/15 bg-[#FAF1E8] hover:border-[#565A47]/20 transition-colors"
+                                                        >
+                                                            {/* Item Image */}
+                                                            <div className="w-18 h-18 overflow-hidden bg-[#FDF5EC] shrink-0 relative" style={{ width: '72px', height: '72px' }}>
+                                                                <img
+                                                                    src={item.image}
+                                                                    alt={item.name}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => e.target.style.display = 'none'}
+                                                                />
+                                                            </div>
+
+                                                            {/* Item Details */}
+                                                            <div className="flex-1 flex flex-col justify-between">
+                                                                <div>
+                                                                    <div className="flex justify-between items-start">
+                                                                        <h3 className="font-bold text-[#565A47] text-sm leading-tight">{item.name}</h3>
+                                                                        <button
+                                                                            onClick={() => removeFromCart(item.key)}
+                                                                            className="text-[#8B8E7B] hover:text-red-500 transition-colors ml-2"
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                                        </button>
+                                                                    </div>
+                                                                    {item.size && (
+                                                                        <div className="text-[10px] text-[#8B8E7B] uppercase tracking-wider mt-1">
+                                                                            {item.size}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="flex items-center justify-between mt-2">
+                                                                    <span className="font-bold text-[#565A47]">₹{item.price * item.quantity}</span>
+
+                                                                    {/* Quantity Controls */}
+                                                                    <div className="flex items-center gap-2 border border-[#8B8E7B]/20 bg-white">
+                                                                        <button
+                                                                            onClick={() => updateQuantity(item.key, -1)}
+                                                                            className="w-7 h-7 flex items-center justify-center text-[#565A47] hover:bg-[#FDF5EC] transition-colors disabled:opacity-30"
+                                                                            disabled={item.quantity <= 1}
+                                                                        >
+                                                                            <Minus className="w-3 h-3" />
+                                                                        </button>
+                                                                        <span className="text-sm font-bold w-5 text-center text-[#565A47]">{item.quantity}</span>
+                                                                        <button
+                                                                            onClick={() => updateQuantity(item.key, 1)}
+                                                                            className="w-7 h-7 flex items-center justify-center text-[#565A47] hover:bg-[#FDF5EC] transition-colors"
+                                                                        >
+                                                                            <Plus className="w-3 h-3" />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 )}
                             </div>
 
@@ -239,85 +245,92 @@ const CartDrawer = () => {
                                     <ShoppingBag className="w-16 h-16 opacity-20" />
                                     <p className="text-lg font-medium">Your cart is empty</p>
                                     <button
-                                        onClick={() => { toggleCart(); navigate('/menu'); }}
+                                        onClick={() => { toggleCart(); navigate(`/${brand}/menu`); }}
                                         className={`px-8 py-3 bg-gradient-to-r ${theme.gradientClass} text-white rounded-xl font-bold hover:shadow-xl active:scale-95 flex items-center gap-2 transition-all shadow-lg`}
                                     >
                                         Browse Menu <ArrowRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             ) : (
-                                Object.entries(cartItems.reduce((acc, item) => {
-                                    const b = item.brand || 'teasntrees';
-                                    if (!acc[b]) acc[b] = [];
-                                    acc[b].push(item);
-                                    return acc;
-                                }, {})).map(([brandName, items]) => (
-                                    <div key={brandName} className="mb-6 last:mb-0">
-                                        <div className={cn("text-xs font-bold uppercase tracking-wider mb-3 ml-1 flex items-center gap-2", "text-slate-400")}>
-                                            {brandName === 'teasntrees' ? '🍃 Teas N Trees ITEMS' : '🧁 LittleH Bakery ITEMS'}
-                                        </div>
-                                        <div className="space-y-4">
-                                            {items.map((item) => (
-                                                <div
-                                                    key={item.key}
-                                                    className="flex gap-4 p-3 rounded-2xl border bg-white border-slate-100 hover:border-cafe-emerald/30 transition-colors shadow-sm"
-                                                >
-                                                    {/* Item Image */}
-                                                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 relative">
-                                                        <img
-                                                            src={item.image}
-                                                            alt={item.name}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => e.target.style.display = 'none'}
-                                                        />
-                                                    </div>
+                                <div className="space-y-8">
+                                    {brandOrder.map(brandName => {
+                                        const items = groupedItems[brandName];
+                                        if (!items || items.length === 0) return null;
 
-                                                    {/* Item Details */}
-                                                    <div className="flex-1 flex flex-col justify-between">
-                                                        <div>
-                                                            <div className="flex justify-between items-start">
-                                                                <h3 className="font-bold text-slate-800 text-sm line-clamp-1">{item.name}</h3>
-                                                                <button
-                                                                    onClick={() => removeFromCart(item.key)}
-                                                                    className="text-slate-400 hover:text-red-500 transition-colors"
-                                                                >
-                                                                    <Trash2 className="w-4 h-4" />
-                                                                </button>
-                                                            </div>
-                                                            {item.size && (
-                                                                <div className="text-xs text-slate-500 font-medium bg-slate-100 w-fit px-1.5 py-0.5 rounded mt-1">
-                                                                    {item.size}
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between mt-2">
-                                                            <span className="font-bold text-slate-900">₹{item.price * item.quantity}</span>
-
-                                                            {/* Quantity Controls */}
-                                                            <div className="flex items-center gap-3 rounded-lg p-1 border bg-slate-50 border-slate-100 shadow-inner">
-                                                                <button
-                                                                    onClick={() => updateQuantity(item.key, -1)}
-                                                                    className="w-6 h-6 flex items-center justify-center rounded bg-white shadow-sm disabled:opacity-50 text-slate-400 hover:text-red-500"
-                                                                    disabled={item.quantity <= 1}
-                                                                >
-                                                                    <Minus className="w-3 h-3" />
-                                                                </button>
-                                                                <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                                                                <button
-                                                                    onClick={() => updateQuantity(item.key, 1)}
-                                                                    className="w-6 h-6 flex items-center justify-center rounded bg-white shadow-sm text-slate-400 hover:text-emerald-500"
-                                                                >
-                                                                    <Plus className="w-3 h-3" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                        return (
+                                            <div key={brandName} className="space-y-4">
+                                                <div className="flex items-center gap-4 px-2">
+                                                    <span className={cn(
+                                                        "text-xs font-bold uppercase tracking-widest whitespace-nowrap",
+                                                        brandName === 'LittleH Bakery' ? "text-pink-600" : "text-cafe-emerald"
+                                                    )}>
+                                                        {brandName}
+                                                    </span>
+                                                    <div className="h-[1px] flex-1 bg-slate-100" />
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))
+
+                                                {items.map((item) => (
+                                                    <div
+                                                        key={item.key}
+                                                        className="flex gap-4 p-3 rounded-2xl border bg-white border-slate-100 hover:border-cafe-emerald/30 transition-colors shadow-sm"
+                                                    >
+                                                        {/* Item Image */}
+                                                        <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 relative">
+                                                            <img
+                                                                src={item.image}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => e.target.style.display = 'none'}
+                                                            />
+                                                        </div>
+
+                                                        {/* Item Details */}
+                                                        <div className="flex-1 flex flex-col justify-between">
+                                                            <div>
+                                                                <div className="flex justify-between items-start">
+                                                                    <h3 className="font-bold text-slate-800 text-sm line-clamp-1">{item.name}</h3>
+                                                                    <button
+                                                                        onClick={() => removeFromCart(item.key)}
+                                                                        className="text-slate-400 hover:text-red-500 transition-colors"
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                                {item.size && (
+                                                                    <div className="text-xs text-slate-500 font-medium bg-slate-100 w-fit px-1.5 py-0.5 rounded mt-1">
+                                                                        {item.size}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex items-center justify-between mt-2">
+                                                                <span className="font-bold text-slate-900">₹{item.price * item.quantity}</span>
+
+                                                                {/* Quantity Controls */}
+                                                                <div className="flex items-center gap-3 rounded-lg p-1 border bg-slate-50 border-slate-100 shadow-inner">
+                                                                    <button
+                                                                        onClick={() => updateQuantity(item.key, -1)}
+                                                                        className="w-6 h-6 flex items-center justify-center rounded bg-white shadow-sm disabled:opacity-50 text-slate-400 hover:text-red-500"
+                                                                        disabled={item.quantity <= 1}
+                                                                    >
+                                                                        <Minus className="w-3 h-3" />
+                                                                    </button>
+                                                                    <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                                                                    <button
+                                                                        onClick={() => updateQuantity(item.key, 1)}
+                                                                        className="w-6 h-6 flex items-center justify-center rounded bg-white shadow-sm text-slate-400 hover:text-emerald-500"
+                                                                    >
+                                                                        <Plus className="w-3 h-3" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             )}
                         </div>
 

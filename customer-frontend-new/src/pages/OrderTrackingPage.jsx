@@ -7,6 +7,7 @@ import { useSocket } from '../context/SocketContext';
 import { useBrand } from '../context/BrandContext';
 import clsx from 'clsx';
 import toast from 'react-hot-toast';
+import { cn } from '../lib/utils';
 
 const steps = [
     { status: 'placed', label: 'Order Placed', icon: Package },
@@ -48,7 +49,7 @@ const OrderTrackingPage = () => {
     const { orderId } = useParams();
     const navigate = useNavigate();
     const { socket } = useSocket();
-    const { theme } = useBrand();
+    const { brand, theme } = useBrand();
     const [order, setOrder] = useState(null);
     const [deliveryInfo, setDeliveryInfo] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -252,7 +253,7 @@ const OrderTrackingPage = () => {
         return (
             <div className="min-h-screen pt-24 flex flex-col items-center justify-center bg-slate-50 text-center px-4">
                 <p className="text-red-500 mb-4">{error || 'Order not found'}</p>
-                <button onClick={() => navigate('/')} className="px-6 py-2 bg-slate-800 text-white rounded-xl">Go Home</button>
+                <button onClick={() => navigate(`/${brand || 'teasntrees'}`)} className="px-6 py-2 bg-slate-800 text-white rounded-xl">Go Home</button>
             </div>
         );
     }

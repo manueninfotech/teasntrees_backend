@@ -40,7 +40,7 @@ const HomePage = () => {
                                     <motion.button
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={() => navigate('/menu')}
+                                        onClick={() => navigate(`/${brand}/menu`)}
                                         className="px-10 py-4 bg-[#565A47] text-[#FAF1E8] text-sm tracking-widest uppercase font-bold transition-all flex items-center gap-3 hover:bg-[#3f4233] shadow-xl shadow-[#565A47]/20"
                                     >
                                         Our Menu <ArrowRight className="w-5 h-5" />
@@ -175,7 +175,7 @@ const HomePage = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => navigate('/menu')}
+                                    onClick={() => navigate(`/${brand}/menu`)}
                                     className={`px-8 py-4 bg-gradient-to-r ${theme.gradientClass} text-white rounded-full text-lg font-bold shadow-lg ${theme.shadowClass} ${theme.gradientHoverClass} transition-all flex items-center gap-2`}
                                 >
                                     Explore Our Menu <ArrowRight className="w-5 h-5" />
@@ -183,7 +183,7 @@ const HomePage = () => {
                                 <motion.button
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => navigate('/contact')}
+                                    onClick={() => navigate(`/${brand}/contact`)}
                                     className="px-8 py-4 bg-white/50 backdrop-blur-md border border-white/60 text-slate-800 rounded-full text-lg font-bold hover:bg-white/80 transition-all"
                                 >
                                     Visit Us Today

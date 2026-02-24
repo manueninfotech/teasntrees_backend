@@ -9,7 +9,7 @@ import {
     reverseGeocode
 } from '../../controllers/customer/addressController.js';
 
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 // Public Route (accessible during profile completion)
 router.get('/reverse-geocode', reverseGeocode);

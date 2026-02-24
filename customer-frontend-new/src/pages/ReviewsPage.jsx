@@ -82,7 +82,7 @@ const ReviewsPage = () => {
 
     useEffect(() => {
         fetchReviews();
-    }, []);
+    }, [brand]);
 
     const fetchReviews = async () => {
         setIsLoading(true);

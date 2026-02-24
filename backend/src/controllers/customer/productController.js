@@ -8,14 +8,12 @@ import { isProductInSeason, getCurrentMonth } from '../../utils/seasonUtils.js';
 // Get all products (with pagination, search, filter)
 export const getAllProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 20, category, search, q, tags, brand } = req.query;
+        const { page = 1, limit = 20, category, search, q, tags } = req.query;
 
         const query = { isAvailable: true };
 
-        if (req.user?.activeBrand) {
-            query.brand = req.user.activeBrand;
-        } else if (brand) {
-            query.brand = brand;
+        if (req.activeBrand) {
+            query.brand = req.activeBrand;
         }
 
         // 1. Filter by category
@@ -152,7 +150,7 @@ export const getProductById = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
     try {
         const { categoryId } = req.params;
-        const { page = 1, limit = 20, brand } = req.query;
+        const { page = 1, limit = 20 } = req.query;
 
         const skip = (page - 1) * limit;
 
@@ -161,10 +159,8 @@ export const getProductsByCategory = async (req, res) => {
             isAvailable: true
         };
 
-        if (req.user?.activeBrand) {
-            query.brand = req.user.activeBrand;
-        } else if (brand) {
-            query.brand = brand;
+        if (req.activeBrand) {
+            query.brand = req.activeBrand;
         }
 
         let products = await Product.find(query)

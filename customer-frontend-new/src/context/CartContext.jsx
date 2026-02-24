@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { cartService } from '../services/cartService';
 import { useAuth } from './AuthContext';
+import { useBrand } from './BrandContext';
 import { toast } from 'react-hot-toast';
 
 const CartContext = createContext();
@@ -15,6 +16,7 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
     const { isAuthenticated, user } = useAuth();
+    const { brand } = useBrand();
     const [cartItems, setCartItems] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -26,29 +28,21 @@ export const CartProvider = ({ children }) => {
                 // Load from Server
                 try {
                     setIsLoading(true);
-                    // Check if we have local items to sync first (Guest -> User transition)
-                    const localData = localStorage.getItem('cartItems');
-                    const localItems = localData ? JSON.parse(localData) : [];
 
-                    if (localItems.length > 0) {
-                        // Sync items one by one (or batch if API supported, currently separate calls)
-                        // Simple approach: Add each, then fetch final cart relative to server state
-                        // Note: ideally we'd have a batch endpoint, but looping works for small carts
-                        for (const item of localItems) {
+                    // Sync in-memory guest items if any
+                    if (cartItems.length > 0) {
+                        for (const item of cartItems) {
                             try {
                                 await cartService.addToCart(item.id, item.quantity, item.size);
                             } catch (err) {
                                 console.error("Failed to sync item", item.name);
                             }
                         }
-                        // Clear local storage after sync attempt
-                        localStorage.removeItem('cartItems');
                     }
 
                     // Fetch final server state
                     const response = await cartService.getCart();
                     if (response.data && response.data.items) {
-                        // Transform server items to UI format if needed
                         const uiItems = response.data.items.map(mapServerItemToUI);
                         setCartItems(uiItems);
                     }
@@ -58,27 +52,14 @@ export const CartProvider = ({ children }) => {
                     setIsLoading(false);
                 }
             } else {
-                // Load from Local Storage
-                try {
-                    const localData = localStorage.getItem('cartItems');
-                    if (localData) {
-                        setCartItems(JSON.parse(localData));
-                    }
-                } catch (error) {
-                    console.error("Failed to load local cart", error);
-                }
+                // On logout or guest session, clear the cart items to ensure no leakage
+                setCartItems([]);
             }
         };
 
         loadCart();
-    }, [isAuthenticated]);
+    }, [isAuthenticated]); // Only re-run when auth status changes. removed brand dep as it's unified now.
 
-    // Persist to local storage ONLY if Guest
-    useEffect(() => {
-        if (!isAuthenticated) {
-            localStorage.setItem('cartItems', JSON.stringify(cartItems));
-        }
-    }, [cartItems, isAuthenticated]);
 
     // Helper to map Server Item Structure to UI Structure
     const mapServerItemToUI = (serverItem) => ({
@@ -210,13 +191,6 @@ export const CartProvider = ({ children }) => {
             setCartItems([]); // Server clears it, so we clear UI
             return response;
         } else {
-            // Guest Checkout (Not supported by backend yet? Or uses createOrder?)
-            // Backend `createOrder` supports passing `items` directly.
-            // So we construct payload same as before for Guest.
-            // NOTE: Current `orderService.createOrder` is basically guest/direct mode.
-
-            // Wait, if authenticating, we forced server cart.
-            // If guest, we fall back to createOrder
             const orderPayload = {
                 ...checkoutData,
                 items: cartItems.map(item => ({
@@ -227,13 +201,6 @@ export const CartProvider = ({ children }) => {
                 }))
             };
 
-            // We need to import api or orderService here... circular dep risk?
-            // Let's use the passed logic or assume orderService is available via import
-            // I'll re-import orderService at top if needed, but wait context file didn't insert it.
-            // Actually, we can just throw "Please login to checkout" if we want to enforce it, 
-            // but requirements say guests can order (maybe?).
-            // Let's assume Guests use `orderService.createOrder`.
-            // I will use dynamic import or just standard import.
             const { orderService } = await import('../services/orderService');
             const response = await orderService.createOrder(orderPayload);
             clearCart();

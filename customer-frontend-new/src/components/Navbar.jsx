@@ -22,9 +22,9 @@ const Navbar = () => {
         const term = searchTerm.trim();
 
         if (term) {
-            navigate(`/menu?q=${encodeURIComponent(term)}`);
+            navigate(`/${brand}/menu?q=${encodeURIComponent(term)}`);
         } else {
-            navigate('/menu');
+            navigate(`/${brand}/menu`);
         }
         setIsOpen(false);
     };
@@ -94,13 +94,13 @@ const Navbar = () => {
 
                 {/* Desktop Actions */}
                 <div className="hidden lg:flex items-center gap-6">
-                    <Link to="/menu" className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Menu</Link>
-                    <Link to="/about" className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>About</Link>
-                    <Link to="/gallery" className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Gallery</Link>
-                    <Link to="/reviews" className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Reviews</Link>
-                    <Link to="/contact" className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Contact</Link>
+                    <Link to={`/${brand}/menu`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Menu</Link>
+                    <Link to={`/${brand}/about`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>About</Link>
+                    <Link to={`/${brand}/gallery`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Gallery</Link>
+                    <Link to={`/${brand}/reviews`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Reviews</Link>
+                    <Link to={`/${brand}/contact`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Contact</Link>
 
-                    <Link to="/wishlist" className="relative group">
+                    <Link to={`/${brand}/wishlist`} className="relative group">
                         <div className={cn(
                             "absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md transition-transform",
                             wishlistItems.length > 0 ? "scale-100" : "scale-0"
@@ -120,7 +120,7 @@ const Navbar = () => {
                         <ShoppingCart className={`w-6 h-6 text-slate-600 ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`} />
                     </button>
 
-                    <Link to="/profile" className="flex items-center gap-2 pl-4 border-l border-slate-200">
+                    <Link to={`/${brand}/profile`} className="flex items-center gap-2 pl-4 border-l border-slate-200">
                         <div className={`w-9 h-9 rounded-full bg-gradient-to-tr ${theme.gradientClass} p-[2px]`}>
                             <div className="w-full h-full rounded-full bg-white flex items-center justify-center">
                                 <User className={`w-5 h-5 ${theme.textColorClass}`} />
@@ -183,27 +183,27 @@ const Navbar = () => {
                                 </button>
                             </form>
 
-                            <Link to="/menu" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
+                            <Link to={`/${brand}/menu`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
                                 <Coffee className="w-5 h-5 text-cafe-emerald" />
                                 <span className="font-medium">Menu</span>
                             </Link>
-                            <Link to="/about" className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
+                            <Link to={`/${brand}/about`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
                                 <Users className="w-5 h-5 text-blue-500" />
                                 <span className="font-medium">About Us</span>
                             </Link>
-                            <Link to="/gallery" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                            <Link to={`/${brand}/gallery`} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
                                 <ZoomIn className="w-6 h-6 text-purple-500 group-hover:scale-110 transition-transform" />
                                 <span className="font-semibold text-base">Gallery</span>
                             </Link>
-                            <Link to="/reviews" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                            <Link to={`/${brand}/reviews`} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
                                 <Star className="w-6 h-6 text-yellow-500 group-hover:scale-110 transition-transform" />
                                 <span className="font-semibold text-base">Reviews</span>
                             </Link>
-                            <Link to="/contact" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                            <Link to={`/${brand}/contact`} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
                                 <Phone className="w-6 h-6 text-green-500 group-hover:scale-110 transition-transform" />
                                 <span className="font-semibold text-base">Contact</span>
                             </Link>
-                            <Link to="/wishlist" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                            <Link to={`/${brand}/wishlist`} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
                                 <Heart className="w-6 h-6 text-red-500 group-hover:scale-110 transition-transform" />
                                 <span className="font-semibold text-base">Wishlist ({wishlistItems.length})</span>
                             </Link>
@@ -215,7 +215,7 @@ const Navbar = () => {
                                 <ShoppingCart className="w-6 h-6 text-cafe-orange group-hover:scale-110 transition-transform" />
                                 <span className="font-semibold text-base">Cart ({cartCount})</span>
                             </button>
-                            <Link to="/profile" className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
+                            <Link to={`/${brand}/profile`} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-all group" onClick={() => setIsOpen(false)}>
                                 <User className="w-6 h-6 text-cafe-teal group-hover:scale-110 transition-transform" />
                                 <span className="font-semibold text-base">Profile</span>
                             </Link>

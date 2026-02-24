@@ -98,6 +98,7 @@ export const createReview = async (req, res) => {
 
             const newReview = await Review.create({
                 customerId,
+                brand: req.activeBrand || 'teasntrees',
                 foodRating: finalRating,
                 review: finalReview,
                 images: images || [],
@@ -129,10 +130,13 @@ export const createReview = async (req, res) => {
         }
 
         // --- EXISTING ORDER REVIEW LOGIC ---
-        const order = await Order.findOne({
+        const query = {
             _id: orderId,
             customerId
-        });
+        };
+        if (req.activeBrand) query.brand = req.activeBrand;
+
+        const order = await Order.findOne(query);
 
         if (!order) {
             return res.status(404).json({
@@ -177,6 +181,7 @@ export const createReview = async (req, res) => {
         const newReview = await Review.create({
             orderId,
             customerId,
+            brand: order.brand || req.activeBrand || 'teasntrees',
             riderId: order.riderId || null,
             productId: (order.items && order.items.length > 0) ? order.items[0].product : null,
             foodRating,
@@ -305,6 +310,7 @@ export const getProductReviews = async (req, res) => {
             isApproved: true,
             productRating: { $exists: true }
         };
+        if (req.activeBrand) query.brand = req.activeBrand;
 
         if (rating) {
             query.productRating = parseInt(rating);
@@ -369,14 +375,17 @@ export const getMyReviews = async (req, res) => {
 
         const skip = (page - 1) * limit;
 
-        const reviews = await Review.find({ customerId })
+        const query = { customerId };
+        if (req.activeBrand) query.brand = req.activeBrand;
+
+        const reviews = await Review.find(query)
             .populate('orderId', 'orderNumber total')
             .populate('productId', 'name image')
             .sort({ createdAt: -1 })
             .limit(parseInt(limit))
             .skip(skip);
 
-        const total = await Review.countDocuments({ customerId });
+        const total = await Review.countDocuments(query);
 
         res.json({
             success: true,
@@ -408,6 +417,7 @@ export const getSiteReviews = async (req, res) => {
             isApproved: true,
             foodRating: { $gte: 4 }
         };
+        if (req.activeBrand) query.brand = req.activeBrand;
 
         const skip = (page - 1) * limit;
         const reviews = await Review.find(query)
