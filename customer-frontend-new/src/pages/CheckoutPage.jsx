@@ -476,7 +476,7 @@ const CheckoutPage = () => {
                                         <div className="space-y-3">
                                             {items.map((item, idx) => (
                                                 <div key={item.key || item._id || idx} className="flex gap-3">
-                                                    <img src={item.image} alt={item.name} className="w-16 h-16 rounded-xl object-cover bg-slate-100" />
+                                                    <img src={resolveImageUrl(item.image, item.brand)} alt={item.name} className="w-16 h-16 rounded-xl object-cover bg-slate-100" />
                                                     <div className="flex-1">
                                                         <div className="text-sm font-bold text-slate-800 line-clamp-1">{item.name}</div>
                                                         <div className="text-xs text-slate-500 mb-1">{item.size || 'Regular'}</div>

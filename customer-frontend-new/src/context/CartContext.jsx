@@ -80,12 +80,22 @@ export const CartProvider = ({ children }) => {
         }
     }, [cartItems, isAuthenticated]);
 
+    // build a full url for product image with brand‑specific fallback
+    const resolveImageUrl = (img, brand) => {
+        const b = brand || 'teasntrees';
+        const fallback = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
+        if (img && img !== '') {
+            return img.startsWith('http') ? img : `http://localhost:5000/uploads/${img}`;
+        }
+        return `http://localhost:5000/uploads/${fallback}`;
+    };
+
     // Helper to map Server Item Structure to UI Structure
     const mapServerItemToUI = (serverItem) => ({
         key: serverItem._id, // Cart Item ID
         id: serverItem.product._id, // Product ID
         name: serverItem.product.name,
-        image: serverItem.product.image,
+        image: resolveImageUrl(serverItem.product.image, serverItem.product.brand),
         price: serverItem.price,
         size: serverItem.customization,
         quantity: serverItem.quantity,

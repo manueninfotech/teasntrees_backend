@@ -19,7 +19,7 @@ const CategoryTabs = ({ categories, activeCategory, onSelect }) => {
                                     key={categoryId}
                                     onClick={() => onSelect(categoryId)}
                                     className={cn(
-                                        "relative px-6 py-2 transition-all whitespace-nowrap flex items-center gap-2 group text-sm uppercase tracking-widest font-semibold",
+                                        "relative z-10 px-6 py-2 transition-all whitespace-nowrap flex items-center gap-2 group text-sm uppercase tracking-widest font-semibold",
                                         activeCategory === categoryId
                                             ? "text-[#FAF1E8]"
                                             : "text-[#8B8E7B] hover:text-[#565A47]"

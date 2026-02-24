@@ -1250,7 +1250,7 @@ const ProfilePage = () => {
                                                     <h1 className={cn("text-3xl font-black text-slate-800", theme.isLittleH && "font-playfair")}>Saved Addresses</h1>
                                                     <button
                                                         onClick={handleAddAddressClick}
-                                                        className={cn("px-6 py-3 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2", theme.isLittleH ? "bg-bakery-primary text-[#FAF1E8] hover:bg-bakery-accent" : "bg-cafe-emerald text-white hover:bg-cafe-teal")}
+                                                        className={cn("px-6 py-3 font-bold shadow-lg transition-all flex items-center justify-center gap-2", theme.isLittleH ? "bg-[#565A47] text-[#FAF1E8] hover:bg-[#3f4233]" : "bg-cafe-emerald text-white hover:bg-cafe-teal rounded-xl")}
                                                     >
                                                         <Plus className="w-5 h-5" /> Add Address
                                                     </button>

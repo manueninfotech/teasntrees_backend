@@ -74,11 +74,23 @@ app.options(/.*/, cors());
 
 // Security and parsers
 app.use(helmet({
+    // allow other origins to load static assets (required when frontend is on
+    // a different host/port during development)
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
             "script-src": ["'self'", "'unsafe-inline'"],
             "script-src-attr": ["'unsafe-inline'"],
+            // allow images from our own api server and the frontend origin(s)
+            "img-src": [
+                "'self'",
+                "data:",
+                // when frontend runs on another port it still needs to fetch
+                // product placeholders from the backend.
+                'http://localhost:5000',
+                ...(allowedOrigins.includes('*') ? [] : allowedOrigins)
+            ]
         }
     }
 }));

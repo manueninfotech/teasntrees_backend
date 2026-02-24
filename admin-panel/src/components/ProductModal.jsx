@@ -15,6 +15,17 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
         tags: '',
         brand: 'teasntrees'
     });
+
+    // same helper used across customer frontend; ensures admin preview uses same
+    // brand‑aware default.
+    const resolveImageUrl = (img, brand) => {
+        const b = brand || 'teasntrees';
+        const fallback = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
+        if (img && img !== '') {
+            return img.startsWith('http') ? img : `http://localhost:5000/uploads/${img}`;
+        }
+        return `http://localhost:5000/uploads/${fallback}`;
+    };
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
     const [uploading, setUploading] = useState(false);
@@ -329,13 +340,13 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                             </label>
                             <div className="space-y-4">
                                 {/* Image Preview */}
-                                {(imagePreview || formData.image) && (
-                                    <div className="relative w-full h-56 bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 group">
-                                        <img
-                                            src={imagePreview || formData.image}
-                                            alt="Preview"
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                        />
+                                <div className="relative w-full h-56 bg-gray-50 rounded-[2rem] overflow-hidden border border-gray-100 group">
+                                    <img
+                                        src={resolveImageUrl(imagePreview || formData.image, formData.brand)}
+                                        alt="Preview"
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                    />
+                                    {(imagePreview || formData.image) && (
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -347,8 +358,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
 
                                 {/* File Upload */}
                                 <label className="flex flex-col items-center justify-center w-full h-40 bg-gray-50 border-2 border-dashed border-gray-200 rounded-[2rem] cursor-pointer hover:bg-gray-100 transition-all group">

@@ -16,7 +16,16 @@ const CartDrawer = () => {
         updateQuantity,
         cartTotal
     } = useCart();
-
+    // utility used in several places below – compute full URL and fall back to
+    // the brand‑specific placeholder when no image is provided.
+    const resolveImageUrl = (img, brand) => {
+        const b = brand || 'teasntrees';
+        const fallback = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
+        if (img && img !== '') {
+            return img.startsWith('http') ? img : `http://localhost:5000/uploads/${img}`;
+        }
+        return `http://localhost:5000/uploads/${fallback}`;
+    };
     const { isAuthenticated } = useAuth();
     const { theme } = useBrand();
     const navigate = useNavigate();
@@ -105,16 +114,12 @@ const CartDrawer = () => {
                                                     >
                                                         {/* Item Image */}
                                                         <div className="w-18 h-18 overflow-hidden bg-[#FDF5EC] shrink-0 relative" style={{ width: '72px', height: '72px' }}>
-                                                            {item.image ? (
-                                                                <img
-                                                                    src={item.image.startsWith('http') ? item.image : `http://localhost:5000/uploads/${item.image}`}
-                                                                    alt={item.name}
-                                                                    className="w-full h-full object-cover"
-                                                                    onError={(e) => e.target.style.display = 'none'}
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center text-[10px] text-[#8B8E7B]">No Img</div>
-                                                            )}
+                                                            <img
+                                                                src={resolveImageUrl(item.image, item.brand)}
+                                                                alt={item.name}
+                                                                className="w-full h-full object-cover"
+                                                                onError={(e) => e.target.style.display = 'none'}
+                                                            />
                                                         </div>
 
                                                         {/* Item Details */}
@@ -259,16 +264,12 @@ const CartDrawer = () => {
                                                 >
                                                     {/* Item Image */}
                                                     <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0 relative">
-                                                        {item.image ? (
-                                                            <img
-                                                                src={item.image.startsWith('http') ? item.image : `http://localhost:5000/uploads/${item.image}`}
-                                                                alt={item.name}
-                                                                className="w-full h-full object-cover"
-                                                                onError={(e) => e.target.style.display = 'none'}
-                                                            />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center text-[10px] text-slate-400">No Img</div>
-                                                        )}
+                                                        <img
+                                                            src={resolveImageUrl(item.image, item.brand)}
+                                                            alt={item.name}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => e.target.style.display = 'none'}
+                                                        />
                                                     </div>
 
                                                     {/* Item Details */}

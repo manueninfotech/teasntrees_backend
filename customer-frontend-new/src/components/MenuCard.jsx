@@ -38,10 +38,14 @@ const MenuCard = ({ product }) => {
     };
     const price = getDisplayPrice();
 
-    // Image Logic: Strictly use database image or nothing
-    const imageUrl = product.image
+    // Image Logic: strictly use database image when present; otherwise fall
+    // back to a brand‑specific placeholder.  the brand is shipped from the
+    // API along with the product, so we can decide here which default file to
+    // show.  this mirrors the backend defaults and transform logic.
+    const fallbackName = product.brand === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
+    const imageUrl = product.image && product.image !== ''
         ? (product.image.startsWith('http') ? product.image : `http://localhost:5000/uploads/${product.image}`)
-        : null;
+        : `http://localhost:5000/uploads/${fallbackName}`;
 
     // Local state to handle image load error without showing defaults
     const [imageError, setImageError] = useState(false);
