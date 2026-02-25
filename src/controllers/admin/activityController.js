@@ -10,7 +10,9 @@ export const getAllActivityLogs = async (req, res) => {
         const order = req.query.order === 'asc' ? 1 : -1;
         const skip = (page - 1) * limit;
 
-        let query = {};
+        let query = {
+            brand: req.activeBrand // ENFORCE BRAND SCOPE
+        };
 
         // Filters
         if (admin) query.admin = admin;
@@ -85,13 +87,13 @@ export const getLogsByAdmin = async (req, res) => {
         const limit = parseInt(req.query.limit) || 100;
         const skip = (page - 1) * limit;
 
-        const logs = await ActivityLog.find({ admin: req.params.adminId })
+        const logs = await ActivityLog.find({ admin: req.params.adminId, brand: req.activeBrand })
             .populate('admin', 'name email mobile role')
             .sort({ createdAt: -1 })
             .limit(limit)
             .skip(skip);
 
-        const total = await ActivityLog.countDocuments({ admin: req.params.adminId });
+        const total = await ActivityLog.countDocuments({ admin: req.params.adminId, brand: req.activeBrand });
 
         res.status(200).json({
             success: true,
@@ -117,7 +119,9 @@ export const exportLogs = async (req, res) => {
     try {
         const { startDate, endDate, admin, action, resource } = req.query;
 
-        let query = {};
+        let query = {
+            brand: req.activeBrand // ENFORCE BRAND SCOPE
+        };
 
         if (admin) query.admin = admin;
         if (action) query.action = action;
@@ -152,16 +156,18 @@ export const exportLogs = async (req, res) => {
 // Get activity statistics
 export const getActivityStats = async (req, res) => {
     try {
-        const totalLogs = await ActivityLog.countDocuments();
+        const totalLogs = await ActivityLog.countDocuments({ brand: req.activeBrand });
 
         // Actions breakdown
         const actionStats = await ActivityLog.aggregate([
+            { $match: { brand: req.activeBrand } },
             { $group: { _id: '$action', count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);
 
         // Resource breakdown
         const resourceStats = await ActivityLog.aggregate([
+            { $match: { brand: req.activeBrand } },
             { $group: { _id: '$resource', count: { $sum: 1 } } },
             { $sort: { count: -1 } }
         ]);
@@ -170,11 +176,13 @@ export const getActivityStats = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayLogs = await ActivityLog.countDocuments({
+            brand: req.activeBrand,
             createdAt: { $gte: today }
         });
 
         // Most active admins
         const topAdmins = await ActivityLog.aggregate([
+            { $match: { brand: req.activeBrand } },
             { $group: { _id: '$admin', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 10 },

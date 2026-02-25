@@ -4,6 +4,11 @@ import logger from '../config/logger.js';
 class ActivityLogService {
     async log(req, data) {
         try {
+            // ONLY log actions performed by managers
+            if (req.user?.role !== 'manager') {
+                return;
+            }
+
             // Get admin ID from request user or from explicit data if provided (useful for login events)
             const adminId = req.user?._id || req.user?.id || req.user?.userId || data.adminId;
 
@@ -14,6 +19,7 @@ class ActivityLogService {
 
             const logEntry = new ActivityLog({
                 admin: adminId,
+                brand: req.activeBrand || data.brand,
                 action: data.action,
                 resource: data.resource,
                 resourceId: data.resourceId,
@@ -33,17 +39,23 @@ class ActivityLogService {
             const socketService = req.app.get('socketService');
 
             if (socketService) {
-                // Broadcast to admin role specifically
-                socketService.notifyRole('admin', 'activity-log:new', logObject);
-                // Also broadcast globally
-                socketService.broadcast('activity-log:new', logObject);
+                // Broadcast to admin role in specific brand if available
+                if (logObject.brand) {
+                    socketService.notifyBrandRole(logObject.brand, 'admin', 'activity-log:new', logObject);
+                } else {
+                    // Fallback to global admin role if brand missing
+                    socketService.notifyRole('admin', 'activity-log:new', logObject);
+                }
             }
             // Fallback to raw IO if service not available
             else {
                 const io = req.app.get('io');
                 if (io) {
-                    io.emit('activity-log:new', logObject);
-                    io.to('role:admin').emit('activity-log:new', logObject);
+                    if (logObject.brand) {
+                        io.to(SOCKET_ROOMS.brandRole(logObject.brand, 'admin')).emit('activity-log:new', logObject);
+                    } else {
+                        io.to(SOCKET_ROOMS.role('admin')).emit('activity-log:new', logObject);
+                    }
                 }
             }
 

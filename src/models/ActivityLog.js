@@ -6,6 +6,10 @@ const activityLogSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh']
+    },
     action: {
         type: String,
         required: true,
