@@ -1,5 +1,6 @@
 import Delivery from '../../models/Delivery.js';
 import User from '../../models/User.js';
+import Order from '../../models/Order.js';
 import logger from '../../config/logger.js';
 import activityLogService from '../../services/activityLogService.js';
 
@@ -11,7 +12,10 @@ export const getPayoutStats = async (req, res) => {
             status: 'delivered',
             isPaid: false
         };
-        if (brand) match.brand = brand;
+        if (brand) {
+            const filteredOrders = await Order.find({ brand }).select('_id');
+            match.orderId = { $in: filteredOrders.map(o => o._id) };
+        }
 
         const stats = await Delivery.aggregate([
             {
@@ -67,7 +71,10 @@ export const processPayout = async (req, res) => {
             status: 'delivered',
             isPaid: false
         };
-        if (brand) filter.brand = brand;
+        if (brand) {
+            const filteredOrders = await Order.find({ brand }).select('_id');
+            filter.orderId = { $in: filteredOrders.map(o => o._id) };
+        }
         const result = await Delivery.updateMany(
             filter,
             {

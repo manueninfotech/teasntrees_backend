@@ -241,16 +241,18 @@ export const updatePaymentStatus = async (req, res) => {
             });
         }
 
-        const order = await Order.findById(req.params.id);
+        const order = await Order.findByIdAndUpdate(
+            req.params.id,
+            { paymentStatus },
+            { new: true }
+        );
+
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        order.paymentStatus = paymentStatus;
-        await order.save();
-
         const io = req.app.get('io');
-        if (io) {
+        if (io && order.customerId) {
             io.to(SOCKET_ROOMS.user(order.customerId.toString()))
                 .emit('payment:status-updated', {
                     orderId: order._id,
@@ -273,6 +275,7 @@ export const updatePaymentStatus = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('[updatePaymentStatus ERROR]:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };

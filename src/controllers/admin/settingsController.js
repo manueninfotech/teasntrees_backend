@@ -1,4 +1,5 @@
 import Settings from '../../models/Settings.js';
+import Outlet from '../../models/Outlet.js';
 import activityLogService from '../../services/activityLogService.js';
 
 // Get application settings
@@ -175,6 +176,29 @@ export const updateDeliveryZones = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error updating delivery zones',
+            error: error.message
+        });
+    }
+};
+
+// Get all active outlets for filtering
+export const getOutlets = async (req, res) => {
+    try {
+        const query = { isActive: true };
+        if (req.activeBrand) query.brand = req.activeBrand;
+
+        const outlets = await Outlet.find(query)
+            .select('name location address brand')
+            .sort({ name: 1 });
+
+        res.status(200).json({
+            success: true,
+            data: outlets
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error fetching outlets',
             error: error.message
         });
     }
