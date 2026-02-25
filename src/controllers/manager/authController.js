@@ -179,6 +179,7 @@ const firebaseLogin = async (req, res) => {
             user = await Manager.create({
                 mobile,
                 role: 'manager',
+                brand: req.activeBrand,
                 isApproved: false // Default to false
             });
             logger.info('New manager registered via Firebase', { mobile, userId: user._id });
@@ -195,6 +196,20 @@ const firebaseLogin = async (req, res) => {
                     success: false,
                     message: 'Account is deactivated. Please contact support.'
                 });
+            }
+
+            // Check brand restriction
+            if (user.brand && user.brand !== req.activeBrand) {
+                return res.status(403).json({
+                    success: false,
+                    message: `This account is registered with ${user.brand === 'teasntrees' ? 'Teas N Trees' : 'LittleH'}. Please log in through the correct portal.`
+                });
+            }
+
+            // For existing managers who don't have a brand yet (unlikely since Manager had brand, but for safety)
+            if (!user.brand) {
+                user.brand = req.activeBrand;
+                await user.save();
             }
 
             // Auto-heal isProfileComplete flag

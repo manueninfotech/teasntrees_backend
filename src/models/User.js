@@ -59,6 +59,13 @@ const userSchema = new mongoose.Schema({
         enum: ['admin', 'customer', 'rider', 'manager'],
         required: true
     },
+    brand: {
+        type: String,
+        enum: ['teasntrees', 'littleh'],
+        required: function () {
+            return ['admin', 'manager'].includes(this.role);
+        }
+    },
 
     isProfileComplete: {
         type: Boolean,

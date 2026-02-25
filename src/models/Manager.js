@@ -8,12 +8,7 @@ const managerSchema = new mongoose.Schema({
         trim: true,
         default: 'Main'
     },
-    brand: {
-        type: String,
-        enum: ['teasntrees', 'littleh'],
-        default: 'teasntrees',
-        required: true
-    },
+
     shifts: [{
         day: String,
         startTime: String,
