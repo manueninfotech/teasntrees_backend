@@ -17,9 +17,25 @@ const cartItemSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    finalPrice: Number,
+    weight: Number,
+    isCustomized: {
+        type: Boolean,
+        default: false
+    },
+    isEggless: {
+        type: Boolean,
+        default: false
+    },
     customization: {
         type: String,
         default: ''
+    },
+    customizationDetails: {
+        cakeMessage: String,
+        colorTheme: String,
+        designDescription: String,
+        referenceImage: String
     },
     brand: {
         type: String,

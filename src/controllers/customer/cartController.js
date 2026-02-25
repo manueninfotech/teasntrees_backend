@@ -4,6 +4,7 @@
 import mongoose from 'mongoose';
 import Cart from '../../models/Cart.js';
 import Product from '../../models/Product.js';
+import Category from '../../models/Category.js';
 import Order from '../../models/Order.js';
 import Settings from '../../models/Settings.js';
 import Outlet from '../../models/Outlet.js';
@@ -11,6 +12,51 @@ import logger from '../../config/logger.js';
 import { geocodingService } from '../../services/geocodingService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
+import { isCakeCategoryName } from '../../utils/cakeUtils.js';
+
+const getCategoryNameFromProduct = async (product) => {
+    if (!product?.category) return '';
+    if (typeof product.category === 'object' && product.category.name) return product.category.name;
+    const category = await Category.findById(product.category).select('name').lean();
+    return category?.name || '';
+};
+
+const normalizeCakeCustomization = (customization) => {
+    const defaults = {
+        weight: 1,
+        isCustomized: false,
+        isEggless: false,
+        customizationDetails: {
+            cakeMessage: '',
+            colorTheme: '',
+            designDescription: '',
+            referenceImage: ''
+        }
+    };
+
+    if (!customization || typeof customization !== 'object') return defaults;
+
+    const weight = Number(customization.weight);
+    const details = customization.customizationDetails || {};
+
+    return {
+        weight: Number.isFinite(weight) && weight > 0 ? weight : 1,
+        isCustomized: Boolean(customization.isCustomized),
+        isEggless: Boolean(customization.isEggless),
+        customizationDetails: {
+            cakeMessage: details.cakeMessage || '',
+            colorTheme: details.colorTheme || '',
+            designDescription: details.designDescription || '',
+            referenceImage: details.referenceImage || ''
+        }
+    };
+};
+
+const buildCakeLabel = ({ weight, isCustomized, isEggless }) => {
+    const parts = [`${weight}kg`, isCustomized ? 'Customized' : 'Standard'];
+    if (isEggless) parts.push('Eggless');
+    return parts.join(' | ');
+};
 
 // Get customer's cart
 export const getCart = async (req, res) => {
@@ -18,7 +64,7 @@ export const getCart = async (req, res) => {
         const userId = req.user.userId;
 
         let cart = await Cart.findOne({ userId })
-            .populate('items.product', 'name description image price isAvailable brand');
+            .populate('items.product', 'name description image price sizeOptions cakePricing isAvailable brand category');
 
         // Create empty cart if doesn't exist
         if (!cart) {
@@ -85,25 +131,61 @@ export const addToCart = async (req, res) => {
             });
         }
 
-        // Check if product already in cart
-        const existingItemIndex = cart.items.findIndex(
-            item => item.product.toString() === productId && item.customization === customization
-        );
+        const categoryName = await getCategoryNameFromProduct(product);
+        const hasCakePricing =
+            product.cakePricing &&
+            product.cakePricing.basePricePerKg !== undefined &&
+            product.cakePricing.basePricePerKg !== null;
+        const isLittlehCake = product.brand === 'littleh' && isCakeCategoryName(categoryName);
 
-        if (existingItemIndex > -1) {
-            // Update quantity if item exists
-            cart.items[existingItemIndex].quantity += quantity;
+        let itemPrice = product.price;
+        let itemCustomizationLabel = typeof customization === 'string' ? customization : '';
+        let itemWeight = null;
+        let itemIsCustomized = false;
+        let itemIsEggless = false;
+        let itemCustomizationDetails = undefined;
+
+        if (isLittlehCake) {
+            const cakePricing = product.cakePricing || {};
+            const cakeConfig = normalizeCakeCustomization(customization);
+            const customizationEnabled =
+                cakePricing.customizationAvailable === true ||
+                (cakePricing.customizationPricePerKg !== undefined && cakePricing.customizationPricePerKg !== null);
+            if (cakeConfig.isCustomized && !customizationEnabled) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Customization is not available for this cake'
+                });
+            }
+            if (cakeConfig.isEggless && hasCakePricing && cakePricing.egglessAvailable === false) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Eggless option is not available for this cake'
+                });
+            }
+
+            const perKg = cakeConfig.isCustomized
+                ? (cakePricing.customizationPricePerKg ?? cakePricing.basePricePerKg ?? product.price ?? 0)
+                : (cakePricing.basePricePerKg ?? product.price ?? 0);
+
+            itemPrice = perKg * cakeConfig.weight;
+            if (cakeConfig.isEggless) {
+                itemPrice += (cakePricing.egglessExtraCharge ?? 100);
+            }
+
+            itemCustomizationLabel = buildCakeLabel(cakeConfig);
+            itemWeight = cakeConfig.weight;
+            itemIsCustomized = cakeConfig.isCustomized;
+            itemIsEggless = cakeConfig.isEggless;
+            itemCustomizationDetails = cakeConfig.customizationDetails;
         } else {
-            // Determine the correct price (base price or size-specific price)
-            let itemPrice = product.price;
-            if (customization && product.sizeOptions && product.sizeOptions.length > 0) {
-                const sizeOption = product.sizeOptions.find(opt => opt.size === customization);
+            if (itemCustomizationLabel && product.sizeOptions && product.sizeOptions.length > 0) {
+                const sizeOption = product.sizeOptions.find(opt => opt.size === itemCustomizationLabel);
                 if (sizeOption) {
                     itemPrice = sizeOption.price;
                 }
             }
 
-            // Fallback to displayPrice if price is still missing (virtual field logic replicated)
             if (itemPrice === undefined || itemPrice === null) {
                 if (product.sizeOptions && product.sizeOptions.length > 0) {
                     itemPrice = Math.min(...product.sizeOptions.map(opt => opt.price));
@@ -111,20 +193,37 @@ export const addToCart = async (req, res) => {
                     itemPrice = product.price || 0;
                 }
             }
+        }
 
-            // Add new item
+        // Check if product already in cart
+        const existingItemIndex = cart.items.findIndex(item =>
+            item.product.toString() === productId &&
+            item.customization === itemCustomizationLabel &&
+            (item.weight || null) === (itemWeight || null) &&
+            Boolean(item.isCustomized) === Boolean(itemIsCustomized) &&
+            Boolean(item.isEggless) === Boolean(itemIsEggless)
+        );
+
+        if (existingItemIndex > -1) {
+            cart.items[existingItemIndex].quantity += quantity;
+        } else {
             cart.items.push({
                 product: productId,
                 name: product.name,
                 quantity,
                 price: itemPrice,
-                customization,
+                finalPrice: itemPrice,
+                customization: itemCustomizationLabel,
+                weight: itemWeight,
+                isCustomized: itemIsCustomized,
+                isEggless: itemIsEggless,
+                customizationDetails: itemCustomizationDetails,
                 brand: product.brand || 'teasntrees'
             });
         }
 
         await cart.save();
-        await cart.populate('items.product', 'name description image price isAvailable brand');
+        await cart.populate('items.product', 'name description image price sizeOptions cakePricing isAvailable brand category');
 
         logger.info('Item added to cart', {
             userId,
@@ -344,7 +443,12 @@ export const checkoutCart = async (req, res) => {
                     name: item.product.name,
                     quantity: item.quantity,
                     price: item.price,
-                    customization: item.customization
+                    finalPrice: item.finalPrice || item.price,
+                    weight: item.weight,
+                    isCustomized: Boolean(item.isCustomized),
+                    isEggless: Boolean(item.isEggless),
+                    customization: item.customization,
+                    customizationDetails: item.customizationDetails
                 });
                 brandsGrouped[brand].subtotal += (item.price * item.quantity);
             }
