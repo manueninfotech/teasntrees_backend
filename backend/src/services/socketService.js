@@ -29,6 +29,16 @@ export class SocketService {
     }
 
     /**
+     * Notify all users of a specific role in a specific brand
+     */
+    notifyBrandRole(brand, role, event, data) {
+        this.io.to(SOCKET_ROOMS.brandRole(brand, role)).emit(event, {
+            ...data,
+            timestamp: new Date()
+        });
+    }
+
+    /**
      * Notify all participants in an order
      */
     notifyOrder(orderId, event, data) {
