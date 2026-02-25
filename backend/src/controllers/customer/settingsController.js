@@ -3,11 +3,12 @@ import Settings from '../../models/Settings.js';
 // Get public application settings
 export const getPublicSettings = async (req, res) => {
     try {
-        let settings = await Settings.findOne();
+        let settings = await Settings.findOne({ brand: req.activeBrand });
 
         // Create default settings if none exist
         if (!settings) {
             settings = await Settings.create({
+                brand: req.activeBrand,
                 deliveryCharge: 20,
                 maxDeliveryDistance: 10,
                 taxRate: 5,
