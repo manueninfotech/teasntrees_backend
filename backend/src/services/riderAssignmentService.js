@@ -153,6 +153,7 @@ class RiderAssignmentService {
             try {
                 const delivery = await Delivery.create({
                     ...deliveryData,
+                    brand: deliveryData.brand || order.brand || "teasntrees",
                     riderId: rider._id,
                     status: "pending_acceptance",
                     assignedAt: new Date()
@@ -224,6 +225,7 @@ class RiderAssignmentService {
                     throw new Error('Cannot reassign rider for a terminal delivery');
                 }
                 delivery.riderId = rider._id;
+                delivery.brand = order.brand || delivery.brand || 'teasntrees';
                 delivery.status = 'pending_acceptance';
                 delivery.assignedAt = new Date();
                 await delivery.save();
@@ -250,6 +252,7 @@ class RiderAssignmentService {
 
             const deliveryData = {
                 orderId: order._id,
+                brand: order.brand || 'teasntrees',
                 riderId: rider._id,
                 customerId: order.customerId,
                 pickupLocation: {
@@ -318,6 +321,7 @@ class RiderAssignmentService {
                     io,
                     {
                         orderId: order._id,
+                        brand: order.brand || 'teasntrees',
                         customerId: order.customerId,
                         pickupLocation: {
                             type: 'Point',

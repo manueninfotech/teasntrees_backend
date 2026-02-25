@@ -31,11 +31,11 @@ const Payouts = () => {
         queryFn: async () => {
             const response = await api.get('/admin/payouts/stats');
             const data = response.data.data || [];
-            localStorage.setItem('payouts-stats-cache', JSON.stringify(data));
+            localStorage.setItem(`payouts-stats-cache-${urlBrand || 'all'}`, JSON.stringify(data));
             return data;
         },
         initialData: () => {
-            const cached = localStorage.getItem('payouts-stats-cache');
+            const cached = localStorage.getItem(`payouts-stats-cache-${urlBrand || 'all'}`);
             return cached ? JSON.parse(cached) : undefined;
         },
         placeholderData: (previousData) => previousData,
