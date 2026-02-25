@@ -261,6 +261,7 @@ const firebaseLogin = async (req, res) => {
             user = await User.create({
                 mobile,
                 role: 'admin',
+                brand: req.activeBrand,
                 isProfileComplete: false
             });
             logger.info('New admin registered via Firebase', { mobile, userId: user._id });
@@ -277,6 +278,20 @@ const firebaseLogin = async (req, res) => {
                     success: false,
                     message: 'Account is deactivated. Please contact support.'
                 });
+            }
+
+            // Check brand restriction
+            if (user.brand && user.brand !== req.activeBrand) {
+                return res.status(403).json({
+                    success: false,
+                    message: `This account is registered with ${user.brand === 'teasntrees' ? 'Teas N Trees' : 'LittleH'}. Please log in through the correct portal.`
+                });
+            }
+
+            // For existing admins who don't have a brand yet (from migration period), assign it now
+            if (!user.brand) {
+                user.brand = req.activeBrand;
+                await user.save();
             }
 
             // Auto-heal isProfileComplete flag

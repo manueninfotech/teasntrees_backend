@@ -21,15 +21,31 @@ export default function Login() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Initialize reCAPTCHA
-        if (!window.recaptchaVerifier) {
-            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'send-otp-button', {
+        // Initialize reCAPTCHA on mount
+        const initRecaptcha = () => {
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+            }
+            window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                 'size': 'invisible',
                 'callback': (response) => {
                     // reCAPTCHA solved
+                },
+                'expired-callback': () => {
+                    // Handler for expired reCAPTCHA
+                    initRecaptcha();
                 }
             });
-        }
+        };
+
+        initRecaptcha();
+
+        return () => {
+            if (window.recaptchaVerifier) {
+                window.recaptchaVerifier.clear();
+                window.recaptchaVerifier = null;
+            }
+        };
     }, []);
 
     const sendOTP = async (e) => {
@@ -149,7 +165,6 @@ export default function Login() {
 
                         <button
                             type="submit"
-                            id="send-otp-button"
                             disabled={loading || mobile.length !== 10}
                             className="btn-primary w-full py-3 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                         >
@@ -167,6 +182,9 @@ export default function Login() {
                         </button>
                     </form>
                 )}
+
+                {/* Hidden container for reCAPTCHA */}
+                <div id="recaptcha-container"></div>
 
                 {/* Step 2: OTP Verification */}
                 {step === 'otp' && (
