@@ -296,11 +296,12 @@ class RiderAssignmentService {
             logger.info(`[RiderAssignment] Scanning ${pendingOrders.length} waiting orders...`);
 
             const Settings = mongoose.model('Settings');
-            const settings = (await Settings.findOne()) || {};
-            const base = settings.riderBaseEarning || 20;
-            const rate = settings.distanceBonusPerKm || 5;
 
             for (const order of pendingOrders) {
+                const settings = (await Settings.findOne({ brand: order.brand || 'teasntrees' })) || {};
+                const base = settings.riderBaseEarning || 20;
+                const rate = settings.distanceBonusPerKm || 5;
+
                 const coords = order.deliveryAddress?.location?.coordinates;
                 if (!coords || coords.length !== 2) continue;
 

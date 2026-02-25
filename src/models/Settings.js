@@ -91,6 +91,9 @@ const settingsSchema = new mongoose.Schema({
     }
 }, {
     timestamps: true
-})
+});
+
+// Ensure only one settings document per brand
+settingsSchema.index({ brand: 1 }, { unique: true });
 
 export default mongoose.model('Settings', settingsSchema);

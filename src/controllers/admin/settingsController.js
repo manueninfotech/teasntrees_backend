@@ -5,10 +5,11 @@ import activityLogService from '../../services/activityLogService.js';
 // Get application settings
 export const getSettings = async (req, res) => {
     try {
-        let settings = await Settings.findOne();
+        let settings = await Settings.findOne({ brand: req.activeBrand });
         // create default settings if none exist
         if (!settings) {
             settings = await Settings.create({
+                brand: req.activeBrand,
                 deliveryCharge: 20,
                 maxDeliveryDistance: 10,
                 gstRate: 5,
@@ -46,11 +47,11 @@ export const updateSettings = async (req, res) => {
             socialMedia
         } = req.body;
 
-        let settings = await Settings.findOne();
+        let settings = await Settings.findOne({ brand: req.activeBrand });
 
         if (!settings) {
             // Create new settings if none exist
-            settings = await Settings.create(req.body);
+            settings = await Settings.create({ ...req.body, brand: req.activeBrand });
         } else {
             // Update existing settings
             if (deliveryCharge !== undefined) settings.deliveryCharge = deliveryCharge;
@@ -104,7 +105,7 @@ export const updateSettings = async (req, res) => {
 // Get delivery zones (mapped to serviceAreas)
 export const getDeliveryZones = async (req, res) => {
     try {
-        const settings = await Settings.findOne();
+        const settings = await Settings.findOne({ brand: req.activeBrand });
         if (!settings || !settings.serviceAreas) {
             return res.status(200).json({
                 success: true,
@@ -136,10 +137,10 @@ export const updateDeliveryZones = async (req, res) => {
             });
         }
 
-        let settings = await Settings.findOne();
+        let settings = await Settings.findOne({ brand: req.activeBrand });
 
         if (!settings) {
-            settings = await Settings.create({ serviceAreas });
+            settings = await Settings.create({ serviceAreas, brand: req.activeBrand });
         } else {
             settings.serviceAreas = serviceAreas;
             await settings.save();

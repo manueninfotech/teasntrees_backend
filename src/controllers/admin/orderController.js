@@ -156,7 +156,7 @@ export const updateOrderStatus = async (req, res) => {
                     coords[0]
                 );
 
-                const settings = (await Settings.findOne()) || {};
+                const settings = (await Settings.findOne({ brand: order.brand })) || {};
                 const base = settings.riderBaseEarning || 20;
                 const rate = settings.distanceBonusPerKm || 5;
 

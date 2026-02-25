@@ -358,9 +358,6 @@ export const checkoutCart = async (req, res) => {
             });
         }
 
-        const settings = await Settings.findOne();
-        const deliveryChargePerOrder = settings ? settings.deliveryCharge : 50;
-        const gstRate = settings ? settings.gstRate : 5;
 
         // --- NEW: Atomic Geocoding ---
         let finalizedAddress = {
@@ -397,6 +394,10 @@ export const checkoutCart = async (req, res) => {
         let grandTotalAllOrders = 0;
 
         for (const [brand, group] of Object.entries(brandsGrouped)) {
+            const settings = await Settings.findOne({ brand });
+            const deliveryChargePerOrder = settings ? settings.deliveryCharge : 50;
+            const gstRate = settings ? settings.gstRate : 5;
+
             const outlet = outlets.find(o => o.brand === brand);
             const tax = group.subtotal * (gstRate / 100);
             const orderTotal = group.subtotal + deliveryChargePerOrder + tax;
