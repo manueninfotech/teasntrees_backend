@@ -33,7 +33,11 @@ export const CartProvider = ({ children }) => {
                     if (cartItems.length > 0) {
                         for (const item of cartItems) {
                             try {
-                                await cartService.addToCart(item.id, item.quantity, item.size);
+                                await cartService.addToCart(
+                                    item.id,
+                                    item.quantity,
+                                    item.customizationPayload || item.size
+                                );
                             } catch (err) {
                                 console.error("Failed to sync item", item.name);
                             }
@@ -69,6 +73,13 @@ export const CartProvider = ({ children }) => {
         image: serverItem.product.image,
         price: serverItem.price,
         size: serverItem.customization,
+        customizationPayload: serverItem.weight ? {
+            type: 'cake',
+            weight: serverItem.weight,
+            isCustomized: Boolean(serverItem.isCustomized),
+            isEggless: Boolean(serverItem.isEggless),
+            customizationDetails: serverItem.customizationDetails || {}
+        } : null,
         quantity: serverItem.quantity,
         description: serverItem.product.description,
         isAvailable: serverItem.product.isAvailable,
@@ -76,9 +87,28 @@ export const CartProvider = ({ children }) => {
     });
 
     // Add Item
-    const addToCart = async (product, sizeOption = null) => {
-        const sizeLabel = sizeOption ? sizeOption.size : '';
-        const price = sizeOption ? sizeOption.price : (product.displayPrice || product.price);
+    const addToCart = async (product, selectedOption = null) => {
+        const isCakeOption = selectedOption?.type === 'cake';
+        const sizeLabel = isCakeOption
+            ? `${selectedOption.weight}kg${selectedOption.isCustomized ? ' | Customized' : ''}${selectedOption.isEggless ? ' | Eggless' : ''}`
+            : (selectedOption ? selectedOption.size : '');
+        const price = isCakeOption
+            ? (() => {
+                const perKg = selectedOption.isCustomized
+                    ? (product.cakePricing?.customizationPricePerKg ?? product.cakePricing?.basePricePerKg ?? 0)
+                    : (product.cakePricing?.basePricePerKg ?? 0);
+                const eggless = selectedOption.isEggless ? (product.cakePricing?.egglessExtraCharge ?? 100) : 0;
+                return perKg * selectedOption.weight + eggless;
+            })()
+            : (selectedOption ? selectedOption.price : (product.displayPrice || product.price));
+        const customizationPayload = isCakeOption
+            ? {
+                weight: selectedOption.weight,
+                isCustomized: selectedOption.isCustomized,
+                isEggless: selectedOption.isEggless,
+                customizationDetails: selectedOption.customizationDetails || {}
+            }
+            : sizeLabel;
 
         // Optimistic Update
         const newItem = {
@@ -88,6 +118,7 @@ export const CartProvider = ({ children }) => {
             image: product.image,
             price: price,
             size: sizeLabel,
+            customizationPayload,
             quantity: 1,
             description: product.description,
             isAvailable: true,
@@ -96,7 +127,7 @@ export const CartProvider = ({ children }) => {
 
         if (isAuthenticated) {
             try {
-                const response = await cartService.addToCart(product._id, 1, sizeLabel);
+                const response = await cartService.addToCart(product._id, 1, customizationPayload);
                 if (response.success && response.data) {
                     setCartItems(response.data.items.map(mapServerItemToUI));
                     setIsCartOpen(true);
@@ -104,7 +135,7 @@ export const CartProvider = ({ children }) => {
                 }
             } catch (error) {
                 console.error("Add to cart failed", error);
-                toast.error("Failed to add to cart");
+                toast.error(error.response?.data?.message || "Failed to add to cart");
             }
         } else {
             // Local Logic
@@ -197,7 +228,11 @@ export const CartProvider = ({ children }) => {
                     product: item.id,
                     quantity: item.quantity,
                     price: item.price,
-                    customization: item.size || ''
+                    customization: item.size || '',
+                    weight: item.customizationPayload?.weight,
+                    isCustomized: item.customizationPayload?.isCustomized,
+                    isEggless: item.customizationPayload?.isEggless,
+                    customizationDetails: item.customizationPayload?.customizationDetails || null
                 }))
             };
 

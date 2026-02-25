@@ -4,6 +4,43 @@ import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../..
 import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
 import { statsService } from "../../services/statsService.js";
 import activityLogService from '../../services/activityLogService.js';
+import { isLittlehCakeCategory } from '../../utils/cakeUtils.js';
+
+const parseNumberOrNull = (value) => {
+    if (value === '' || value === undefined || value === null) return null;
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+};
+
+const parseBoolean = (value, defaultValue = false) => {
+    if (value === undefined || value === null || value === '') return defaultValue;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        const lowered = value.trim().toLowerCase();
+        if (lowered === 'true') return true;
+        if (lowered === 'false') return false;
+    }
+    return Boolean(value);
+};
+
+const normalizeCakePricing = (rawCakePricing = {}) => {
+    let input = rawCakePricing || {};
+    if (typeof rawCakePricing === 'string') {
+        try {
+            input = JSON.parse(rawCakePricing);
+        } catch (error) {
+            throw new Error('Invalid cakePricing payload');
+        }
+    }
+
+    return {
+        basePricePerKg: parseNumberOrNull(input.basePricePerKg),
+        customizationAvailable: parseBoolean(input.customizationAvailable, false),
+        customizationPricePerKg: parseNumberOrNull(input.customizationPricePerKg),
+        egglessAvailable: parseBoolean(input.egglessAvailable, true),
+        egglessExtraCharge: parseNumberOrNull(input.egglessExtraCharge) ?? 100
+    };
+};
 
 // Get all products
 export const getAllProducts = async (req, res) => {
@@ -110,6 +147,7 @@ export const createProduct = async (req, res) => {
             description,
             category,
             price,
+            cakePricing,
             image,
             isAvailable,
             preparationTime,
@@ -133,6 +171,47 @@ export const createProduct = async (req, res) => {
             });
         }
 
+        const isLittlehCake = isLittlehCakeCategory({
+            brand: brand || 'teasntrees',
+            categoryName: categoryExists.name
+        });
+
+        const normalizedPrice = parseNumberOrNull(price);
+        const normalizedCakePricing = normalizeCakePricing(cakePricing);
+        const hasSizeOptions = Array.isArray(sizeOptions) && sizeOptions.length > 0;
+        const hasCakePricing = normalizedCakePricing.basePricePerKg !== null;
+
+        if (isLittlehCake) {
+            if (!hasCakePricing) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'For littleh cakes, cakePricing.basePricePerKg is required'
+                });
+            }
+            if (normalizedPrice !== null || hasSizeOptions) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Littleh cakes must use only cakePricing. price/sizeOptions are not allowed'
+                });
+            }
+            if (normalizedCakePricing.customizationAvailable && normalizedCakePricing.customizationPricePerKg === null) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'customizationPricePerKg is required when customizationAvailable is enabled'
+                });
+            }
+            if (!normalizedCakePricing.customizationAvailable) {
+                normalizedCakePricing.customizationPricePerKg = null;
+            }
+        } else {
+            if (hasCakePricing) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'cakePricing is allowed only for littleh cake categories'
+                });
+            }
+        }
+
         // Handle image upload
         let productImage = image; // Default to string URL from body
         if (req.file) {
@@ -146,7 +225,8 @@ export const createProduct = async (req, res) => {
             description,
             brand: brand || 'teasntrees',
             category,
-            price: price || 0,
+            price: normalizedPrice,
+            cakePricing: hasCakePricing ? normalizedCakePricing : undefined,
             image: productImage,
             isAvailable,
             preparationTime,
@@ -213,15 +293,17 @@ export const updateProduct = async (req, res) => {
                 message: 'Product not found'
             });
         }
-        // If category is being updated, verify it exists
+        let targetCategory = null;
         if (req.body.category && req.body.category !== product.category.toString()) {
-            const categoryExists = await Category.findById(req.body.category);
-            if (!categoryExists) {
+            targetCategory = await Category.findById(req.body.category);
+            if (!targetCategory) {
                 return res.status(404).json({
                     success: false,
                     message: 'Category not found'
                 });
             }
+        } else {
+            targetCategory = await Category.findById(product.category).select('name');
         }
 
         // Handle image upload/update
@@ -243,6 +325,69 @@ export const updateProduct = async (req, res) => {
         } else if (req.body.image) {
             // If image URL is provided in body (already uploaded to Cloudinary via frontend)
             product.image = req.body.image;
+        }
+
+        const incomingPrice = Object.prototype.hasOwnProperty.call(req.body, 'price')
+            ? parseNumberOrNull(req.body.price)
+            : product.price;
+        const incomingSizeOptions = Object.prototype.hasOwnProperty.call(req.body, 'sizeOptions')
+            ? req.body.sizeOptions
+            : product.sizeOptions;
+        const incomingCakePricing = Object.prototype.hasOwnProperty.call(req.body, 'cakePricing')
+            ? normalizeCakePricing(req.body.cakePricing)
+            : (product.cakePricing || {});
+
+        const hasPrice = incomingPrice !== null && incomingPrice !== undefined;
+        const hasSizeOptions = Array.isArray(incomingSizeOptions) && incomingSizeOptions.length > 0;
+        const hasCakePricing = incomingCakePricing.basePricePerKg !== null && incomingCakePricing.basePricePerKg !== undefined;
+        const pricingModesUsed = [hasPrice, hasSizeOptions, hasCakePricing].filter(Boolean).length;
+
+        const isLittlehCake = isLittlehCakeCategory({
+            brand: product.brand,
+            categoryName: targetCategory?.name || ''
+        });
+
+        if (isLittlehCake) {
+            if (!hasCakePricing) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'For littleh cakes, cakePricing.basePricePerKg is required'
+                });
+            }
+            if (hasPrice || hasSizeOptions) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Littleh cakes must use only cakePricing. price/sizeOptions are not allowed'
+                });
+            }
+            if (incomingCakePricing.customizationAvailable && (incomingCakePricing.customizationPricePerKg === null || incomingCakePricing.customizationPricePerKg === undefined)) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'customizationPricePerKg is required when customizationAvailable is enabled'
+                });
+            }
+            if (!incomingCakePricing.customizationAvailable) {
+                incomingCakePricing.customizationPricePerKg = null;
+            }
+        } else if (hasCakePricing) {
+            return res.status(400).json({
+                success: false,
+                message: 'cakePricing is allowed only for littleh cake categories'
+            });
+        }
+
+        if (pricingModesUsed !== 1) {
+            return res.status(400).json({
+                success: false,
+                message: 'Product must use exactly one pricing mode'
+            });
+        }
+
+        if (Object.prototype.hasOwnProperty.call(req.body, 'price')) {
+            req.body.price = incomingPrice;
+        }
+        if (Object.prototype.hasOwnProperty.call(req.body, 'cakePricing')) {
+            req.body.cakePricing = hasCakePricing ? incomingCakePricing : undefined;
         }
 
         // update other fields

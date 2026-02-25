@@ -18,8 +18,32 @@ export const validateCreateProduct = [
         .isMongoId().withMessage('Invalid category ID'),
 
     body('price')
-        .optional()
+        .optional({ nullable: true })
         .isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+
+    body('cakePricing')
+        .optional({ nullable: true })
+        .isObject().withMessage('cakePricing must be an object'),
+
+    body('cakePricing.basePricePerKg')
+        .optional({ nullable: true })
+        .isFloat({ min: 0 }).withMessage('basePricePerKg must be a positive number'),
+
+    body('cakePricing.customizationAvailable')
+        .optional()
+        .isBoolean().withMessage('customizationAvailable must be a boolean'),
+
+    body('cakePricing.customizationPricePerKg')
+        .optional({ nullable: true })
+        .isFloat({ min: 0 }).withMessage('customizationPricePerKg must be a positive number'),
+
+    body('cakePricing.egglessAvailable')
+        .optional()
+        .isBoolean().withMessage('egglessAvailable must be a boolean'),
+
+    body('cakePricing.egglessExtraCharge')
+        .optional({ nullable: true })
+        .isFloat({ min: 0 }).withMessage('egglessExtraCharge must be a positive number'),
 
     body('image')
         .optional()
@@ -97,8 +121,32 @@ export const validateUpdateProduct = [
         .isMongoId().withMessage('Invalid category ID'),
 
     body('price')
-        .optional()
+        .optional({ nullable: true })
         .isFloat({ min: 0 }).withMessage('Price must be a positive number'),
+
+    body('cakePricing')
+        .optional({ nullable: true })
+        .isObject().withMessage('cakePricing must be an object'),
+
+    body('cakePricing.basePricePerKg')
+        .optional({ nullable: true })
+        .isFloat({ min: 0 }).withMessage('basePricePerKg must be a positive number'),
+
+    body('cakePricing.customizationAvailable')
+        .optional()
+        .isBoolean().withMessage('customizationAvailable must be a boolean'),
+
+    body('cakePricing.customizationPricePerKg')
+        .optional({ nullable: true })
+        .isFloat({ min: 0 }).withMessage('customizationPricePerKg must be a positive number'),
+
+    body('cakePricing.egglessAvailable')
+        .optional()
+        .isBoolean().withMessage('egglessAvailable must be a boolean'),
+
+    body('cakePricing.egglessExtraCharge')
+        .optional({ nullable: true })
+        .isFloat({ min: 0 }).withMessage('egglessExtraCharge must be a positive number'),
 
     body('image')
         .optional()

@@ -25,6 +25,30 @@ const productSchema = new mongoose.Schema(
       min: 0
     },
 
+    cakePricing: {
+      basePricePerKg: {
+        type: Number,
+        min: 0
+      },
+      customizationAvailable: {
+        type: Boolean,
+        default: false
+      },
+      customizationPricePerKg: {
+        type: Number,
+        min: 0
+      },
+      egglessAvailable: {
+        type: Boolean,
+        default: true
+      },
+      egglessExtraCharge: {
+        type: Number,
+        min: 0,
+        default: 100
+      }
+    },
+
     // Brand is important for multi‑outlet support.  stored as a simple string
     // with an enum of the two brands used by the app.  controllers already pass
     // this value but the schema didn’t enforce it previously.
@@ -155,6 +179,9 @@ const productSchema = new mongoose.Schema(
 // - Else → product price
 //
 productSchema.virtual('displayPrice').get(function () {
+  if (this.cakePricing?.basePricePerKg !== undefined && this.cakePricing?.basePricePerKg !== null) {
+    return this.cakePricing.basePricePerKg;
+  }
   if (this.sizeOptions && this.sizeOptions.length > 0) {
     return Math.min(...this.sizeOptions.map(option => option.price));
   }
@@ -169,13 +196,26 @@ productSchema.virtual('displayPrice').get(function () {
 productSchema.pre('validate', function () {
   const hasPrice = this.price !== undefined && this.price !== null;
   const hasSizeOptions = this.sizeOptions && this.sizeOptions.length > 0;
+  const hasCakePricing = this.cakePricing &&
+    this.cakePricing.basePricePerKg !== undefined &&
+    this.cakePricing.basePricePerKg !== null;
 
-  if (!hasPrice && !hasSizeOptions) {
-    throw new Error('Product must have either a price or sizeOptions');
+  const pricingModesUsed = [hasPrice, hasSizeOptions, hasCakePricing].filter(Boolean).length;
+
+  if (this.brand !== 'littleh' && hasCakePricing) {
+    throw new Error('cakePricing is only supported for littleh cake products');
   }
 
-  if (hasPrice && hasSizeOptions) {
-    throw new Error('Product cannot have both price and sizeOptions');
+  if (pricingModesUsed === 0) {
+    throw new Error('Product must have one pricing mode: price, sizeOptions, or cakePricing');
+  }
+
+  if (pricingModesUsed > 1) {
+    throw new Error('Product cannot have multiple pricing modes');
+  }
+
+  if (hasCakePricing && this.cakePricing?.customizationAvailable !== true) {
+    this.cakePricing.customizationPricePerKg = null;
   }
 
   // if image field is empty/undefined/null we want to populate the brand

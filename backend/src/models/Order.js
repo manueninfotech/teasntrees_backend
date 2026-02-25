@@ -70,7 +70,23 @@ const orderSchema = new mongoose.Schema(
             name: String,
             quantity: Number,
             price: Number,
-            customization: String
+            finalPrice: Number,
+            weight: Number,
+            isCustomized: {
+                type: Boolean,
+                default: false
+            },
+            isEggless: {
+                type: Boolean,
+                default: false
+            },
+            customization: String,
+            customizationDetails: {
+                cakeMessage: String,
+                colorTheme: String,
+                designDescription: String,
+                referenceImage: String
+            }
         }],
 
         subtotal: Number,

@@ -6,6 +6,14 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useBrand } from '../context/BrandContext';
 import { Sparkles } from 'lucide-react';
+import api from '../services/api';
+
+const isCakeCategoryName = (name = '') => {
+    const normalized = String(name).trim().toLowerCase();
+    const compact = normalized.replace(/[\s_-]/g, '');
+    if (compact.includes('pancake')) return false;
+    return /\b(cake|cakes|cheesecake|cheesecakes)\b/.test(normalized);
+};
 
 const MenuCard = ({ product }) => {
     const { addToCart } = useCart();
@@ -13,6 +21,13 @@ const MenuCard = ({ product }) => {
     const { theme } = useBrand();
 
     const isWishlisted = isInWishlist(product._id);
+    const isLittlehCakeProduct =
+        theme.isLittleH &&
+        product.brand === 'littleh' &&
+        isCakeCategoryName(product.category?.name || '');
+    const hasCakeCustomization =
+        product.cakePricing?.customizationAvailable === true ||
+        (product.cakePricing?.customizationPricePerKg !== undefined && product.cakePricing?.customizationPricePerKg !== null);
 
     // Size Selection State
     // Default to the first size option if available, or null
@@ -24,9 +39,25 @@ const MenuCard = ({ product }) => {
         }
         return null; // Product has no size variations
     });
+    const [cakeWeight, setCakeWeight] = useState(1);
+    const [cakeCustomized, setCakeCustomized] = useState(false);
+    const [cakeEggless, setCakeEggless] = useState(false);
+    const [cakeMessage, setCakeMessage] = useState('');
+    const [cakeColorTheme, setCakeColorTheme] = useState('');
+    const [cakeDesignDescription, setCakeDesignDescription] = useState('');
+    const [cakeReferenceImage, setCakeReferenceImage] = useState('');
+    const [cakeReferenceFile, setCakeReferenceFile] = useState(null);
+    const [isUploadingCakeRef, setIsUploadingCakeRef] = useState(false);
 
     // Pricing Logic
     const getDisplayPrice = () => {
+        if (isLittlehCakeProduct) {
+            const perKg = (hasCakeCustomization && cakeCustomized)
+                ? (product.cakePricing?.customizationPricePerKg ?? product.cakePricing?.basePricePerKg ?? product.price ?? 0)
+                : (product.cakePricing?.basePricePerKg ?? product.price ?? 0);
+            const eggless = cakeEggless ? (product.cakePricing?.egglessExtraCharge ?? 100) : 0;
+            return (perKg * cakeWeight) + eggless;
+        }
         if (selectedSize) return selectedSize.price;
         if (product.displayPrice) return product.displayPrice;
         if (product.price !== undefined && product.price !== null) return product.price;
@@ -60,8 +91,41 @@ const MenuCard = ({ product }) => {
         return "bg-white/90 backdrop-blur-md text-slate-700 border-slate-100";
     };
 
-    const handleAddToCart = (e) => {
+    const handleAddToCart = async (e) => {
         e.stopPropagation(); // Prevent card click
+        if (isLittlehCakeProduct) {
+            let referenceImageUrl = cakeReferenceImage;
+            if (cakeReferenceFile) {
+                setIsUploadingCakeRef(true);
+                try {
+                    const formData = new FormData();
+                    formData.append('image', cakeReferenceFile);
+                    const response = await api.post('/customer/upload/image?folder=cake-designs', formData, {
+                        headers: { 'Content-Type': 'multipart/form-data' }
+                    });
+                    referenceImageUrl = response.data?.data?.url || '';
+                } catch (uploadError) {
+                    console.error('Failed to upload cake reference image', uploadError);
+                } finally {
+                    setIsUploadingCakeRef(false);
+                }
+            }
+
+            await addToCart(product, {
+                type: 'cake',
+                weight: cakeWeight,
+                isCustomized: hasCakeCustomization ? cakeCustomized : false,
+                isEggless: cakeEggless,
+                customizationDetails: {
+                    cakeMessage,
+                    colorTheme: cakeColorTheme,
+                    designDescription: cakeDesignDescription,
+                    referenceImage: referenceImageUrl
+                }
+            });
+            return;
+        }
+
         addToCart(product, selectedSize);
     };
 
@@ -143,7 +207,82 @@ const MenuCard = ({ product }) => {
                     </p>
 
                     {/* Size Selection */}
-                    {product.sizeOptions?.length > 0 && (
+                    {isLittlehCakeProduct && (
+                        <div className="mt-6 pt-6 border-t border-[#8B8E7B]/10 space-y-3">
+                            <div className="text-[10px] uppercase tracking-widest text-[#8B8E7B]">Cake Weight</div>
+                            <div className="flex flex-wrap gap-2">
+                                {[0.5, 1, 1.5, 2].map(weight => (
+                                    <button
+                                        key={weight}
+                                        onClick={(e) => { e.stopPropagation(); setCakeWeight(weight); }}
+                                        className={cn(
+                                            "text-xs px-4 py-2 border transition-all duration-300 font-medium",
+                                            cakeWeight === weight
+                                                ? "bg-[#565A47] text-[#FAF1E8] border-[#565A47]"
+                                                : "bg-transparent text-[#565A47] border-[#8B8E7B]/30 hover:border-[#565A47]"
+                                        )}
+                                    >
+                                        {weight} kg
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="flex gap-2">
+                                {hasCakeCustomization && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setCakeCustomized(prev => !prev); }}
+                                        className={cn("text-xs px-4 py-2 border transition-all duration-300 font-medium", cakeCustomized ? "bg-[#565A47] text-[#FAF1E8] border-[#565A47]" : "bg-transparent text-[#565A47] border-[#8B8E7B]/30")}
+                                    >
+                                        Customized
+                                    </button>
+                                )}
+                                {product.cakePricing?.egglessAvailable !== false && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setCakeEggless(prev => !prev); }}
+                                        className={cn("text-xs px-4 py-2 border transition-all duration-300 font-medium", cakeEggless ? "bg-[#565A47] text-[#FAF1E8] border-[#565A47]" : "bg-transparent text-[#565A47] border-[#8B8E7B]/30")}
+                                    >
+                                        Eggless
+                                    </button>
+                                )}
+                            </div>
+
+                            {hasCakeCustomization && cakeCustomized && (
+                                <div className="space-y-2">
+                                    <input
+                                        type="text"
+                                        value={cakeMessage}
+                                        onChange={(e) => setCakeMessage(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder="Cake message"
+                                        className="w-full px-3 py-2 text-xs border border-[#8B8E7B]/30 bg-white"
+                                    />
+                                    <input
+                                        type="text"
+                                        value={cakeColorTheme}
+                                        onChange={(e) => setCakeColorTheme(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder="Color theme"
+                                        className="w-full px-3 py-2 text-xs border border-[#8B8E7B]/30 bg-white"
+                                    />
+                                    <textarea
+                                        value={cakeDesignDescription}
+                                        onChange={(e) => setCakeDesignDescription(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        placeholder="Design description"
+                                        className="w-full px-3 py-2 text-xs border border-[#8B8E7B]/30 bg-white min-h-[70px]"
+                                    />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onClick={(e) => e.stopPropagation()}
+                                        onChange={(e) => setCakeReferenceFile(e.target.files?.[0] || null)}
+                                        className="w-full text-xs"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {!isLittlehCakeProduct && product.sizeOptions?.length > 0 && (
                         <div className="mt-6 pt-6 border-t border-[#8B8E7B]/10">
                             <div className="text-[10px] uppercase tracking-widest text-[#8B8E7B] mb-3">Select Portion</div>
                             <div className="flex flex-wrap gap-2">
@@ -168,9 +307,10 @@ const MenuCard = ({ product }) => {
                     {/* Add to Cart Button */}
                     <button
                         onClick={handleAddToCart}
+                        disabled={isUploadingCakeRef}
                         className="mt-6 w-full py-4 border border-[#565A47] text-[#565A47] group-hover:bg-[#565A47] group-hover:text-[#FAF1E8] transition-all duration-500 uppercase tracking-widest text-xs font-bold flex justify-center items-center gap-2"
                     >
-                        <Plus className="w-4 h-4" /> Add to Order
+                        <Plus className="w-4 h-4" /> {isUploadingCakeRef ? 'Uploading...' : 'Add to Order'}
                     </button>
                 </div>
             </motion.div>
@@ -255,7 +395,7 @@ const MenuCard = ({ product }) => {
                             </p>
 
                             {/* Size Options - Interactive */}
-                            {product.sizeOptions?.length > 0 && (
+                            {!isLittlehCakeProduct && product.sizeOptions?.length > 0 && (
                                 <div className="mt-auto pt-2 border-t border-dashed border-slate-200">
                                     <div className="text-[10px] text-slate-400 font-semibold uppercase mb-1">Select Size</div>
                                     <div className="flex flex-wrap gap-2">
@@ -282,7 +422,7 @@ const MenuCard = ({ product }) => {
                         <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100/50">
                             <div>
                                 <span className="text-xl font-black text-slate-900">₹{price}</span>
-                                {product.sizeOptions?.length > 0 && !selectedSize && <span className="text-xs text-slate-500 ml-1">starts from</span>}
+                                {!isLittlehCakeProduct && product.sizeOptions?.length > 0 && !selectedSize && <span className="text-xs text-slate-500 ml-1">starts from</span>}
                             </div>
 
                             {/* Liquid Button */}

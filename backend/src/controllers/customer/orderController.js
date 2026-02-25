@@ -1,5 +1,6 @@
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
+import Category from '../../models/Category.js';
 import User from '../../models/User.js';
 import Delivery from '../../models/Delivery.js';
 import PDFDocument from 'pdfkit';
@@ -7,6 +8,7 @@ import logger from '../../config/logger.js';
 import { notificationService } from '../../services/notificationService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
+import { isCakeCategoryName } from '../../utils/cakeUtils.js';
 
 /* =========================================================
    CREATE ORDER (CUSTOMER)
@@ -41,13 +43,65 @@ export const createOrder = async (req, res) => {
                 brandsGrouped[brand] = { items: [], subtotal: 0 };
             }
 
-            const price = item.price ?? product.price;
+            const category = await Category.findById(product.category).select('name').lean();
+            const hasCakePricing =
+                product.cakePricing &&
+                product.cakePricing.basePricePerKg !== undefined &&
+                product.cakePricing.basePricePerKg !== null;
+            const isLittlehCake = brand === 'littleh' && isCakeCategoryName(category?.name || '');
+
+            let price = item.price ?? product.price;
+            let weight = item.weight;
+            let isCustomized = Boolean(item.isCustomized);
+            let isEggless = Boolean(item.isEggless);
+            let customizationDetails = item.customizationDetails || null;
+
+            if (isLittlehCake) {
+                const cakePricing = product.cakePricing || {};
+                const customizationEnabled =
+                    cakePricing.customizationAvailable === true ||
+                    (cakePricing.customizationPricePerKg !== undefined && cakePricing.customizationPricePerKg !== null);
+                weight = Number(weight || 1);
+                if (!Number.isFinite(weight) || weight <= 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Invalid cake weight for ${product.name}`
+                    });
+                }
+                if (isCustomized && !customizationEnabled) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Customization is not available for ${product.name}`
+                    });
+                }
+                if (isEggless && hasCakePricing && cakePricing.egglessAvailable === false) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Eggless option is not available for ${product.name}`
+                    });
+                }
+
+                const perKg = isCustomized
+                    ? (cakePricing.customizationPricePerKg ?? cakePricing.basePricePerKg ?? product.price ?? 0)
+                    : (cakePricing.basePricePerKg ?? product.price ?? 0);
+
+                price = perKg * weight;
+                if (isEggless) {
+                    price += (cakePricing.egglessExtraCharge ?? 100);
+                }
+            }
+
             brandsGrouped[brand].items.push({
                 product: product._id,
                 name: product.name,
                 quantity: item.quantity,
                 price,
-                customization: item.customization || ''
+                finalPrice: price,
+                weight,
+                isCustomized,
+                isEggless,
+                customization: item.customization || '',
+                customizationDetails
             });
             brandsGrouped[brand].subtotal += price * item.quantity;
         }
