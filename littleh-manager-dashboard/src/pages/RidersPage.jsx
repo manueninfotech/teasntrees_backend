@@ -52,7 +52,7 @@ export default function RidersPage() {
         <div className="space-y-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-bakery-primary uppercase tracking-tight">Delivery Fleet</h1>
+                    <h1 className="text-3xl font-black text-bakery-primary uppercase tracking-tight">Delivery Riders</h1>
                     <p className="text-bakery-accent mt-1 font-bold uppercase text-[10px] tracking-widest">Rider Management</p>
                 </div>
 
@@ -61,7 +61,7 @@ export default function RidersPage() {
                         onClick={() => setActiveTab('active')}
                         className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'active' ? 'bg-white text-bakery-primary shadow-sm' : 'text-bakery-accent hover:text-bakery-primary'}`}
                     >
-                        Active Fleet ({riders.filter(r => r.isApproved).length})
+                        Active Riders ({riders.filter(r => r.isApproved).length})
                     </button>
                     <button
                         onClick={() => setActiveTab('pending')}

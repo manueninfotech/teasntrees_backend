@@ -1,18 +1,54 @@
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import api from '../utils/api';
 import {
     ShoppingBag, Clock, PlayCircle, DollarSign,
     ArrowRight, TrendingUp, Package, Users
 } from 'lucide-react';
+import { useRefresh } from '../context/RefreshContext';
 
 export default function DashboardHome() {
     const { brand } = useParams();
     const b = brand || 'littleh';
+    const { tick } = useRefresh();
+    const [statsData, setStatsData] = useState({
+        overview: {
+            ordersToday: 0,
+            salesToday: 0,
+            pendingOrders: 0,
+            preparingOrders: 0,
+            delayedOrders: 0
+        },
+        recentOrders: [],
+        riders: {
+            list: []
+        }
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                setLoading(true);
+                const response = await api.get('/manager/dashboard/stats');
+                if (response.data.success) {
+                    setStatsData(response.data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStats();
+    }, [b, tick]);
 
     const stats = [
-        { title: "Today's Orders", value: "0", icon: ShoppingBag, color: "text-bakery-primary", bg: "bg-white" },
-        { title: "Pending", value: "0", icon: Clock, color: "text-orange-600", bg: "bg-orange-50" },
-        { title: "Preparing", value: "0", icon: PlayCircle, color: "text-blue-600", bg: "bg-blue-50" },
-        { title: "Revenue", value: "₹0", icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
+        { title: "Today's Orders", value: statsData.overview.ordersToday, icon: ShoppingBag, color: "text-bakery-primary", bg: "bg-white" },
+        { title: "Pending", value: statsData.overview.pendingOrders, icon: Clock, color: "text-orange-600", bg: "bg-orange-50" },
+        { title: "Preparing", value: statsData.overview.preparingOrders, icon: PlayCircle, color: "text-blue-600", bg: "bg-blue-50" },
+        { title: "Revenue", value: `₹${(statsData.overview.salesToday || 0).toLocaleString()}`, icon: DollarSign, color: "text-emerald-600", bg: "bg-emerald-50" },
     ];
 
     return (
@@ -48,39 +84,101 @@ export default function DashboardHome() {
                 ))}
             </div>
 
-            {/* Announcements or Actions */}
+            {/* Live Data Sections */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <div className="xl:col-span-2 glass-card space-y-6">
-                    <div className="flex items-center justify-between border-b border-bakery-light pb-6">
-                        <h2 className="text-xl font-black text-bakery-primary uppercase tracking-tight">System Status</h2>
-                        <span className="px-4 py-1.5 bg-bakery-light text-bakery-primary rounded-full font-black text-[10px] uppercase tracking-widest">Real-time</span>
+                {/* Live Orders */}
+                <div className="xl:col-span-2 glass-card overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-bakery-light p-8">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-bakery-primary/5 rounded-lg">
+                                <ShoppingBag className="w-5 h-5 text-bakery-primary" />
+                            </div>
+                            <h2 className="text-xl font-black text-bakery-primary uppercase tracking-tight">Live Orders</h2>
+                        </div>
+                        <button
+                            onClick={() => window.location.href = `/${b}/orders`}
+                            className="bg-bakery-light hover:bg-bakery-primary hover:text-white px-4 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all text-bakery-primary"
+                        >
+                            View All
+                        </button>
                     </div>
-                    <div className="space-y-4">
-                        <div className="p-6 bg-white/50 border border-white rounded-3xl flex items-center justify-between group cursor-pointer hover:bg-white transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                <span className="font-black uppercase text-[10px] tracking-widest">Backend Connection</span>
+
+                    <div className="divide-y divide-bakery-light px-4">
+                        {statsData.recentOrders?.length > 0 ? (
+                            statsData.recentOrders.map((order) => (
+                                <div key={order._id} className="p-6 hover:bg-bakery-light/30 transition-colors flex items-center justify-between group rounded-3xl cursor-pointer" onClick={() => window.location.href = `/${b}/orders`}>
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 bg-white rounded-2xl border border-gray-100 flex items-center justify-center font-black text-xs text-bakery-primary group-hover:scale-110 transition-transform">
+                                            #{order.orderNumber?.slice(-3)}
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-bakery-accent tracking-widest mb-1">{order.customerId?.name || 'Customer'}</p>
+                                            <p className="text-sm font-bold text-bakery-primary">₹{(order.total || 0).toLocaleString()} • {order.items?.length || 0} Items</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className={`px-4 py-1.5 rounded-full font-black text-[9px] uppercase tracking-widest ${order.status === 'pending' ? 'bg-orange-100 text-orange-600' :
+                                            order.status === 'preparing' ? 'bg-blue-100 text-blue-600' :
+                                                'bg-emerald-100 text-emerald-600'
+                                            }`}>
+                                            {order.status.replace(/_/g, ' ')}
+                                        </span>
+                                        <ArrowRight className="w-4 h-4 text-bakery-accent opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="p-10 text-center space-y-3">
+                                <div className="w-12 h-12 bg-bakery-light rounded-2xl flex items-center justify-center mx-auto text-bakery-accent opacity-30">
+                                    <Package className="w-6 h-6" />
+                                </div>
+                                <p className="text-[10px] font-black uppercase text-bakery-accent tracking-widest">No Recent Orders</p>
                             </div>
-                            <span className="text-emerald-600 font-bold text-xs">ONLINE</span>
-                        </div>
-                        <div className="p-6 bg-white/50 border border-white rounded-3xl flex items-center justify-between group cursor-pointer hover:bg-white transition-all">
-                            <div className="flex items-center gap-4">
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                <span className="font-black uppercase text-[10px] tracking-widest">Socket System</span>
-                            </div>
-                            <span className="text-emerald-600 font-bold text-xs">CONNECTED</span>
-                        </div>
+                        )}
                     </div>
                 </div>
 
-                <div className="bg-bakery-primary rounded-[2.5rem] p-10 text-white relative overflow-hidden group shadow-2xl shadow-bakery-primary/30">
-                    <div className="absolute bottom-0 right-0 w-48 h-48 bg-white/5 rounded-full -mr-24 -mb-24 group-hover:scale-125 transition-transform duration-700"></div>
-                    <div className="relative z-10">
-                        <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-8 italic">Quick Access</p>
-                        <h3 className="text-2xl font-black uppercase tracking-tight mb-4">Store Overview</h3>
-                        <p className="text-sm font-medium opacity-80 leading-relaxed mb-10">Manage your LittleH branch efficiently with real-time tracking and inventory controls.</p>
-                        <button className="flex items-center gap-3 px-8 py-4 bg-white text-bakery-primary rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/10">
-                            Launch Catalog <ArrowRight className="w-4 h-4" />
+                {/* Fleet Overview */}
+                <div className="glass-card overflow-hidden h-fit">
+                    <div className="flex items-center justify-between border-b border-bakery-light p-8">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-emerald-50 rounded-lg">
+                                <Users className="w-5 h-5 text-emerald-600" />
+                            </div>
+                            <h2 className="text-xl font-black text-bakery-primary uppercase tracking-tight">Riders</h2>
+                        </div>
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg font-black text-[9px] uppercase tracking-widest animate-pulse">
+                            {statsData.riders?.online || 0} Live
+                        </span>
+                    </div>
+
+                    <div className="p-8 space-y-6">
+                        {statsData.riders?.list?.length > 0 ? (
+                            statsData.riders.list.map((rider) => (
+                                <div key={rider._id} className="flex items-center justify-between group p-2 hover:bg-bakery-light/50 rounded-2xl transition-all cursor-pointer" onClick={() => window.location.href = `/${b}/riders`}>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-bakery-light rounded-xl flex items-center justify-center font-black text-bakery-primary text-[10px] uppercase group-hover:bg-bakery-primary group-hover:text-white transition-all">
+                                            {rider.name?.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase text-bakery-accent tracking-widest">{rider.name}</p>
+                                            <p className="text-[9px] font-bold text-gray-400 mt-0.5">{rider.mobile}</p>
+                                        </div>
+                                    </div>
+                                    <div className={`w-2 h-2 rounded-full ${rider.isOnline ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-gray-300'}`}></div>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-center py-6">
+                                <p className="text-[10px] font-black uppercase text-bakery-accent tracking-widest opacity-40 italic">No riders available</p>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={() => window.location.href = `/${b}/riders`}
+                            className="w-full py-4 bg-bakery-primary text-white rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-bakery-primary/20"
+                        >
+                            Open Riders Management
                         </button>
                     </div>
                 </div>

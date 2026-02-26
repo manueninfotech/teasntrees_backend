@@ -25,6 +25,11 @@ export const getDashboardStats = async (req, res) => {
             status: 'pending'
         });
 
+        const preparingOrders = await Order.countDocuments({
+            brand,
+            status: 'preparing'
+        });
+
         // 3. Active Riders (Online/Active)
         const activeRiders = await Rider.countDocuments({
             isApproved: true,
@@ -67,6 +72,7 @@ export const getDashboardStats = async (req, res) => {
                     ordersToday: totalOrdersToday,
                     salesToday: totalSalesToday,
                     pendingOrders,
+                    preparingOrders,
                     delayedOrders
                 },
                 riders: {
