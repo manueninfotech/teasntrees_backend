@@ -234,45 +234,58 @@ export default function Products() {
                                 : categoryNameById.get(product.category) || 'Uncategorized';
 
                             return (
-                            <div key={product._id} className={`group bg-white rounded-[2rem] shadow-sm border-2 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all ${selectedProducts.has(product._id) ? 'border-indigo-600 ring-4 ring-indigo-50' : 'border-gray-50'}`}>
-                                <div className="h-56 bg-gray-50 flex items-center justify-center relative">
-                                    {product.image ? (
-                                        <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Package className="w-16 h-16 text-gray-200" />
-                                    )}
-                                    <button onClick={() => toggleProductSelection(product._id)} className="absolute top-4 left-4 p-2 bg-white/90 rounded-xl shadow-lg">
-                                        {selectedProducts.has(product._id) ? <CheckSquare className="w-5 h-5 text-indigo-600" /> : <Square className="w-5 h-5 text-gray-200" />}
-                                    </button>
-                                    <button onClick={() => toggleAvailability(product._id, product.isAvailable)} className={`absolute top-4 right-4 p-2 rounded-xl shadow-lg backdrop-blur-md ${product.isAvailable ? 'bg-green-100/80 text-green-600' : 'bg-red-100/80 text-red-600'}`}>
-                                        {product.isAvailable ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                                <div className="p-6 space-y-4">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-black text-gray-900 uppercase truncate text-sm flex-1">{product.name}</h3>
-                                            {product.isSeasonal && <span className="bg-orange-50 text-orange-600 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md">Seasonal</span>}
-                                        </div>
-                                        <p className="text-xs text-gray-400 font-bold line-clamp-1 mb-2">{product.description}</p>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">{categoryName}</p>
+                                <div key={product._id} className={`group bg-white rounded-[2rem] shadow-sm border-2 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all ${selectedProducts.has(product._id) ? 'border-indigo-600 ring-4 ring-indigo-50' : 'border-gray-50'}`}>
+                                    <div className="h-56 bg-gray-50 flex items-center justify-center relative">
+                                        {product.image ? (
+                                            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Package className="w-16 h-16 text-gray-200" />
+                                        )}
+                                        <button onClick={() => toggleProductSelection(product._id)} className="absolute top-4 left-4 p-2 bg-white/90 rounded-xl shadow-lg">
+                                            {selectedProducts.has(product._id) ? <CheckSquare className="w-5 h-5 text-indigo-600" /> : <Square className="w-5 h-5 text-gray-200" />}
+                                        </button>
+                                        <button onClick={() => toggleAvailability(product._id, product.isAvailable)} className={`absolute top-4 right-4 p-2 rounded-xl shadow-lg backdrop-blur-md ${product.isAvailable ? 'bg-green-100/80 text-green-600' : 'bg-red-100/80 text-red-600'}`}>
+                                            {product.isAvailable ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                                        </button>
+                                    </div>
+                                    <div className="p-6 space-y-4">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <h3 className="font-black text-gray-900 uppercase truncate text-sm flex-1">{product.name}</h3>
+                                                {product.isSeasonal && <span className="bg-orange-50 text-orange-600 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-md">Seasonal</span>}
+                                            </div>
+                                            <p className="text-xs text-gray-400 font-bold line-clamp-1 mb-2">{product.description}</p>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600">{categoryName}</p>
 
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-2xl font-black text-gray-900">₹{product.displayPrice}</span>
-                                        <div className="flex gap-1">
-                                            {product.tags?.map(tag => (
-                                                <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-500 rounded-lg text-[8px] font-black uppercase">{tag}</span>
-                                            ))}
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-2xl font-black text-gray-900">₹{product.displayPrice}</span>
+                                                <div className="flex gap-1">
+                                                    {product.tags?.map(tag => (
+                                                        <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-500 rounded-lg text-[8px] font-black uppercase">{tag}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {product.sizeOptions && product.sizeOptions.length > 0 && (
+                                                <div className="flex flex-wrap gap-1.5 pt-3 border-t border-gray-50">
+                                                    {product.sizeOptions.map((opt, i) => (
+                                                        <div key={i} className="flex items-center gap-1.5 px-2 py-1 bg-indigo-50/50 border border-indigo-100 rounded-lg">
+                                                            <span className="text-[8px] font-black text-indigo-400 uppercase tracking-tighter">{opt.size}</span>
+                                                            <span className="text-[10px] font-black text-indigo-600">₹{opt.price}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-2 pt-2">
+                                            <button onClick={() => navigate(`/${urlBrand}/products/${product._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View</button>
+                                            <button onClick={() => { setEditingProduct(product); setShowModal(true); }} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Edit</button>
+                                            <button onClick={() => deleteProduct(product._id)} className="px-4 py-3 bg-red-50 text-red-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
                                         </div>
                                     </div>
-                                    <div className="flex gap-2 pt-2">
-                                        <button onClick={() => navigate(`/${urlBrand}/products/${product._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View</button>
-                                        <button onClick={() => { setEditingProduct(product); setShowModal(true); }} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-indigo-600 hover:text-white transition-all">Edit</button>
-                                        <button onClick={() => deleteProduct(product._id)} className="px-4 py-3 bg-red-50 text-red-400 rounded-2xl hover:bg-red-600 hover:text-white transition-all"><Trash2 className="w-4 h-4" /></button>
-                                    </div>
                                 </div>
-                            </div>
                             );
                         })}
                     </div>
@@ -292,10 +305,16 @@ export default function Products() {
                 </div>
             )}
 
-            <ProductModal isOpen={showModal} onClose={() => { setShowModal(false); setEditingProduct(null); }} product={editingProduct} onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['products'] });
-                queryClient.invalidateQueries({ queryKey: ['products-stats'] });
-            }} />
+            <ProductModal
+                isOpen={showModal}
+                onClose={() => { setShowModal(false); setEditingProduct(null); }}
+                product={editingProduct}
+                brand={urlBrand}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['products'] });
+                    queryClient.invalidateQueries({ queryKey: ['products-stats'] });
+                }}
+            />
         </div>
     );
 }

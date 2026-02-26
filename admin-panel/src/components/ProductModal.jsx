@@ -4,12 +4,11 @@ import api from '../utils/api';
 
 const isCakeCategoryName = (name = '') => {
     const normalized = String(name).trim().toLowerCase();
-    const compact = normalized.replace(/[\s_-]/g, '');
-    if (compact.includes('pancake')) return false;
-    return /\b(cake|cakes|cheesecake|cheesecakes)\b/.test(normalized);
+    if (normalized.includes('pancake')) return false;
+    return /(cake|cakes|cheesecake|bento)/i.test(normalized);
 };
 
-export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
+export default function ProductModal({ isOpen, onClose, product, onSuccess, brand }) {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -26,7 +25,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
         isAvailable: true,
         isSeasonal: false,
         availableMonths: [],
-        tags: ''
+        tags: '',
+        sizeOptions: []
     });
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
@@ -57,7 +57,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                 isAvailable: product.isAvailable ?? true,
                 isSeasonal: product.isSeasonal ?? false,
                 availableMonths: product.availableMonths || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-                tags: product.tags?.join(', ') || ''
+                tags: product.tags?.join(', ') || '',
+                sizeOptions: product.sizeOptions || []
             });
             if (product.image) setImagePreview(product.image);
         } else {
@@ -77,7 +78,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                 isAvailable: true,
                 isSeasonal: false,
                 availableMonths: [],
-                tags: ''
+                tags: '',
+                sizeOptions: []
             });
             setImagePreview('');
             setImageFile(null);
@@ -89,8 +91,22 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
         () => categories.find(cat => cat._id === formData.category),
         [categories, formData.category]
     );
-    const routeBrand = window.location.pathname.split('/')[1]?.toLowerCase();
-    const isLittlehCakeCategory = routeBrand === 'littleh' && isCakeCategoryName(selectedCategory?.name || '');
+    const activeBrand = brand || product?.brand || window.location.pathname.split('/')[1]?.toLowerCase();
+    const isLittlehCakeCategory = (activeBrand === 'littleh' || selectedCategory?.brand === 'littleh') &&
+        (isCakeCategoryName(selectedCategory?.name || '') || !!product?.cakePricing?.basePricePerKg);
+
+    // Auto-enable customization defaults if a cake category is selected
+    useEffect(() => {
+        if (isLittlehCakeCategory && !formData.cakePricing.customizationAvailable && !product) {
+            setFormData(prev => ({
+                ...prev,
+                cakePricing: {
+                    ...prev.cakePricing,
+                    customizationAvailable: true
+                }
+            }));
+        }
+    }, [isLittlehCakeCategory, product]);
 
     const handleSeasonalChange = (checked) => {
         setFormData({
@@ -151,7 +167,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
             const payload = {
                 ...formData,
                 image: imageUrl,
-                price: isLittlehCakeCategory
+                price: isLittlehCakeCategory || formData.sizeOptions.length > 0
                     ? null
                     : (formData.price === '' ? null : Number(formData.price)),
                 cakePricing: isLittlehCakeCategory
@@ -165,7 +181,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                         egglessExtraCharge: Number(formData.cakePricing.egglessExtraCharge || 100)
                     }
                     : undefined,
-                tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
+                tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+                sizeOptions: formData.sizeOptions
             };
 
             if (product) {
@@ -233,9 +250,67 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                         </div>
 
                         {!isLittlehCakeCategory && (
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Price (INR) *</label>
-                                <input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all" required />
+                            <div className="col-span-2 space-y-6">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Price (INR) *</label>
+                                        <input type="number" step="0.01" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} className="w-full bg-gray-50 border-none rounded-2xl py-4 px-6 text-sm font-black uppercase tracking-widest focus:ring-2 focus:ring-emerald-600/20 focus:bg-white transition-all" required={formData.sizeOptions.length === 0} />
+                                    </div>
+                                    <div className="flex items-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, sizeOptions: [...prev.sizeOptions, { size: '', price: '' }] }))}
+                                            className="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all border-2 border-dashed border-gray-100"
+                                        >
+                                            + Add Size Variation
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {formData.sizeOptions.length > 0 && (
+                                    <div className="space-y-4 bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Size Price Matrix</p>
+                                        {formData.sizeOptions.map((opt, index) => (
+                                            <div key={index} className="grid grid-cols-12 gap-3 items-center">
+                                                <div className="col-span-5">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="SIZE (E.G. REGULAR)"
+                                                        value={opt.size}
+                                                        onChange={(e) => {
+                                                            const newOptions = [...formData.sizeOptions];
+                                                            newOptions[index].size = e.target.value;
+                                                            setFormData({ ...formData, sizeOptions: newOptions });
+                                                        }}
+                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-[10px] font-black uppercase focus:ring-2 focus:ring-emerald-600/20"
+                                                    />
+                                                </div>
+                                                <div className="col-span-5">
+                                                    <input
+                                                        type="number"
+                                                        placeholder="PRICE"
+                                                        value={opt.price}
+                                                        onChange={(e) => {
+                                                            const newOptions = [...formData.sizeOptions];
+                                                            newOptions[index].price = e.target.value;
+                                                            setFormData({ ...formData, sizeOptions: newOptions });
+                                                        }}
+                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-[10px] font-black uppercase focus:ring-2 focus:ring-emerald-600/20"
+                                                    />
+                                                </div>
+                                                <div className="col-span-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, sizeOptions: prev.sizeOptions.filter((_, i) => i !== index) }))}
+                                                        className="w-full aspect-square flex items-center justify-center bg-red-50 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -252,7 +327,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                         {isLittlehCakeCategory && (
                             <div className="col-span-2 grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Base Price / Kg *</label>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Price / Kg *</label>
                                     <input
                                         type="number"
                                         step="0.01"

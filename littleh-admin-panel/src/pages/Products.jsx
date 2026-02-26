@@ -251,13 +251,30 @@ export default function Products() {
                                             <p className="text-[10px] font-black uppercase tracking-widest text-bakery-primary">{categoryName}</p>
 
                                         </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-2xl font-black text-gray-900">₹{product.displayPrice}</span>
-                                            <div className="flex gap-1">
-                                                {product.tags?.map(tag => (
-                                                    <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-500 rounded-lg text-[8px] font-black uppercase">{tag}</span>
-                                                ))}
-                                            </div>
+                                        <div className="flex flex-col gap-2">
+                                            {product.cakePricing && product.cakePricing.basePricePerKg ? (
+                                                <div className="space-y-1.5">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Rate</span>
+                                                        <span className="text-xl font-black text-gray-900">₹{product.cakePricing.basePricePerKg}<span className="text-[10px] text-gray-400 ml-0.5">/kg</span></span>
+                                                    </div>
+                                                    {product.cakePricing.customizationAvailable && (
+                                                        <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+                                                            <span className="text-[9px] font-black text-bakery-primary uppercase tracking-widest">Customized</span>
+                                                            <span className="text-sm font-black text-bakery-primary">₹{product.cakePricing.customizationPricePerKg}<span className="text-[8px] text-bakery-primary/60 ml-0.5">/kg</span></span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-2xl font-black text-gray-900">₹{product.displayPrice}</span>
+                                                    <div className="flex gap-1">
+                                                        {product.tags?.map(tag => (
+                                                            <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-500 rounded-lg text-[8px] font-black uppercase">{tag}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex gap-2 pt-2">
                                             <button onClick={() => navigate(`/${urlBrand}/products/${product._id}`)} className="flex-1 bg-gray-50 text-gray-400 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-black hover:text-white transition-all">View</button>
@@ -285,10 +302,16 @@ export default function Products() {
                 </div>
             )}
 
-            <ProductModal isOpen={showModal} onClose={() => { setShowModal(false); setEditingProduct(null); }} product={editingProduct} onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['products'] });
-                queryClient.invalidateQueries({ queryKey: ['products-stats'] });
-            }} />
+            <ProductModal
+                isOpen={showModal}
+                onClose={() => { setShowModal(false); setEditingProduct(null); }}
+                product={editingProduct}
+                brand={urlBrand}
+                onSuccess={() => {
+                    queryClient.invalidateQueries({ queryKey: ['products'] });
+                    queryClient.invalidateQueries({ queryKey: ['products-stats'] });
+                }}
+            />
         </div>
     );
 }

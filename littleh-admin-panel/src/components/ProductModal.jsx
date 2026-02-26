@@ -4,12 +4,12 @@ import api from '../utils/api';
 
 const isCakeCategoryName = (name = '') => {
     const normalized = String(name).trim().toLowerCase();
-    const compact = normalized.replace(/[\s_-]/g, '');
-    if (compact.includes('pancake')) return false;
-    return /\b(cake|cakes|cheesecake|cheesecakes)\b/.test(normalized);
+    if (normalized.includes('pancake')) return false;
+    // More inclusive matching for cake-related categories
+    return /(cake|cakes|cheesecake|bento)/i.test(normalized);
 };
 
-export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
+export default function ProductModal({ isOpen, onClose, product, onSuccess, brand }) {
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -80,8 +80,22 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
         () => categories.find(cat => cat._id === formData.category),
         [categories, formData.category]
     );
-    const routeBrand = window.location.pathname.split('/')[1]?.toLowerCase();
-    const isLittlehCakeCategory = routeBrand === 'littleh' && isCakeCategoryName(selectedCategory?.name || '');
+    const activeBrand = brand || product?.brand || window.location.pathname.split('/')[1]?.toLowerCase();
+    const isLittlehCakeCategory = (activeBrand === 'littleh' || selectedCategory?.brand === 'littleh') &&
+        (isCakeCategoryName(selectedCategory?.name || '') || !!product?.cakePricing?.basePricePerKg);
+
+    // Auto-enable customization defaults if a cake category is selected
+    useEffect(() => {
+        if (isLittlehCakeCategory && !formData.cakePricing.customizationAvailable && !product) {
+            setFormData(prev => ({
+                ...prev,
+                cakePricing: {
+                    ...prev.cakePricing,
+                    customizationAvailable: true
+                }
+            }));
+        }
+    }, [isLittlehCakeCategory, product]);
 
     const fetchCategories = async () => {
         try {
@@ -223,7 +237,7 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess }) {
                         {isLittlehCakeCategory && (
                             <div className="col-span-2 grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Base Price / Kg *</label>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Price / Kg *</label>
                                     <input
                                         type="number"
                                         step="0.01"
