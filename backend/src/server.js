@@ -57,12 +57,15 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
 
 app.use(cors({
     origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
+
         if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-            return callback(null, true);
+            callback(null, true);
+        } else {
+            logger.error(`CORS blocked for origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
         }
-        logger.warn(`CORS blocked for origin: ${origin}`);
-        return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -70,7 +73,7 @@ app.use(cors({
     optionsSuccessStatus: 200
 }));
 
-app.options(/.*/, cors());
+// No need for separate app.options if cors is used early
 
 // Security and parsers
 app.use(helmet({
@@ -119,6 +122,9 @@ const io = new Server(httpServer, {
 io.use(socketAuth);
 setupSocketHandlers(io);
 
+import { riderAssignmentService } from './services/riderAssignmentService.js';
+riderAssignmentService.setIo(io);
+
 const socketService = new SocketService(io);
 app.set('io', io);
 app.set('socketService', socketService);
@@ -131,6 +137,16 @@ app.use((req, res, next) => {
 
     res.on('finish', () => {
         if (res.statusCode < 400) {
+            // Exclude noisy/high-frequency endpoints that don't need a global system refresh
+            const noisyEndpoints = [
+                '/deliveries/location',
+                '/auth/profile', // Usually a GET, but safety first
+                '/health'
+            ];
+
+            const isNoisy = noisyEndpoints.some(endpoint => req.originalUrl.includes(endpoint));
+            if (isNoisy) return;
+
             io.emit(SOCKET_EVENTS.SYSTEM_DATA_UPDATED, {
                 method: req.method,
                 path: req.originalUrl,
