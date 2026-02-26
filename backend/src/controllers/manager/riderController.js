@@ -4,18 +4,25 @@ import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 
 export const getRiders = async (req, res) => {
     try {
-        const { type, page = 1, limit = 10 } = req.query; // type: 'pending', 'assigned', 'all'
+        const { type, page = 1, limit = 1000 } = req.query; // type: 'pending', 'assigned', 'all'
 
-        const query = {};
+        const query = {
+            $or: [
+                { isApproved: false }, // Pending applications
+                { managerId: req.user.userId }, // Already assigned to this manager
+                { managerId: null, isApproved: true } // Approved by Admin but unassigned
+            ]
+        };
 
         if (type === 'pending') {
             query.isApproved = false;
         } else if (type === 'assigned') {
             query.isApproved = true;
+            query.managerId = req.user.userId;
         } else if (type === 'available') {
             query.isApproved = true;
             query.isActive = true;
-        } else {
+            query.managerId = req.user.userId;
         }
 
         const riders = await Rider.find(query)
@@ -23,11 +30,10 @@ export const getRiders = async (req, res) => {
             .sort({ createdAt: -1 });
 
         const ridersWithStatus = await Promise.all(riders.map(async (r) => {
-            const activeOrder = await import('../../models/Order.js').then(m => m.default.exists({
-                riderId: r._id,
-                status: { $in: ['assigned', 'confirmed', 'preparing', 'ready', 'picked_up', 'out-for-delivery'] }
-            }));
-            return { ...r.toObject(), isBusy: !!activeOrder };
+            // Self-healing: Ensure isOnDelivery is accurate
+            const { riderAssignmentService } = await import('../../services/riderAssignmentService.js');
+            const isOnDelivery = await riderAssignmentService.syncRiderStatus(r._id);
+            return { ...r.toObject(), isBusy: isOnDelivery, isOnDelivery: isOnDelivery };
         }));
 
         res.status(200).json({ success: true, data: ridersWithStatus });
