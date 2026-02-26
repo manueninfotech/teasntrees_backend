@@ -252,6 +252,28 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                             {item.customization && (
                                                 <p className="text-[10px] font-bold text-gray-400 mt-1">{item.customization}</p>
                                             )}
+                                            {item.customizationDetails && (
+                                                <div className="mt-2 space-y-2 p-3 bg-gray-50 rounded-xl border border-gray-100/50">
+                                                    {item.customizationDetails.cakeMessage && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Message on Cake</span>
+                                                            <p className="text-[11px] font-black text-gray-800 italic">"{item.customizationDetails.cakeMessage}"</p>
+                                                        </div>
+                                                    )}
+                                                    {item.customizationDetails.colorTheme && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[7px] font-black text-blue-600 uppercase tracking-widest">Color Theme</span>
+                                                            <p className="text-[10px] font-black text-gray-700 uppercase">{item.customizationDetails.colorTheme}</p>
+                                                        </div>
+                                                    )}
+                                                    {item.customizationDetails.designDescription && (
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[7px] font-black text-purple-600 uppercase tracking-widest">Design Notes</span>
+                                                            <p className="text-[10px] font-bold text-gray-500 leading-tight italic">{item.customizationDetails.designDescription}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="mt-2 inline-flex items-center px-2 py-1 bg-gray-50 rounded-md text-[8px] font-black uppercase tracking-widest text-gray-400">
                                                 Qty: {item.quantity}
                                             </div>
