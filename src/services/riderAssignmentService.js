@@ -11,6 +11,22 @@ class RiderAssignmentService {
         AUTO_ASSIGN_TIMEOUT: 30000 // 30s rider response window
     };
 
+    io = null;
+
+    setIo(io) {
+        this.io = io;
+    }
+
+    emitRiderStatus(riderId, statusData) {
+        if (this.io) {
+            this.io.emit('rider:status-updated', {
+                riderId,
+                ...statusData,
+                timestamp: new Date()
+            });
+        }
+    }
+
     /* ======================================================
        FIND BEST RIDER (NO LOCKING HERE)
     ====================================================== */
@@ -351,18 +367,24 @@ class RiderAssignmentService {
             const Rider = mongoose.model('Rider');
             const Delivery = mongoose.model('Delivery');
 
-            const activeDelivery = await Delivery.findOne({
-                riderId,
-                status: { $nin: ['delivered', 'cancelled', 'rejected'] }
-            });
+            const [activeDelivery, rider] = await Promise.all([
+                Delivery.findOne({
+                    riderId,
+                    status: { $nin: ['delivered', 'cancelled', 'rejected'] }
+                }),
+                Rider.findById(riderId).select('isOnDelivery')
+            ]);
 
             const shouldBeOnDelivery = !!activeDelivery;
 
-            await Rider.findByIdAndUpdate(riderId, {
-                isOnDelivery: shouldBeOnDelivery
-            });
+            if (rider && rider.isOnDelivery !== shouldBeOnDelivery) {
+                await Rider.findByIdAndUpdate(riderId, {
+                    isOnDelivery: shouldBeOnDelivery
+                });
+                this.emitRiderStatus(riderId, { isOnDelivery: shouldBeOnDelivery, isBusy: shouldBeOnDelivery });
+                logger.info(`[RiderSync] Status repaired for rider ${riderId}. New isOnDelivery: ${shouldBeOnDelivery}`);
+            }
 
-            logger.info(`[RiderSync] Synced rider ${riderId}. isOnDelivery: ${shouldBeOnDelivery}`);
             return shouldBeOnDelivery;
         } catch (err) {
             logger.error(`[RiderSync] Failed to sync rider ${riderId}: ${err.message}`);

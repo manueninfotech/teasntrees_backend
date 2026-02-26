@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import './Order.js';
 import './User.js';
 import Rider from './Rider.js';
+import { riderAssignmentService } from '../services/riderAssignmentService.js';
 
 /* ----------------------------------
    DELIVERY → ORDER STATUS MAP
@@ -153,6 +154,7 @@ const releaseRider = async (riderId) => {
     if (!riderId) return;
     try {
         await Rider.findByIdAndUpdate(riderId, { isOnDelivery: false });
+        riderAssignmentService.emitRiderStatus(riderId, { isOnDelivery: false, isBusy: false });
     } catch (error) {
         console.error(`Failed to release rider ${riderId}:`, error);
     }
@@ -162,6 +164,7 @@ const markRiderBusy = async (riderId) => {
     if (!riderId) return;
     try {
         await Rider.findByIdAndUpdate(riderId, { isOnDelivery: true });
+        riderAssignmentService.emitRiderStatus(riderId, { isOnDelivery: true, isBusy: true });
     } catch (error) {
         console.error(`Failed to mark rider busy ${riderId}:`, error);
     }
@@ -241,6 +244,7 @@ deliverySchema.post('save', async function (delivery) {
                 // ONLY clear if rejected or cancelled
                 if (['rejected', 'cancelled'].includes(delivery.status)) {
                     order.riderId = undefined;
+                    await releaseRider(delivery.riderId);
                 }
             }
         }
@@ -252,8 +256,8 @@ deliverySchema.post('save', async function (delivery) {
         });
     }
 
-    // ALWAYS release rider if status is delivered
-    if (delivery.status === 'delivered') {
+    // ALWAYS release rider if status is terminal
+    if (['delivered', 'cancelled', 'rejected'].includes(delivery.status)) {
         await releaseRider(delivery.riderId);
     }
 
@@ -289,8 +293,8 @@ deliverySchema.post('findOneAndUpdate', async function (delivery) {
         }
     }
 
-    // Release rider if status is delivered
-    if (delivery.status === 'delivered') {
+    // Release rider if status is terminal
+    if (['delivered', 'cancelled', 'rejected'].includes(delivery.status)) {
         await releaseRider(delivery.riderId);
     }
 });

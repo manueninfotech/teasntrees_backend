@@ -56,10 +56,16 @@ export const getAllRiders = async (req, res) => {
             return acc;
         }, {});
 
-        const decoratedRiders = riders.map(r => ({
-            ...r,
-            totalEarnings: statsMap[r._id.toString()]?.totalEarnings || 0,
-            pendingEarnings: statsMap[r._id.toString()]?.pendingEarnings || 0
+        const decoratedRiders = await Promise.all(riders.map(async (r) => {
+            const { riderAssignmentService } = await import('../../services/riderAssignmentService.js');
+            const isOnDelivery = await riderAssignmentService.syncRiderStatus(r._id);
+            return {
+                ...r,
+                totalEarnings: statsMap[r._id.toString()]?.totalEarnings || 0,
+                pendingEarnings: statsMap[r._id.toString()]?.pendingEarnings || 0,
+                isOnDelivery: isOnDelivery,
+                isBusy: isOnDelivery
+            };
         }));
 
         const totalRiders = await Rider.countDocuments(query);
