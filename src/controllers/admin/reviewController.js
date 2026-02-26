@@ -1,7 +1,9 @@
 import Review from '../../models/Review.js';
+import Delivery from '../../models/Delivery.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
+import { riderMetricsService } from '../../services/riderMetricsService.js';
 import activityLogService from '../../services/activityLogService.js';
 
 // Get all reviews with filters
@@ -162,6 +164,11 @@ export const approveReview = async (req, res) => {
             data: review
         });
 
+        // Trigger metrics update if it's a rider rating
+        if (review.riderId && review.riderRating) {
+            await riderMetricsService.updateMetrics(review.riderId);
+        }
+
         // Log Activity
         await activityLogService.log(req, {
             action: 'approve',
@@ -277,6 +284,15 @@ export const deleteReview = async (req, res) => {
             success: true,
             message: 'Review deleted successfully'
         });
+
+        // Clean up Delivery rating if it was tied to an order
+        if (review.orderId && review.riderId) {
+            await Delivery.findOneAndUpdate(
+                { orderId: review.orderId, riderId: review.riderId },
+                { $unset: { rating: "" } }
+            );
+            await riderMetricsService.updateMetrics(review.riderId);
+        }
 
         // Log Activity
         await activityLogService.log(req, {
