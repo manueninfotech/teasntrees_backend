@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
     LayoutDashboard,
@@ -29,6 +30,16 @@ export default function Layout() {
 
     const { brand } = useParams();
     const b = brand || 'teasntrees';
+
+    useEffect(() => {
+        const allowedBrands = ['littleh', 'teasntrees'];
+        if (brand && !allowedBrands.includes(brand)) {
+            const currentPath = location.pathname;
+            if (!currentPath.startsWith('/teasntrees')) {
+                navigate(`/teasntrees${currentPath}`, { replace: true });
+            }
+        }
+    }, [brand, navigate, location.pathname]);
 
     const handleLogout = () => {
         logout();
