@@ -5,8 +5,8 @@ import activityLogService from '../../services/activityLogService.js';
 // Get Products
 export const getProducts = async (req, res) => {
     try {
-        const { category, search, page = 1, limit = 20 } = req.query;
-        const brand = req.params.brand || 'teasntrees';
+        const { category, search, page = 1, limit = 1000 } = req.query;
+        const brand = req.activeBrand || req.params.brand || 'littleh';
         let query = { brand };
 
         if (category) query.category = category;
@@ -109,5 +109,51 @@ export const updateProduct = async (req, res) => {
         res.status(200).json({ success: true, message: 'Product updated', data: product });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Error updating product', error: error.message });
+    }
+};
+
+// Create Product
+export const createProduct = async (req, res) => {
+    try {
+        const brand = req.activeBrand || 'littleh';
+        const product = await Product.create({
+            ...req.body,
+            brand
+        });
+
+        await activityLogService.log(req, {
+            action: 'create',
+            resource: 'product',
+            resourceId: product._id,
+            details: { name: product.name }
+        });
+
+        res.status(201).json({ success: true, message: 'Product created', data: product });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error creating product', error: error.message });
+    }
+};
+
+// Delete Product
+export const deleteProduct = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const brand = req.activeBrand || 'littleh';
+        const product = await Product.findOneAndDelete({ _id: id, brand });
+
+        if (!product) {
+            return res.status(404).json({ success: false, message: 'Product not found or not authorized' });
+        }
+
+        await activityLogService.log(req, {
+            action: 'delete',
+            resource: 'product',
+            resourceId: id,
+            details: { name: product.name }
+        });
+
+        res.status(200).json({ success: true, message: 'Product deleted' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error deleting product', error: error.message });
     }
 };
