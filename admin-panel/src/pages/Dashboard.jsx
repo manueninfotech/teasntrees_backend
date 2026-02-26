@@ -72,12 +72,12 @@ export default function Dashboard() {
     }, [socket, queryClient]);
 
     const statCards = [
-        { title: 'Total Revenue', value: `₹${(stats?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, theme: 'green', desc: `₹${stats?.todayRevenue || 0} today`, path: '/orders' },
-        { title: 'Orders', value: stats?.totalOrders || 0, icon: ShoppingCart, theme: 'blue', desc: `${stats?.todayOrders || 0} new today`, path: '/orders' },
-        { title: 'Customers', value: stats?.totalCustomers || 0, icon: Users, theme: 'purple', desc: 'Registered accounts', path: '/customers' },
-        { title: 'Products', value: stats?.totalProducts || 0, icon: Package, theme: 'orange', desc: 'Total items', path: '/products' },
-        { title: 'Delivery Riders', value: `${stats?.activeRiders || 0}/${stats?.totalRiders || 0}`, icon: Bike, theme: 'teal', desc: 'Online / Total', path: '/riders' },
-        { title: 'Awaiting Action', value: stats?.pendingOrders || 0, icon: Clock, theme: 'red', desc: 'Pending orders', path: '/orders?status=pending' }
+        { title: 'Total Revenue', value: `₹${(stats?.totalRevenue || 0).toLocaleString()}`, icon: DollarSign, theme: 'green', desc: `₹${stats?.todayRevenue || 0} today`, path: `/${urlBrand}/orders` },
+        { title: 'Orders', value: stats?.totalOrders || 0, icon: ShoppingCart, theme: 'blue', desc: `${stats?.todayOrders || 0} new today`, path: `/${urlBrand}/orders` },
+        { title: 'Customers', value: stats?.totalCustomers || 0, icon: Users, theme: 'purple', desc: 'Registered accounts', path: `/${urlBrand}/customers` },
+        { title: 'Products', value: stats?.totalProducts || 0, icon: Package, theme: 'orange', desc: 'Total items', path: `/${urlBrand}/products` },
+        { title: 'Delivery Riders', value: `${stats?.activeRiders || 0}/${stats?.totalRiders || 0}`, icon: Bike, theme: 'teal', desc: 'Online / Total', path: `/${urlBrand}/riders` },
+        { title: 'Awaiting Action', value: stats?.pendingOrders || 0, icon: Clock, theme: 'red', desc: 'Pending orders', path: `/${urlBrand}/orders?status=pending` }
     ];
 
     return (
