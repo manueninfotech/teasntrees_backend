@@ -12,8 +12,8 @@ import activityLogService from '../../services/activityLogService.js';
 ========================================================= */
 export const getOrders = async (req, res) => {
     try {
-        const { status, page = 1, limit = 10, search } = req.query;
-        const brand = req.params.brand || 'teasntrees';
+        const { status, page = 1, limit = 1000, search } = req.query;
+        const brand = req.activeBrand || req.params.brand || 'littleh';
         const query = { brand };
 
         if (status && status !== 'all') query.status = status;

@@ -7,14 +7,15 @@ export const getActiveDeliveries = async (req, res) => {
     try {
         const {
             page = 1,
-            limit = 20
+            limit = 1000
         } = req.query;
 
-        const brand = req.params.brand || 'teasntrees';
+        const brand = req.activeBrand || req.params.brand || 'littleh';
         const skip = (page - 1) * limit;
 
         // Only true active delivery states (Delivery domain)
         const activeStatuses = [
+            'pending_acceptance',
             'assigned',
             'accepted',
             'heading_to_pickup',

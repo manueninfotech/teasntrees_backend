@@ -4,7 +4,8 @@ import Order from '../../models/Order.js';
 // Get all Customers (Read-only)
 export const getCustomers = async (req, res) => {
     try {
-        const { search, page = 1, limit = 10 } = req.query;
+        const { search, page = 1, limit = 1000 } = req.query;
+        const brand = req.activeBrand || req.params.brand || 'littleh';
         let query = { role: 'customer' };
 
         if (search) {
