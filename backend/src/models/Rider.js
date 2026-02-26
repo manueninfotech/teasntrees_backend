@@ -70,6 +70,13 @@ const riderSchema = new mongoose.Schema({
     averageRating: { type: Number, default: 0 },
     ratingsCount: { type: Number, default: 0 },
 
+    performanceMetrics: {
+        acceptanceRate: { type: Number, default: 100 },
+        completionRate: { type: Number, default: 100 },
+        averageRating: { type: Number, default: 0 },
+        totalReviews: { type: Number, default: 0 }
+    },
+
     // Operational Preferences
     preferredZones: [String],
     maxDeliveriesPerDay: { type: Number, default: 30 }

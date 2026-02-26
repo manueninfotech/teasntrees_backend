@@ -3,37 +3,27 @@ import Order from '../../models/Order.js';
 import User from '../../models/User.js';
 import Rider from '../../models/Rider.js';
 import Product from '../../models/Product.js';
+import Delivery from '../../models/Delivery.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
+import { riderMetricsService } from '../../services/riderMetricsService.js';
 import { notificationService } from '../../services/notificationService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 
-const updateRiderRating = async (riderId) => {
+const updateRiderRating = async (riderId, orderId, riderRating) => {
     if (!riderId) return;
     try {
-        const stats = await Review.aggregate([
-            {
-                $match: {
-                    riderId: new mongoose.Types.ObjectId(riderId),
-                    riderRating: { $exists: true, $ne: null }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    avg: { $avg: '$riderRating' },
-                    count: { $sum: 1 }
-                }
-            }
-        ]);
+        // 1. Sync rating with Delivery record if orderId is provided
+        if (orderId) {
+            await Delivery.findOneAndUpdate(
+                { orderId, riderId },
+                { rating: riderRating },
+                { new: true }
+            );
+        }
 
-        const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
-        const count = stats.length > 0 ? stats[0].count : 0;
-
-        await Rider.findByIdAndUpdate(riderId, {
-            averageRating: avg,
-            ratingsCount: count
-        });
+        // 2. Trigger unified metrics update
+        await riderMetricsService.updateMetrics(riderId);
     } catch (error) {
         logger.error('Error updating rider rating:', error);
     }
@@ -87,7 +77,7 @@ export const createReview = async (req, res) => {
         // If no orderId is provided, it's a general site review
         if (!orderId) {
             const finalRating = foodRating || rating;
-            const finalReview = review || comment;
+            const finalReview = review || comment || "";
 
             if (!finalRating) {
                 return res.status(400).json({
@@ -152,23 +142,26 @@ export const createReview = async (req, res) => {
             });
         }
 
+        const finalReview = review || comment || "";
+
         // check if review already exists
         const existingReview = await Review.findOne({ orderId });
         if (existingReview) {
             existingReview.foodRating = foodRating;
             existingReview.riderRating = riderRating;
-            existingReview.review = review;
+            existingReview.review = finalReview;
             if (images) existingReview.images = images;
             existingReview.type = 'order';
             existingReview.isApproved = false;
             await existingReview.save();
 
-            order.foodRating = foodRating;
-            order.riderRating = riderRating;
-            order.review = review;
-            await order.save();
+            await Order.findByIdAndUpdate(orderId, {
+                foodRating,
+                riderRating,
+                review: finalReview
+            });
 
-            await updateRiderRating(existingReview.riderId || order.riderId);
+            await updateRiderRating(existingReview.riderId || order.riderId, orderId, riderRating);
             await updateProductRating(existingReview.productId || (order.items && order.items.length > 0 ? order.items[0].product : null));
 
             return res.status(200).json({
@@ -186,18 +179,19 @@ export const createReview = async (req, res) => {
             productId: (order.items && order.items.length > 0) ? order.items[0].product : null,
             foodRating,
             riderRating,
-            review,
+            review: finalReview,
             images: images || [],
             type: 'order',
             isApproved: false
         });
 
-        order.foodRating = foodRating;
-        order.riderRating = riderRating;
-        order.review = review;
-        await order.save();
+        await Order.findByIdAndUpdate(orderId, {
+            foodRating,
+            riderRating,
+            review: finalReview
+        });
 
-        await updateRiderRating(newReview.riderId);
+        await updateRiderRating(newReview.riderId, orderId, riderRating);
         await updateProductRating(newReview.productId);
 
         const io = req.app.get('io');

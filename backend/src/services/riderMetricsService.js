@@ -42,6 +42,7 @@ class RiderMetricsService {
                         totalReviews: deliveriesWithRatings.length
                     },
                     averageRating: Math.round(avgRating * 10) / 10,
+                    ratingsCount: deliveriesWithRatings.length,
                     totalDeliveries: completedCount
                 }
             });
