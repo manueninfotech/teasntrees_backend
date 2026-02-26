@@ -28,7 +28,7 @@ const contactSchema = new mongoose.Schema({
     subject: {
         type: String,
         required: [true, 'Subject is required'],
-        enum: ['General Inquiry', 'Reservation', 'Event Booking', 'Feedback', 'Support', 'Other']
+        enum: ['General Inquiry', 'Reservation', 'Event Booking', 'Feedback', 'Support', 'Other', 'Custom Cake', 'Event Catering']
     },
     message: {
         type: String,

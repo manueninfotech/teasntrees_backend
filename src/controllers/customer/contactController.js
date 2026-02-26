@@ -10,6 +10,7 @@ export const submitContactForm = async (req, res) => {
         const newContact = await Contact.create({
             firstName,
             lastName,
+            brand: req.activeBrand || 'teasntrees',
             email,
             subject,
             message
