@@ -40,10 +40,6 @@ const customerSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Product'
     }],
-    profileImage: {
-        type: String,
-        default: null
-    },
     notificationPreferences: {
         email: { type: Boolean, default: true },
         sms: { type: Boolean, default: true },

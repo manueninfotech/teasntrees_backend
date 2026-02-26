@@ -9,11 +9,32 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Simple token presence check for now. In a real app, you'd verify the token with the backend.
-        if (token) {
-            setUser({ role: 'manager' });
-        }
-        setLoading(false);
+        const fetchProfile = async () => {
+            if (!token) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const response = await api.get('/manager/profile');
+                if (response.data.success) {
+                    setUser(response.data.data);
+                } else {
+                    // If token is invalid/expired
+                    logout();
+                }
+            } catch (error) {
+                console.error('Profile fetch failed:', error);
+                // If it's a 401/403, we should probably logout
+                if (error.response?.status === 401) {
+                    logout();
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProfile();
     }, [token]);
 
     const verifyOtp = async (mobile, idToken) => {
