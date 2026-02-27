@@ -37,9 +37,16 @@ const riderIcon = new L.Icon({
     className: 'animate-pulse'
 });
 
-const shopIcon = new L.Icon({
-    iconUrl: 'https://cdn-icons-png.flaticon.com/512/1078/1078018.png', // Shop icon
-    iconSize: [32, 32]
+const teasntreesIcon = new L.Icon({
+    iconUrl: 'https://img.icons8.com/fluency/96/tea-cup.png', // Vibrant Tea icon
+    iconSize: [40, 40],
+    className: 'drop-shadow-md'
+});
+
+const littlehIcon = new L.Icon({
+    iconUrl: 'https://img.icons8.com/fluency/96/birthday-cake.png', // Vibrant Cake icon
+    iconSize: [40, 40],
+    className: 'drop-shadow-md'
 });
 
 const customerIcon = new L.Icon({
@@ -236,12 +243,17 @@ const DeliveriesPage = () => {
 
                     <MapController selectedDelivery={selectedDelivery} />
 
-                    {/* Shop Marker */}
-                    <Marker position={SHOP_LOCATION} icon={shopIcon}>
-                        <Popup>
-                            <div className="font-bold">Teas N Trees (Kitchen)</div>
-                        </Popup>
-                    </Marker>
+                    {/* Outlet Markers */}
+                    {[
+                        { name: 'Teas N Trees (LaxmiPuram)', position: [16.3090654, 80.4309655], icon: teasntreesIcon },
+                        { name: 'LittleH Bakery (Amaravathi Road)', position: [16.314207, 80.4187407], icon: littlehIcon }
+                    ].map(outlet => (
+                        <Marker key={outlet.name} position={outlet.position} icon={outlet.icon}>
+                            <Popup>
+                                <div className="font-bold">{outlet.name}</div>
+                            </Popup>
+                        </Marker>
+                    ))}
 
                     {/* Rider Markers */}
                     {deliveries.map(delivery => {
@@ -285,18 +297,23 @@ const DeliveriesPage = () => {
                 </MapContainer>
 
                 {/* Map Legend / Overlay Info */}
-                <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-3 rounded-xl shadow-lg border border-gray-100/50 z-[400] text-xs space-y-2">
-                    <div className="flex items-center gap-2">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1078/1078018.png" className="w-4 h-4" alt="Shop" />
-                        <span>Shop</span>
+                <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm p-4 rounded-2xl shadow-xl border border-gray-100/50 z-[400] text-[10px] space-y-3 min-w-[140px]">
+                    <div className="flex items-center gap-3">
+                        <img src="https://img.icons8.com/fluency/96/tea-cup.png" className="w-5 h-5" alt="TnT" />
+                        <span className="font-bold text-gray-800 tracking-tight">TEAS N TREES</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                        <img src="https://img.icons8.com/fluency/96/birthday-cake.png" className="w-5 h-5" alt="LH" />
+                        <span className="font-bold text-gray-800 tracking-tight">LITTLEH BAKERY</span>
+                    </div>
+                    <div className="h-[1px] bg-gray-100 my-1" />
+                    <div className="flex items-center gap-2.5">
                         <img src="https://cdn-icons-png.flaticon.com/512/2972/2972185.png" className="w-4 h-4" alt="Rider" />
-                        <span>Rider</span>
+                        <span className="font-bold text-gray-700">Rider</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                         <img src="https://cdn-icons-png.flaticon.com/512/64/64572.png" className="w-4 h-4" alt="Customer" />
-                        <span>Customer</span>
+                        <span className="font-bold text-gray-700">Customer</span>
                     </div>
                 </div>
             </div>

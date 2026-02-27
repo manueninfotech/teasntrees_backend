@@ -159,14 +159,14 @@ export default function RidersPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-4xl font-black text-gray-900 uppercase tracking-tighter leading-none">Riders</h1>
-                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-2 italic">Manage Riders and new Signups</p>
+                    <p className="text-gray-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-2 italic">Manage Riders and Signups</p>
                 </div>
                 <div className="bg-white px-8 py-5 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 flex items-center gap-6 group hover:-translate-y-1 transition-all">
                     <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shadow-sm group-hover:scale-110 transition-transform">
                         <Bike className="w-7 h-7" />
                     </div>
                     <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-2">Riders Online</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none mb-2">Online Riders</p>
                         <p className="text-2xl font-black text-gray-900 tracking-tighter leading-none">{stats.online} <span className="text-gray-200 text-xl mx-0.5">/</span> {stats.total}</p>
                     </div>
                 </div>
@@ -198,7 +198,7 @@ export default function RidersPage() {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within/search:text-brand-primary transition-colors" />
                         <input
                             type="text"
-                            placeholder="Find rider by name or mobile identifier..."
+                            placeholder="Search for riders..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="input pl-12 bg-gray-50/50 border-gray-100 focus:bg-white text-[10px] font-bold uppercase tracking-widest placeholder:text-gray-300 w-full"
@@ -215,7 +215,7 @@ export default function RidersPage() {
                             <tr className="bg-gray-50/50 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-100">
                                 <th className="px-10 py-8">Profile</th>
                                 <th className="px-10 py-8">Status</th>
-                                <th className="px-10 py-8 text-center">Performance Data</th>
+                                <th className="px-10 py-8 text-center">Stats</th>
                                 <th className="px-10 py-8 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -225,7 +225,7 @@ export default function RidersPage() {
                                     <td colSpan="4" className="px-10 py-24 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin mb-4" />
-                                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Synchronizing Force Data...</p>
+                                            <p className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Loading...</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -254,12 +254,12 @@ export default function RidersPage() {
                                                 <div className={`flex items-center gap-2.5 px-4 py-2 rounded-xl border-2 w-fit shadow-sm
                                                     ${rider.isOnline ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
                                                     <div className={`w-2 h-2 rounded-full ${rider.isOnline ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-gray-300'}`} />
-                                                    <span className="text-[9px] font-black uppercase tracking-widest">{rider.isOnline ? 'Operational' : 'Standby'}</span>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest">{rider.isOnline ? 'Online' : 'Offline'}</span>
                                                 </div>
                                                 {rider.isOnline && (
                                                     <div className={`text-[9px] font-black uppercase tracking-widest px-4 py-1 rounded-lg border w-fit
                                                         ${rider.isBusy ? 'bg-orange-50 text-orange-600 border-orange-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                                        {rider.isBusy ? 'In Engagement' : 'Unit Ready'}
+                                                        {rider.isBusy ? 'Busy' : 'Available'}
                                                     </div>
                                                 )}
                                             </div>
@@ -283,9 +283,9 @@ export default function RidersPage() {
                                         <td className="px-10 py-8 text-right">
                                             <div className="flex items-center justify-end gap-6">
                                                 <div className="text-right">
-                                                    <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest block mb-0.5 whitespace-nowrap">Asset Status</span>
+                                                    <span className="text-[9px] font-black text-gray-300 uppercase tracking-widest block mb-0.5 whitespace-nowrap">Status</span>
                                                     <span className={`text-xs font-black tracking-widest uppercase ${rider.tab === 'active' ? 'text-emerald-600' : 'text-amber-600 animate-pulse'}`}>
-                                                        {rider.tab === 'active' ? 'Verified' : 'Screening'}
+                                                        {rider.tab === 'active' ? 'Active' : 'Pending'}
                                                     </span>
                                                 </div>
                                                 <button
@@ -314,7 +314,7 @@ export default function RidersPage() {
                                                                         <div className="p-2 bg-brand-primary/5 rounded-lg">
                                                                             <Bike className="w-4 h-4 text-brand-primary" />
                                                                         </div>
-                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Vehicle Logistics</h4>
+                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Vehicle Details</h4>
                                                                     </div>
                                                                     <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm space-y-4 h-full">
                                                                         {[
@@ -338,7 +338,7 @@ export default function RidersPage() {
                                                                         <div className="p-2 bg-brand-primary/5 rounded-lg">
                                                                             <CreditCard className="w-4 h-4 text-brand-primary" />
                                                                         </div>
-                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Settlement Data</h4>
+                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Bank Details</h4>
                                                                     </div>
                                                                     <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm space-y-4 h-full">
                                                                         {[
@@ -362,7 +362,7 @@ export default function RidersPage() {
                                                                         <div className="p-2 bg-brand-primary/5 rounded-lg">
                                                                             <MapPin className="w-4 h-4 text-brand-primary" />
                                                                         </div>
-                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Geospatial Position</h4>
+                                                                        <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Location</h4>
                                                                     </div>
                                                                     {rider.currentLocation?.coordinates?.[1] && (
                                                                         <a
@@ -380,9 +380,9 @@ export default function RidersPage() {
                                                                     <div className="p-3 bg-white rounded-xl shadow-sm"><Navigation className="w-5 h-5 text-brand-primary" /></div>
                                                                     <div>
                                                                         <p className="text-xl font-black text-gray-900 tracking-tighter">
-                                                                            {rider.currentLocation?.coordinates?.[1] ? `${rider.currentLocation.coordinates[1].toFixed(6)}, ${rider.currentLocation.coordinates[0].toFixed(6)}` : 'Coordinates Locked'}
+                                                                            {rider.currentLocation?.coordinates?.[1] ? `${rider.currentLocation.coordinates[1].toFixed(6)}, ${rider.currentLocation.coordinates[0].toFixed(6)}` : 'Location Locked'}
                                                                         </p>
-                                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.3em] mt-1">Global Positioning Vector</p>
+                                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.3em] mt-1">Coordinates</p>
                                                                     </div>
                                                                 </div>
                                                             </div>
@@ -394,7 +394,7 @@ export default function RidersPage() {
                                                                 <div className="p-2 bg-brand-primary/5 rounded-lg">
                                                                     <ShieldCheck className="w-4 h-4 text-brand-primary" />
                                                                 </div>
-                                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Personnel Protocol</h4>
+                                                                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Status Control</h4>
                                                             </div>
 
                                                             <div className="grid grid-cols-1 gap-4">
@@ -409,8 +409,8 @@ export default function RidersPage() {
                                                                                     <ShieldCheck className="w-6 h-6" />
                                                                                 </div>
                                                                                 <div className="text-left">
-                                                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] block">Approve Unit</span>
-                                                                                    <span className="text-[8px] opacity-70 font-bold uppercase tracking-widest">Activate Personnel</span>
+                                                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] block">Approve</span>
+                                                                                    <span className="text-[8px] opacity-70 font-bold uppercase tracking-widest">Make Active</span>
                                                                                 </div>
                                                                             </div>
                                                                             <CheckCircle className="w-6 h-6" />
@@ -425,7 +425,7 @@ export default function RidersPage() {
                                                                                     <XCircle className="w-6 h-6" />
                                                                                 </div>
                                                                                 <div className="text-left">
-                                                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] block">Decline Entry</span>
+                                                                                    <span className="text-[11px] font-black uppercase tracking-[0.2em] block">Reject</span>
                                                                                     <span className="text-[8px] opacity-70 font-bold uppercase tracking-widest">Reject Application</span>
                                                                                 </div>
                                                                             </div>
@@ -458,9 +458,9 @@ export default function RidersPage() {
                                                                 )}
                                                                 <div className="mt-4 p-8 bg-gray-50 border border-gray-100 rounded-[2.5rem] relative overflow-hidden">
                                                                     <div className="absolute bottom-0 right-0 w-24 h-24 bg-brand-primary/5 rounded-full -mr-12 -mb-12 pointer-events-none" />
-                                                                    <h5 className="text-[9px] font-black text-gray-900 uppercase tracking-[0.2em] mb-3">System Note</h5>
+                                                                    <h5 className="text-[9px] font-black text-gray-900 uppercase tracking-[0.2em] mb-3">Note</h5>
                                                                     <p className="text-[10px] font-bold text-gray-500 uppercase italic leading-relaxed">
-                                                                        Personnel monitoring active. Every interaction is strictly logged for security auditing purposes.
+                                                                        Security monitoring active for all actions.
                                                                     </p>
                                                                 </div>
                                                             </div>
@@ -476,7 +476,7 @@ export default function RidersPage() {
                                     <td colSpan="4" className="px-10 py-24 text-center">
                                         <div className="flex flex-col items-center justify-center opacity-30">
                                             <Bike className="w-12 h-12 text-gray-400 mb-4" />
-                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 italic">No personnel detected in current sector</p>
+                                            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 italic">No riders found</p>
                                         </div>
                                     </td>
                                 </tr>
