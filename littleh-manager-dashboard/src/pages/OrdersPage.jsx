@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import {
     Search, RefreshCw, ChevronDown, ChevronUp,
     User, MapPin, Package, ArrowRight, PlayCircle,
-    CheckCircle, Clock, ShoppingBag, Eye, AlertCircle
+    CheckCircle, Clock, ShoppingBag, Eye, AlertCircle, XCircle
 } from 'lucide-react';
 import React from 'react';
 import api from '../utils/api';
@@ -302,7 +302,7 @@ export default function OrdersPage() {
                                                                 </button>
                                                                 <button
                                                                     onClick={() => handleUpdateStatus(order._id, 'delivered')}
-                                                                    disabled={order.status === 'delivered'}
+                                                                    disabled={order.status === 'delivered' || order.status === 'cancelled'}
                                                                     className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${order.status === 'delivered' ? 'bg-bakery-primary border-bakery-primary text-white' : 'bg-white border-bakery-light text-bakery-primary hover:border-bakery-primary'}`}
                                                                 >
                                                                     <div className="flex items-center gap-3">
@@ -310,6 +310,17 @@ export default function OrdersPage() {
                                                                         <span className="text-[10px] font-black uppercase tracking-widest">Mark Delivered</span>
                                                                     </div>
                                                                     {order.status === 'delivered' && <CheckCircle className="w-4 h-4" />}
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => { if (window.confirm('Cancel this order?')) handleUpdateStatus(order._id, 'cancelled'); }}
+                                                                    disabled={order.status === 'cancelled' || order.status === 'delivered'}
+                                                                    className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${order.status === 'cancelled' ? 'bg-red-600 border-red-600 text-white' : 'bg-white border-red-100 text-red-600 hover:bg-red-50'}`}
+                                                                >
+                                                                    <div className="flex items-center gap-3">
+                                                                        <XCircle className="w-4 h-4" />
+                                                                        <span className="text-[10px] font-black uppercase tracking-widest">Cancel Order</span>
+                                                                    </div>
+                                                                    {order.status === 'cancelled' && <CheckCircle className="w-4 h-4" />}
                                                                 </button>
                                                             </div>
                                                         </div>
