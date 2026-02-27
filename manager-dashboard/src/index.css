@@ -16,7 +16,7 @@
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+    @apply bg-white rounded-[2.5rem] shadow-sm border border-gray-100 p-8 hover:shadow-xl hover:shadow-emerald-600/5 transition-all duration-300;
   }
 
   .input {
