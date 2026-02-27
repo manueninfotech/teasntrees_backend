@@ -18,11 +18,45 @@ export const getCustomers = async (req, res) => {
 
         const skip = (parseInt(page) - 1) * parseInt(limit);
 
-        const customers = await User.find(query)
-            .select('-password -__v -fcmToken')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(parseInt(limit));
+        const customers = await User.aggregate([
+            { $match: query },
+            {
+                $lookup: {
+                    from: 'orders',
+                    let: { userId: '$_id' },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        { $eq: ['$customerId', '$$userId'] },
+                                        { $eq: ['$brand', brand] }
+                                    ]
+                                }
+                            }
+                        },
+                        { $project: { _id: 1 } }
+                    ],
+                    as: 'brandOrders'
+                }
+            },
+            {
+                $addFields: {
+                    totalOrders: { $size: '$brandOrders' }
+                }
+            },
+            {
+                $project: {
+                    password: 0,
+                    __v: 0,
+                    fcmToken: 0,
+                    brandOrders: 0
+                }
+            },
+            { $sort: { createdAt: -1 } },
+            { $skip: skip },
+            { $limit: parseInt(limit) }
+        ]);
 
         const total = await User.countDocuments(query);
 

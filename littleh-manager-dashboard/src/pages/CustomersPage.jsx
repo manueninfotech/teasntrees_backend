@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import {
     Users, Search, Mail, Phone,
-    Calendar, MapPin, MoreVertical, ShoppingBag
+    Calendar, MapPin, ShoppingBag
 } from 'lucide-react';
 import api from '../utils/api';
 import { useRefresh } from '../context/RefreshContext';
@@ -85,9 +85,6 @@ export default function CustomersPage() {
                                     <p className="text-[10px] font-black text-bakery-accent uppercase tracking-widest italic">Since {new Date(customer.createdAt).getFullYear()}</p>
                                 </div>
                             </div>
-                            <button className="p-2 hover:bg-bakery-light rounded-lg transition-colors text-bakery-accent">
-                                <MoreVertical className="w-5 h-5" />
-                            </button>
                         </div>
 
                         <div className="space-y-3 mb-8">
@@ -106,9 +103,6 @@ export default function CustomersPage() {
                                 <ShoppingBag className="w-4 h-4 text-bakery-primary" />
                                 <span className="text-[10px] font-black uppercase tracking-widest text-bakery-primary">{customer.totalOrders || 0} Orders</span>
                             </div>
-                            <button className="text-[10px] font-black uppercase tracking-widest text-bakery-accent hover:text-bakery-primary transition-colors">
-                                View Profile
-                            </button>
                         </div>
                     </div>
                 ))}
