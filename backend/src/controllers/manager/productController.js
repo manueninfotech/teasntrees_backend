@@ -5,7 +5,7 @@ import activityLogService from '../../services/activityLogService.js';
 // Get Products
 export const getProducts = async (req, res) => {
     try {
-        const { category, search, page = 1, limit = 1000 } = req.query;
+        const { category, search, page = 1, limit = 12 } = req.query;
         const brand = req.activeBrand || req.params.brand || 'littleh';
         let query = { brand };
 

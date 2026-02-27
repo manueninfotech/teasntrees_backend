@@ -4,7 +4,7 @@ import {
     User, Mail, Phone, MapPin,
     Save, Edit2, X, CheckCircle2,
     ShieldCheck, LogOut, ChevronRight,
-    Camera, Coffee
+    Camera
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -305,7 +305,7 @@ export default function ProfilePage() {
                                             <User className="w-7 h-7 text-bakery-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-bakery-accent uppercase tracking-[0.2em] mb-2">Legal Identity</p>
+                                            <p className="text-[10px] font-black text-bakery-accent uppercase tracking-[0.2em] mb-2">Full Name</p>
                                             <h3 className="text-2xl font-black text-bakery-primary tracking-tight capitalize">{profile?.name}</h3>
                                         </div>
                                     </div>
@@ -315,7 +315,7 @@ export default function ProfilePage() {
                                             <Mail className="w-7 h-7 text-bakery-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-bakery-accent uppercase tracking-[0.2em] mb-2">Electronic Mail</p>
+                                            <p className="text-[10px] font-black text-bakery-accent uppercase tracking-[0.2em] mb-2">Email Address</p>
                                             <h3 className="text-2xl font-black text-bakery-primary tracking-tight lowercase">{profile?.email || 'Not verified'}</h3>
                                         </div>
                                     </div>
@@ -325,7 +325,7 @@ export default function ProfilePage() {
                                             <MapPin className="w-7 h-7 text-bakery-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] font-black text-bakery-accent uppercase tracking-[0.2em] mb-2">Operational Address</p>
+                                            <p className="text-[10px] font-black text-bakery-accent uppercase tracking-[0.2em] mb-2">Business Location</p>
                                             <p className="text-lg font-bold text-bakery-primary/80 leading-relaxed max-w-md">{profile?.address || 'Physical address not set'}</p>
                                         </div>
                                     </div>

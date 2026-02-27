@@ -43,7 +43,8 @@ const authenticateUser = async (req, res, next) => {
             email: user.email,
             role: user.role,
             isProfileComplete: user.isProfileComplete,
-            activeBrand: user.preferences?.activeBrand
+            activeBrand: user.preferences?.activeBrand,
+            brand: user.brand
         };
 
         next();
@@ -80,7 +81,8 @@ const optionalAuthenticate = async (req, res, next) => {
                 email: user.email,
                 role: user.role,
                 isProfileComplete: user.isProfileComplete,
-                activeBrand: user.preferences?.activeBrand
+                activeBrand: user.preferences?.activeBrand,
+                brand: user.brand
             };
         } else {
             req.user = null;

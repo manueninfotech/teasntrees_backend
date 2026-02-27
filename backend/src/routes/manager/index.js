@@ -11,7 +11,12 @@ import categoryRoutes from './categoryRoutes.js';
 import { uploadImage, deleteImage } from '../../controllers/admin/uploadController.js';
 import upload from '../../middlewares/upload.js';
 
+import { brandGuard } from '../../middlewares/brandGuard.js';
+
 const router = express.Router({ mergeParams: true });
+
+// Apply brand guard to all manager routes
+router.use(brandGuard);
 
 // Auth routes (public + protected inside)
 router.use('/auth', authRoutes);
