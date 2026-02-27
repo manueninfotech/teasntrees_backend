@@ -202,6 +202,21 @@ deliverySchema.post('save', async function (delivery) {
 
     let mutated = false;
 
+    // Self-healing: Repair invalid/missing data in order and delivery
+    if (order.pickupLocation && (!order.pickupLocation.coordinates || order.pickupLocation.coordinates.length !== 2)) {
+        order.pickupLocation = delivery.pickupLocation;
+        mutated = true;
+    }
+
+    // Ensure delivery has accurate address strings from order
+    if (order.deliveryAddress?.address && !delivery.deliveryLocation?.address) {
+        delivery.deliveryLocation = {
+            ...delivery.deliveryLocation,
+            address: order.deliveryAddress.address
+        };
+    }
+
+
     // Sync rider if changed
     if (delivery._riderChanged) {
         if (
@@ -288,6 +303,25 @@ deliverySchema.post('findOneAndUpdate', async function (delivery) {
                 description: `Updated via atomic delivery sync (${delivery.status})`,
                 timestamp: new Date()
             });
+
+            // Self-healing
+            if (order.pickupLocation && (!order.pickupLocation.coordinates || order.pickupLocation.coordinates.length !== 2)) {
+                order.pickupLocation = delivery.pickupLocation;
+            }
+
+            // Sync address strings to delivery if missing
+            if (order.deliveryAddress?.address && !delivery.deliveryLocation?.address) {
+                await mongoose.model('Delivery').findByIdAndUpdate(delivery._id, {
+                    'deliveryLocation.address': order.deliveryAddress.address
+                });
+            }
+
+            if (order.brand && !delivery.pickupLocation?.address) {
+                await mongoose.model('Delivery').findByIdAndUpdate(delivery._id, {
+                    'pickupLocation.address': order.brand === 'littleh' ? 'LittleH Outlet' : 'Teas N Trees Outlet'
+                });
+            }
+
             order.$locals.allowDeliverySync = true;
             await order.save();
         }

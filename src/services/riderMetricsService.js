@@ -1,5 +1,5 @@
 import Rider from "../models/Rider.js";
-import Delivery from "../models/Delivery.js";
+import mongoose from "mongoose";
 import logger from "../config/logger.js";
 
 class RiderMetricsService {
@@ -12,8 +12,9 @@ class RiderMetricsService {
 
             // Calculate Acceptance Rate
 
-            const completedCount = await Delivery.countDocuments({ riderId, status: 'delivered' });
-            const rejectedCount = await Delivery.countDocuments({ riderId, status: 'rejected' });
+            const DeliveryModel = mongoose.model('Delivery');
+            const completedCount = await DeliveryModel.countDocuments({ riderId, status: 'delivered' });
+            const rejectedCount = await DeliveryModel.countDocuments({ riderId, status: 'rejected' });
 
             const totalOpportunities = completedCount + rejectedCount; // Simplification
             const acceptanceRate = totalOpportunities > 0
@@ -21,7 +22,7 @@ class RiderMetricsService {
                 : 100;
 
             // Average Rating
-            const deliveriesWithRatings = await Delivery.find({
+            const deliveriesWithRatings = await DeliveryModel.find({
                 riderId,
                 rating: { $exists: true, $ne: null }
             });
