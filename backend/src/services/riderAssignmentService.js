@@ -1,8 +1,23 @@
 import mongoose from "mongoose";
 import Rider from "../models/Rider.js";
-import Delivery from "../models/Delivery.js";
 import { getDistance } from "../utils/geoUtils.js";
 import logger from "../config/logger.js";
+
+const BRAND_OUTLETS = {
+    littleh: {
+        name: 'LittleH Bakery (Amaravathi Road)',
+        coordinates: [80.4309655, 16.3090654], // [lng, lat]
+        lat: 16.3090654,
+        lng: 80.4309655
+    },
+    teasntrees: {
+        name: 'Teas N Trees (Lakshmipuram)',
+        coordinates: [80.4187407, 16.314207], // [lng, lat]
+        lat: 16.314207,
+        lng: 80.4187407
+    }
+};
+
 
 class RiderAssignmentService {
     CONFIG = {
@@ -65,7 +80,8 @@ class RiderAssignmentService {
                 return null;
             }
 
-            const fallbackOutletLocation = outletLocation || { lat: 16.3090716, lng: 80.4308257 };
+            const defaultCoords = BRAND_OUTLETS.teasntrees; // Default fallback to original
+            const fallbackOutletLocation = outletLocation || { lat: defaultCoords.lat, lng: defaultCoords.lng };
 
             const scored = riders
                 .map(rider => {
@@ -155,10 +171,11 @@ class RiderAssignmentService {
             ? { lat: coords[1], lng: coords[0] }
             : null;
 
+        const defaultOutlet = BRAND_OUTLETS[order.brand] || BRAND_OUTLETS.teasntrees;
         const outletLocation = order.pickupLocation?.coordinates ? {
             lat: order.pickupLocation.coordinates[1],
             lng: order.pickupLocation.coordinates[0]
-        } : { lat: 16.3090716, lng: 80.4308257 }; // Fallback central location
+        } : { lat: defaultOutlet.lat, lng: defaultOutlet.lng };
 
         while (attempts < 5) {
             attempts++;
@@ -167,12 +184,21 @@ class RiderAssignmentService {
             if (!rider) break;
 
             try {
-                const delivery = await Delivery.create({
+                const DeliveryModel = mongoose.model('Delivery');
+                const delivery = await DeliveryModel.create({
                     ...deliveryData,
-                    brand: deliveryData.brand || order.brand || "teasntrees",
+                    brand: order.brand || deliveryData.brand || "teasntrees",
                     riderId: rider._id,
                     status: "pending_acceptance",
-                    assignedAt: new Date()
+                    assignedAt: new Date(),
+                    deliveryLocation: {
+                        ...deliveryData.deliveryLocation,
+                        address: order.deliveryAddress?.address || 'Customer Address'
+                    },
+                    pickupLocation: {
+                        ...deliveryData.pickupLocation,
+                        address: BRAND_OUTLETS[order.brand]?.name || 'Outlet'
+                    }
                 });
 
                 // Lock rider
@@ -233,25 +259,27 @@ class RiderAssignmentService {
             // 1. Atomic lock: Set rider as busy
             await Rider.findByIdAndUpdate(rider._id, { isOnDelivery: true });
 
+            const DeliveryModel = mongoose.model('Delivery');
             // 2. Find or Create Delivery
-            let delivery = await Delivery.findOne({ orderId: order._id });
+            let delivery = await DeliveryModel.findOne({ orderId: order._id });
 
             if (delivery) {
                 if (['delivered', 'cancelled'].includes(delivery.status)) {
                     throw new Error('Cannot reassign rider for a terminal delivery');
                 }
                 delivery.riderId = rider._id;
-                delivery.brand = order.brand || delivery.brand || 'teasntrees';
+                delivery.brand = order.brand || delivery.brand;
                 delivery.status = 'pending_acceptance';
                 delivery.assignedAt = new Date();
                 await delivery.save();
                 return delivery;
             }
 
+            const defaultOutlet = BRAND_OUTLETS[order.brand] || BRAND_OUTLETS.teasntrees;
             const outletLocation = order.pickupLocation?.coordinates ? {
                 lat: order.pickupLocation.coordinates[1],
                 lng: order.pickupLocation.coordinates[0]
-            } : { lat: 16.3090716, lng: 80.4308257 };
+            } : { lat: defaultOutlet.lat, lng: defaultOutlet.lng };
 
             const deliveryLocation = order.deliveryAddress?.location;
 
@@ -268,15 +296,18 @@ class RiderAssignmentService {
 
             const deliveryData = {
                 orderId: order._id,
-                brand: order.brand || 'teasntrees',
+                brand: order.brand,
                 riderId: rider._id,
                 customerId: order.customerId,
                 pickupLocation: {
                     type: 'Point',
                     coordinates: [outletLocation.lng, outletLocation.lat],
-                    address: 'Pickup Outlet'
+                    address: BRAND_OUTLETS[order.brand]?.name || 'Outlet'
                 },
-                deliveryLocation,
+                deliveryLocation: {
+                    ...deliveryLocation,
+                    address: order.deliveryAddress?.address || 'Customer Address'
+                },
                 distance,
                 baseEarning: order.riderEarning || 20,
                 totalEarning: order.riderEarning || 20,
@@ -286,7 +317,7 @@ class RiderAssignmentService {
                 deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
             };
 
-            delivery = await Delivery.create(deliveryData);
+            delivery = await DeliveryModel.create(deliveryData);
             return delivery;
 
         } catch (err) {
@@ -314,17 +345,18 @@ class RiderAssignmentService {
             const Settings = mongoose.model('Settings');
 
             for (const order of pendingOrders) {
-                const settings = (await Settings.findOne({ brand: order.brand || 'teasntrees' })) || {};
+                const settings = (await Settings.findOne({ brand: order.brand })) || {};
                 const base = settings.riderBaseEarning || 20;
                 const rate = settings.distanceBonusPerKm || 5;
 
                 const coords = order.deliveryAddress?.location?.coordinates;
                 if (!coords || coords.length !== 2) continue;
 
+                const defaultOutlet = BRAND_OUTLETS[order.brand] || BRAND_OUTLETS.teasntrees;
                 const outletLocation = order.pickupLocation?.coordinates ? {
                     lat: order.pickupLocation.coordinates[1],
                     lng: order.pickupLocation.coordinates[0]
-                } : { lat: 16.3090716, lng: 80.4308257 };
+                } : { lat: defaultOutlet.lat, lng: defaultOutlet.lng };
 
                 const distance = getDistance(
                     outletLocation.lat,
@@ -338,12 +370,12 @@ class RiderAssignmentService {
                     io,
                     {
                         orderId: order._id,
-                        brand: order.brand || 'teasntrees',
+                        brand: order.brand,
                         customerId: order.customerId,
                         pickupLocation: {
                             type: 'Point',
                             coordinates: [outletLocation.lng, outletLocation.lat],
-                            address: 'Pickup Outlet'
+                            address: BRAND_OUTLETS[order.brand]?.name || 'Outlet'
                         },
                         deliveryLocation: order.deliveryAddress.location,
                         distance,
@@ -365,10 +397,8 @@ class RiderAssignmentService {
     async syncRiderStatus(riderId) {
         try {
             const Rider = mongoose.model('Rider');
-            const Delivery = mongoose.model('Delivery');
-
             const [activeDelivery, rider] = await Promise.all([
-                Delivery.findOne({
+                mongoose.model('Delivery').findOne({
                     riderId,
                     status: { $nin: ['delivered', 'cancelled', 'rejected'] }
                 }),

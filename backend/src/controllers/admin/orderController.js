@@ -148,7 +148,12 @@ export const updateOrderStatus = async (req, res) => {
 
             const coords = order.deliveryAddress?.location?.coordinates;
             if (coords && coords.length === 2) {
-                const OUTLET = { lat: 16.3090716, lng: 80.4308257 };
+                const BRAND_OUTLETS = {
+                    littleh: { lat: 16.3090654, lng: 80.4309655, name: 'LittleH Bakery (Amaravathi Road)' },
+                    teasntrees: { lat: 16.314207, lng: 80.4187407, name: 'Teas N Trees (Lakshmipuram)' }
+                };
+                const OUTLET = BRAND_OUTLETS[order.brand] || BRAND_OUTLETS.teasntrees;
+
                 const distance = getDistance(
                     OUTLET.lat,
                     OUTLET.lng,
@@ -165,12 +170,15 @@ export const updateOrderStatus = async (req, res) => {
                     req.app.get('io'),
                     {
                         orderId: order._id,
+                        brand: order.brand,
                         customerId: order.customerId,
-                        pickupLocation: {
-                            type: 'Point',
-                            coordinates: [OUTLET.lng, OUTLET.lat],
-                            address: 'Teas N Trees Outlet'
-                        },
+                        pickupLocation: (order.pickupLocation && order.pickupLocation.coordinates && order.pickupLocation.coordinates.length === 2)
+                            ? order.pickupLocation
+                            : {
+                                type: 'Point',
+                                coordinates: [OUTLET.lng, OUTLET.lat],
+                                address: OUTLET.name
+                            },
                         deliveryLocation: order.deliveryAddress.location,
                         distance,
                         baseEarning: base,

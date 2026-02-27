@@ -1,45 +1,45 @@
 import Delivery from '../../models/Delivery.js';
 
 /* =========================================================
-   GET ACTIVE DELIVERIES (MANAGER DASHBOARD)
+   GET DELIVERIES (MANAGER DASHBOARD)
 ========================================================= */
-export const getActiveDeliveries = async (req, res) => {
+export const getDeliveries = async (req, res) => {
     try {
         const {
             page = 1,
-            limit = 1000
+            limit = 1000,
+            type // 'active' or undefined for all
         } = req.query;
 
         const brand = req.activeBrand || req.params.brand || 'littleh';
-        const skip = (page - 1) * limit;
+        const skip = (Number(page) - 1) * Number(limit);
 
-        // Only true active delivery states (Delivery domain)
-        const activeStatuses = [
-            'pending_acceptance',
-            'assigned',
-            'accepted',
-            'heading_to_pickup',
-            'arrived_at_pickup',
-            'picked_up',
-            'in_transit',
-            'arrived'
-        ];
+        const query = { brand };
 
-        const deliveries = await Delivery.find({
-            brand,
-            status: { $in: activeStatuses }
-        })
+        // If 'active' type requested, filter by specific active statuses
+        if (type === 'active') {
+            const activeStatuses = [
+                'pending_acceptance',
+                'assigned',
+                'accepted',
+                'heading_to_pickup',
+                'arrived_at_pickup',
+                'picked_up',
+                'in_transit',
+                'arrived'
+            ];
+            query.status = { $in: activeStatuses };
+        }
+
+        const deliveries = await Delivery.find(query)
             .populate('riderId', 'name mobile currentLocation isOnline')
-            .populate('orderId', 'orderNumber total')
+            .populate('orderId', 'orderNumber total deliveryAddress')
             .populate('customerId', 'name mobile')
             .sort({ updatedAt: -1 })
             .skip(skip)
             .limit(Number(limit));
 
-        const total = await Delivery.countDocuments({
-            brand,
-            status: { $in: activeStatuses }
-        });
+        const total = await Delivery.countDocuments(query);
 
         // Shape data for dashboard / map - Keys must match frontend (riderId, orderId, customerId)
         const data = deliveries.map(d => ({
@@ -68,8 +68,14 @@ export const getActiveDeliveries = async (req, res) => {
                 mobile: d.customerId.mobile
             } : null,
 
-            pickupLocation: d.pickupLocation,
-            deliveryLocation: d.deliveryLocation,
+            pickupLocation: d.pickupLocation?.address ? d.pickupLocation : {
+                ...d.pickupLocation,
+                address: d.brand === 'littleh' ? 'LittleH Bakery (Amaravathi Road)' : 'Teas N Trees (Lakshmipuram)'
+            },
+            deliveryLocation: d.deliveryLocation?.address ? d.deliveryLocation : {
+                ...d.deliveryLocation,
+                address: d.orderId?.deliveryAddress?.address || 'Customer Address'
+            },
             estimatedTime: d.estimatedTime
         }));
 
@@ -80,15 +86,15 @@ export const getActiveDeliveries = async (req, res) => {
                 page: Number(page),
                 limit: Number(limit),
                 total,
-                totalPages: Math.ceil(total / limit)
+                totalPages: Math.ceil(total / Number(limit))
             }
         });
 
     } catch (error) {
-        console.error('Error fetching active deliveries:', error);
+        console.error('Error fetching deliveries:', error);
         res.status(500).json({
             success: false,
-            message: 'Error fetching active deliveries'
+            message: 'Error fetching deliveries'
         });
     }
 };

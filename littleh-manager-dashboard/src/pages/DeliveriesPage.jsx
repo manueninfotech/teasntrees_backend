@@ -18,7 +18,7 @@ export default function DeliveriesPage() {
     const fetchDeliveries = async () => {
         try {
             setLoading(true);
-            const response = await api.get('/manager/deliveries/active');
+            const response = await api.get('/manager/deliveries');
             setDeliveries(response.data.data || []);
         } catch (error) {
             console.error('Error fetching deliveries:', error);
@@ -35,8 +35,8 @@ export default function DeliveriesPage() {
         <div className="space-y-8">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-black text-bakery-primary uppercase tracking-tight">Active Deliveries</h1>
-                    <p className="text-bakery-accent mt-1 font-bold uppercase text-[10px] tracking-widest">In-transit tracking</p>
+                    <h1 className="text-3xl font-black text-bakery-primary uppercase tracking-tight">Delivery Database</h1>
+                    <p className="text-bakery-accent mt-1 font-bold uppercase text-[10px] tracking-widest">Full delivery history</p>
                 </div>
                 <button
                     onClick={fetchDeliveries}
@@ -76,7 +76,7 @@ export default function DeliveriesPage() {
                                             <MapPin className="w-3 h-3" /> Pickup Station
                                         </p>
                                         <p className="text-[10px] font-bold text-bakery-primary uppercase tracking-tight line-clamp-2">
-                                            {delivery.pickupLocation?.address || 'LittleH Main Branch'}
+                                            {delivery.pickupLocation?.address || (delivery.brand === 'littleh' ? 'LittleH Bakery (Amaravathi Road)' : 'Teas N Trees (Lakshmipuram)')}
                                         </p>
                                     </div>
                                     <div className="p-4 bg-bakery-light/30 rounded-2xl">
@@ -84,7 +84,7 @@ export default function DeliveriesPage() {
                                             <ArrowRight className="w-3 h-3" /> Destination
                                         </p>
                                         <p className="text-[10px] font-bold text-bakery-primary uppercase tracking-tight line-clamp-2">
-                                            {delivery.deliveryLocation?.address || 'Loading Destination...'}
+                                            {delivery.deliveryLocation?.address || 'Customer Address'}
                                         </p>
                                     </div>
                                 </div>
@@ -112,7 +112,7 @@ export default function DeliveriesPage() {
                 {deliveries.length === 0 && (
                     <div className="xl:col-span-2 py-20 bg-white rounded-[3rem] border-2 border-dashed border-bakery-light flex flex-col items-center justify-center text-bakery-accent">
                         <Truck className="w-16 h-16 opacity-10 mb-4" />
-                        <p className="font-black uppercase text-xs tracking-widest">No Active Deliveries</p>
+                        <p className="font-black uppercase text-xs tracking-widest">No Deliveries Found</p>
                     </div>
                 )}
             </div>
