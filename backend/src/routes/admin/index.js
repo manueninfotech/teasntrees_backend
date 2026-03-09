@@ -19,6 +19,7 @@ import riderRoutes from './riderRoutes.js';
 import customerRoutes from './customerRoutes.js';
 import payoutRoutes from './payoutRoutes.js';
 import managerRoutes from './managerRoutes.js';
+import contactRoutes from './contactRoutes.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -43,5 +44,6 @@ router.use('/riders', riderRoutes);
 router.use('/customers', customerRoutes);
 router.use('/payouts', payoutRoutes);
 router.use('/managers', managerRoutes);
+router.use('/contacts', contactRoutes);
 
 export default router;
