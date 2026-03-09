@@ -2,81 +2,122 @@
 // Endpoint: /api/customer/address
 // Role: 'customer' only
 
+import mongoose from 'mongoose';
 import Customer from '../../models/Customer.js';
 import { sanitizeString } from '../../utils/validators.js';
 import { geocodingService } from '../../services/geocodingService.js';
 
+// User-specific address cache
+const addressCache = new Map();
+const CACHE_TTL = 30000; // 30 seconds for personal data is safe
+
+const getCachedResponse = (userId) => {
+    const key = userId.toString();
+    const cached = addressCache.get(key);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+        return cached.data;
+    }
+    return null;
+};
+
+const setCachedResponse = (userId, data) => {
+    addressCache.set(userId.toString(), { data, timestamp: Date.now() });
+};
+
+export const clearAddressCache = (userId) => {
+    if (userId) {
+        addressCache.delete(userId.toString());
+    } else {
+        addressCache.clear();
+    }
+};
+
 // Add a new address
 const addAddress = async (req, res) => {
     try {
+
         const { label, addressLine, location, isDefault, flatNo, street, area, city, pincode } = req.body;
         const userId = req.user.userId;
 
-        // Custom validation
         if (!label || !addressLine) {
             return res.status(400).json({
                 success: false,
-                message: 'Label and Address Line are required'
+                message: "Label and Address Line are required"
             });
         }
 
-        const customer = await Customer.findById(userId);
-        if (!customer) {
-            return res.status(404).json({
-                success: false,
-                message: 'Customer not found'
-            });
-        }
+        const addressId = new mongoose.Types.ObjectId();
 
-        // Create new address object
         const newAddress = {
+            _id: addressId,
             label: sanitizeString(label),
             addressLine: sanitizeString(addressLine),
-            flatNo: flatNo || '',
-            street: street || '',
-            area: area || '',
-            city: city || '',
-            pincode: pincode || '',
-            location: location || { type: 'Point', coordinates: [0, 0] },
+            flatNo: flatNo || "",
+            street: street || "",
+            area: area || "",
+            city: city || "",
+            pincode: pincode || "",
+            location: location || { type: "Point", coordinates: [0, 0] },
             isDefault: isDefault || false
         };
 
-        // --- NEW: Try to geocode if coordinates are missing ---
-        if (!newAddress.location.coordinates || (newAddress.location.coordinates[0] === 0 && newAddress.location.coordinates[1] === 0)) {
-            const coords = await geocodingService.getCoordinates(newAddress.addressLine);
-            if (coords) {
-                newAddress.location = {
-                    type: 'Point',
-                    coordinates: [coords.lng, coords.lat]
-                };
+        // Save address immediately
+        const updateResult = await Customer.updateOne(
+            { _id: userId },
+            { $push: { addresses: newAddress } }
+        );
+
+        if (updateResult.matchedCount === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found"
+            });
+        }
+
+        // Background geocoding (non-blocking)
+        setImmediate(async () => {
+            try {
+
+                const coords = await geocodingService.getCoordinates(newAddress.addressLine);
+
+                if (coords) {
+
+                    await Customer.updateOne(
+                        { _id: userId, "addresses._id": addressId },
+                        {
+                            $set: {
+                                "addresses.$.location": {
+                                    type: "Point",
+                                    coordinates: [coords.lng, coords.lat]
+                                }
+                            }
+                        }
+                    );
+
+                }
+
+            } catch (err) {
+                console.warn("Background geocoding failed:", err.message);
             }
-        }
+        });
 
-        // If this is the first address, make it default automatically
-        if (customer.addresses.length === 0) {
-            newAddress.isDefault = true;
-        }
-
-        // If new address is default, unset other defaults
-        if (newAddress.isDefault) {
-            customer.addresses.forEach(addr => addr.isDefault = false);
-        }
-
-        customer.addresses.push(newAddress);
-        await customer.save();
+        clearAddressCache(userId);
 
         return res.status(201).json({
             success: true,
-            message: 'Address added successfully',
-            data: customer.addresses
+            message: "Address added successfully",
+            data: newAddress
         });
 
     } catch (error) {
-        console.error('Error in addAddress:', error);
+
+        console.error("Error in addAddress:", error);
+
         return res.status(500).json({
             success: false,
-            message: 'Failed to add address'
+            message: "Failed to add address"
         });
+
     }
 };
 
@@ -84,7 +125,15 @@ const addAddress = async (req, res) => {
 const getAddresses = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const customer = await Customer.findById(userId);
+
+        // Check cache
+        const cachedData = getCachedResponse(userId);
+        if (cachedData) return res.status(200).json(cachedData);
+
+        // Optimized query: Only select addresses and use .lean()
+        const customer = await Customer.findById(userId)
+            .select('addresses')
+            .lean();
 
         if (!customer) {
             return res.status(404).json({
@@ -93,10 +142,15 @@ const getAddresses = async (req, res) => {
             });
         }
 
-        return res.status(200).json({
+        const responseData = {
             success: true,
-            data: customer.addresses
-        });
+            data: customer.addresses || []
+        };
+
+        // Cache the result
+        setCachedResponse(userId, responseData);
+
+        return res.status(200).json(responseData);
 
     } catch (error) {
         console.error('Error in getAddresses:', error);
@@ -162,6 +216,9 @@ const updateAddress = async (req, res) => {
 
         await customer.save();
 
+        // Invalidate cache
+        clearAddressCache(userId);
+
         return res.status(200).json({
             success: true,
             message: 'Address updated successfully',
@@ -196,6 +253,9 @@ const deleteAddress = async (req, res) => {
         address.deleteOne(); // Mongoose subdocument removal
         await customer.save();
 
+        // Invalidate cache
+        clearAddressCache(userId);
+
         return res.status(200).json({
             success: true,
             message: 'Address deleted successfully',
@@ -228,6 +288,9 @@ const setDefaultAddress = async (req, res) => {
         address.isDefault = true;
 
         await customer.save();
+
+        // Invalidate cache
+        clearAddressCache(userId);
 
         return res.status(200).json({
             success: true,

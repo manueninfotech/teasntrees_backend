@@ -4,78 +4,79 @@ import Product from '../../models/Product.js';
 // Add product to wishlist
 export const addToWishlist = async (req, res) => {
     try {
+
         const { productId } = req.body;
         const customerId = req.user.userId;
 
-        // Verify product exists
-        const product = await Product.findById(productId);
-        if (!product) {
+        const result = await Customer.updateOne(
+            { _id: customerId },
+            { $addToSet: { wishlist: productId } }
+        );
+
+        if (result.matchedCount === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: "Customer not found"
             });
         }
 
-        // Add to wishlist (addToSet avoids duplicates)
-        const customer = await Customer.findByIdAndUpdate(
-            customerId,
-            { $addToSet: { wishlist: productId } },
-            { new: true }
-        ).populate('wishlist');
-
-        if (!customer) {
-            return res.status(404).json({
-                success: false,
-                message: 'Customer not found'
-            });
-        }
-
-        res.json({
+        return res.status(200).json({
             success: true,
-            message: 'Product added to wishlist',
-            data: customer.wishlist
+            message: "Product added to wishlist"
         });
 
     } catch (error) {
-        console.error('Error in addToWishlist:', error);
-        res.status(500).json({
+
+        console.error("Error in addToWishlist:", error);
+
+        return res.status(500).json({
             success: false,
-            message: 'Failed to add to wishlist'
+            message: "Failed to add to wishlist"
         });
+
     }
 };
 
 // Remove product from wishlist
 export const removeFromWishlist = async (req, res) => {
     try {
+
         const { productId } = req.params;
         const customerId = req.user.userId;
 
-        const customer = await Customer.findByIdAndUpdate(
-            customerId,
-            { $pull: { wishlist: productId } },
-            { new: true }
-        ).populate('wishlist');
-
-        if (!customer) {
-            return res.status(404).json({
+        if (!productId) {
+            return res.status(400).json({
                 success: false,
-                message: 'Customer not found'
+                message: "Product ID is required"
             });
         }
 
-        res.json({
+        const result = await Customer.updateOne(
+            { _id: customerId },
+            { $pull: { wishlist: productId } }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Customer not found"
+            });
+        }
+
+        return res.status(200).json({
             success: true,
-            message: 'Product removed from wishlist',
-            data: customer.wishlist
+            message: "Product removed from wishlist"
         });
 
     } catch (error) {
-        console.error('Error in removeFromWishlist:', error);
-        res.status(500).json({
+
+        console.error("Error in removeFromWishlist:", error);
+
+        return res.status(500).json({
             success: false,
-            message: 'Failed to remove from wishlist'
+            message: "Failed to remove from wishlist"
         });
+
     }
 };
 
@@ -85,8 +86,9 @@ export const getWishlist = async (req, res) => {
         const customerId = req.user.userId;
 
         const customer = await Customer.findById(customerId)
+            .select('wishlist')
             .populate('wishlist')
-            .select('wishlist');
+            .lean();
 
         if (!customer) {
             // Customer doesn't exist yet, return empty array
