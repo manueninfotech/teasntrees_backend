@@ -14,6 +14,29 @@ import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
 import { isCakeCategoryName } from '../../utils/cakeUtils.js';
 
+// Helper function for background geocoding
+async function processGeocoding(orderId, address) {
+    try {
+        const coords = await geocodingService.getCoordinates(address);
+        if (coords) {
+            await Order.updateOne(
+                { _id: orderId },
+                {
+                    $set: {
+                        'deliveryAddress.location': {
+                            type: 'Point',
+                            coordinates: [coords.lng, coords.lat]
+                        }
+                    }
+                }
+            );
+            logger.info(`Background geocoding completed for order ${orderId}`);
+        }
+    } catch (error) {
+        logger.error(`Background geocoding failed for order ${orderId}`, { error: error.message });
+    }
+}
+
 const getCategoryNameFromProduct = async (product) => {
     if (!product?.category) return '';
     if (typeof product.category === 'object' && product.category.name) return product.category.name;
@@ -61,133 +84,120 @@ const buildCakeLabel = ({ weight, isCustomized, isEggless }) => {
 // Get customer's cart
 export const getCart = async (req, res) => {
     try {
+
         const userId = req.user.userId;
 
-        let cart = await Cart.findOne({ userId })
-            .populate('items.product', 'name description image price sizeOptions cakePricing isAvailable brand category');
+        const cart = await Cart.findOne({ userId }).lean();
 
-        // Create empty cart if doesn't exist
         if (!cart) {
-            cart = await Cart.create({
-                userId,
-                items: [],
-                subtotal: 0
+            return res.json({
+                success: true,
+                data: {
+                    items: [],
+                    subtotal: 0,
+                    itemCount: 0
+                }
             });
         }
-
-        // Filter out unavailable products
-        const availableItems = cart.items.filter(item =>
-            item.product && item.product.isAvailable
-        );
-
-        const subtotal = availableItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
         res.json({
             success: true,
             data: {
-                items: availableItems,
-                subtotal: subtotal,
-                itemCount: availableItems.length
+                items: cart.items,
+                subtotal: cart.subtotal,
+                itemCount: cart.items.length
             }
         });
 
     } catch (error) {
-        console.error('Error in getCart:', error);
+        console.error(error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch cart'
+            message: "Failed to fetch cart"
         });
     }
 };
-
 // Add item to cart
 export const addToCart = async (req, res) => {
     try {
+
         const userId = req.user.userId;
         const { productId, quantity = 1, customization = '' } = req.body;
 
-        // Validate product
-        const product = await Product.findById(productId);
+        // Get product
+        const product = await Product.findById(productId).lean();
+
         if (!product) {
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: "Product not found"
             });
         }
 
         if (!product.isAvailable) {
             return res.status(400).json({
                 success: false,
-                message: 'Product is not available'
+                message: "Product is not available"
             });
         }
 
         // Get or create cart
         let cart = await Cart.findOne({ userId });
+
         if (!cart) {
-            cart = await Cart.create({
+            cart = new Cart({
                 userId,
                 items: []
             });
         }
 
-        const categoryName = await getCategoryNameFromProduct(product);
-        const hasCakePricing =
-            product.cakePricing &&
-            product.cakePricing.basePricePerKg !== undefined &&
-            product.cakePricing.basePricePerKg !== null;
-        const isLittlehCake = product.brand === 'littleh' && isCakeCategoryName(categoryName);
+        let itemPrice = product.price || 0;
+        let itemCustomizationLabel = typeof customization === "string" ? customization : "";
 
-        let itemPrice = product.price;
-        let itemCustomizationLabel = typeof customization === 'string' ? customization : '';
         let itemWeight = null;
         let itemIsCustomized = false;
         let itemIsEggless = false;
         let itemCustomizationDetails = undefined;
 
-        if (isLittlehCake) {
-            const cakePricing = product.cakePricing || {};
+        // Cake logic
+        if (product.brand === "littleh" && product.cakePricing) {
+
+            const cakePricing = product.cakePricing;
             const cakeConfig = normalizeCakeCustomization(customization);
-            const customizationEnabled =
-                cakePricing.customizationAvailable === true ||
-                (cakePricing.customizationPricePerKg !== undefined && cakePricing.customizationPricePerKg !== null);
-            if (cakeConfig.isCustomized && !customizationEnabled) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Customization is not available for this cake'
-                });
-            }
-            if (cakeConfig.isEggless && hasCakePricing && cakePricing.egglessAvailable === false) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Eggless option is not available for this cake'
-                });
-            }
 
             const perKg = cakeConfig.isCustomized
                 ? (cakePricing.customizationPricePerKg ?? cakePricing.basePricePerKg ?? product.price ?? 0)
                 : (cakePricing.basePricePerKg ?? product.price ?? 0);
 
             itemPrice = perKg * cakeConfig.weight;
+
             if (cakeConfig.isEggless) {
                 itemPrice += (cakePricing.egglessExtraCharge ?? 100);
             }
 
             itemCustomizationLabel = buildCakeLabel(cakeConfig);
+
             itemWeight = cakeConfig.weight;
             itemIsCustomized = cakeConfig.isCustomized;
             itemIsEggless = cakeConfig.isEggless;
             itemCustomizationDetails = cakeConfig.customizationDetails;
+
         } else {
-            if (itemCustomizationLabel && product.sizeOptions && product.sizeOptions.length > 0) {
-                const sizeOption = product.sizeOptions.find(opt => opt.size === itemCustomizationLabel);
+
+            // size option logic
+            if (itemCustomizationLabel && product.sizeOptions?.length) {
+
+                const sizeOption = product.sizeOptions.find(
+                    opt => opt.size === itemCustomizationLabel
+                );
+
                 if (sizeOption) {
                     itemPrice = sizeOption.price;
                 }
             }
 
-            if (itemPrice === undefined || itemPrice === null) {
-                if (product.sizeOptions && product.sizeOptions.length > 0) {
+            if (!itemPrice) {
+                if (product.sizeOptions?.length) {
                     itemPrice = Math.min(...product.sizeOptions.map(opt => opt.price));
                 } else {
                     itemPrice = product.price || 0;
@@ -195,7 +205,7 @@ export const addToCart = async (req, res) => {
             }
         }
 
-        // Check if product already in cart
+        // Check existing item
         const existingItemIndex = cart.items.findIndex(item =>
             item.product.toString() === productId &&
             item.customization === itemCustomizationLabel &&
@@ -205,11 +215,15 @@ export const addToCart = async (req, res) => {
         );
 
         if (existingItemIndex > -1) {
+
             cart.items[existingItemIndex].quantity += quantity;
+
         } else {
+
             cart.items.push({
                 product: productId,
                 name: product.name,
+                image: product.image,
                 quantity,
                 price: itemPrice,
                 finalPrice: itemPrice,
@@ -218,22 +232,24 @@ export const addToCart = async (req, res) => {
                 isCustomized: itemIsCustomized,
                 isEggless: itemIsEggless,
                 customizationDetails: itemCustomizationDetails,
-                brand: product.brand || 'teasntrees'
+                brand: product.brand || "teasntrees"
             });
+
         }
 
+        // Save cart
         await cart.save();
-        await cart.populate('items.product', 'name description image price sizeOptions cakePricing isAvailable brand category');
 
-        logger.info('Item added to cart', {
+        logger.info("Item added to cart", {
             userId,
             productId,
             quantity
         });
 
+        // Return cart without populate
         res.status(201).json({
             success: true,
-            message: 'Item added to cart',
+            message: "Item added to cart",
             data: {
                 items: cart.items,
                 subtotal: cart.subtotal,
@@ -242,11 +258,12 @@ export const addToCart = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error('Error adding to cart', { error: error.message });
-        console.error('Error in addToCart:', error);
+
+        logger.error("Error adding to cart", { error: error.message });
+
         res.status(500).json({
             success: false,
-            message: 'Failed to add item to cart'
+            message: "Failed to add item to cart"
         });
     }
 };
@@ -265,31 +282,23 @@ export const updateCartItem = async (req, res) => {
             });
         }
 
-        const cart = await Cart.findOne({ userId });
+        // ATOMIC UPDATE: More efficient than findOne + save
+        const cart = await Cart.findOneAndUpdate(
+            { userId, 'items._id': itemId },
+            { $set: { 'items.$.quantity': quantity } },
+            { new: true }
+        ).populate({
+            path: 'items.product',
+            select: 'name description image price isAvailable',
+            options: { lean: true }
+        }).lean();
+
         if (!cart) {
             return res.status(404).json({
                 success: false,
-                message: 'Cart not found'
+                message: 'Cart or item not found'
             });
         }
-
-        const item = cart.items.id(itemId);
-        if (!item) {
-            return res.status(404).json({
-                success: false,
-                message: 'Item not found in cart'
-            });
-        }
-
-        item.quantity = quantity;
-        await cart.save();
-        await cart.populate('items.product', 'name description image price isAvailable');
-
-        logger.info('Cart item updated', {
-            userId,
-            itemId,
-            quantity
-        });
 
         res.json({
             success: true,
@@ -303,7 +312,6 @@ export const updateCartItem = async (req, res) => {
 
     } catch (error) {
         logger.error('Error updating cart item', { error: error.message });
-        console.error('Error in updateCartItem:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to update cart item'
@@ -360,22 +368,11 @@ export const clearCart = async (req, res) => {
     try {
         const userId = req.user.userId;
 
-        const cart = await Cart.findOne({ userId });
-        if (!cart) {
-            // Cart already empty/non-existent, consider success
-            return res.status(200).json({
-                success: true,
-                message: 'Cart cleared',
-                data: {
-                    items: [],
-                    subtotal: 0,
-                    itemCount: 0
-                }
-            });
-        }
-
-        cart.items = [];
-        await cart.save();
+        // ATOMIC CLEAR: Just update the document without fetching it first
+        await Cart.updateOne(
+            { userId },
+            { $set: { items: [], subtotal: 0 } }
+        );
 
         logger.info('Cart cleared', { userId });
 
@@ -463,7 +460,7 @@ export const checkoutCart = async (req, res) => {
         }
 
 
-        // --- NEW: Atomic Geocoding ---
+        // --- NEW: Atomic Geocoding moved to background ---
         let finalizedAddress = {
             address: ''
         };
@@ -478,15 +475,8 @@ export const checkoutCart = async (req, res) => {
             finalizedAddress.address = deliveryAddress || 'Unknown Address';
         }
 
-        if (!finalizedAddress.location) {
-            const coords = await geocodingService.getCoordinates(finalizedAddress.address);
-            if (coords) {
-                finalizedAddress.location = {
-                    type: 'Point',
-                    coordinates: [coords.lng, coords.lat]
-                };
-            }
-        }
+        // We no longer await geocoding here to keep the checkout API fast.
+        // It will be processed in the background if location is missing.
 
         const estimatedDeliveryTime = new Date();
         estimatedDeliveryTime.setMinutes(estimatedDeliveryTime.getMinutes() + 45);
@@ -532,6 +522,13 @@ export const checkoutCart = async (req, res) => {
 
             await order.save();
             createdOrders.push(order);
+
+            // Trigger background geocoding if location is missing
+            if (!finalizedAddress.location) {
+                setImmediate(() => {
+                    processGeocoding(order._id, finalizedAddress.address);
+                });
+            }
         }
 
         // Clear cart after successful orders

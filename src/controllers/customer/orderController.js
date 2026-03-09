@@ -9,6 +9,8 @@ import { notificationService } from '../../services/notificationService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
 import { isCakeCategoryName } from '../../utils/cakeUtils.js';
+import Settings from '../../models/Settings.js'
+import Outlet from '../../models/Outlet.js'
 
 /* =========================================================
    CREATE ORDER (CUSTOMER)
@@ -26,11 +28,20 @@ export const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Delivery address required' });
         }
 
+        // 1. Batch fetch products and categories
+        const productIds = items.map(i => i.product);
+        const products = await Product.find({ _id: { $in: productIds } }).lean();
+        const categoryIds = [...new Set(products.map(p => p.category).filter(id => id))];
+        const categories = await Category.find({ _id: { $in: categoryIds } }).select('name').lean();
+
+        const productMap = new Map(products.map(p => [p._id.toString(), p]));
+        const categoryMap = new Map(categories.map(c => [c._id.toString(), c]));
+
         const brandsGrouped = {};
-        let grandTotalAllOrders = 0;
+        const productUpdates = [];
 
         for (const item of items) {
-            const product = await Product.findById(item.product);
+            const product = productMap.get(item.product.toString());
             if (!product || !product.isAvailable) {
                 return res.status(400).json({
                     success: false,
@@ -43,14 +54,14 @@ export const createOrder = async (req, res) => {
                 brandsGrouped[brand] = { items: [], subtotal: 0 };
             }
 
-            const category = await Category.findById(product.category).select('name').lean();
+            const category = product.category ? categoryMap.get(product.category.toString()) : null;
             const hasCakePricing =
                 product.cakePricing &&
                 product.cakePricing.basePricePerKg !== undefined &&
                 product.cakePricing.basePricePerKg !== null;
             const isLittlehCake = brand === 'littleh' && isCakeCategoryName(category?.name || '');
 
-            let price = item.price ?? product.price;
+            let price = item.price ?? product.price ?? 0;
             let weight = item.weight;
             let isCustomized = Boolean(item.isCustomized);
             let isEggless = Boolean(item.isEggless);
@@ -103,22 +114,31 @@ export const createOrder = async (req, res) => {
                 customization: item.customization || '',
                 customizationDetails
             });
-            brandsGrouped[brand].subtotal += price * item.quantity;
+            brandsGrouped[brand].subtotal += (price * (item.quantity || 0));
+
+            productUpdates.push({
+                updateOne: {
+                    filter: { _id: product._id },
+                    update: { $inc: { orderCount: item.quantity } }
+                }
+            });
         }
 
-        const settings = await import('../../models/Settings.js').then(m => m.default.findOne());
+        const Settings = await import('../../models/Settings.js').then(m => m.default);
+        const settings = await Settings.findOne().lean();
         const deliveryChargePerOrder = settings ? settings.deliveryCharge : 50;
-        const gstRate = settings ? settings.gstRate : 5;
+        const gstRate = settings ? (settings.gstRate || settings.taxPercentage || 5) : 5;
 
         const Outlet = await import('../../models/Outlet.js').then(m => m.default);
-        const outlets = await Outlet.find({ isActive: true });
+        const outlets = await Outlet.find({ isActive: true }).lean();
 
         const createdOrders = [];
+        let grandTotalAllOrders = 0;
 
         for (const [brand, group] of Object.entries(brandsGrouped)) {
             const outlet = outlets.find(o => o.brand === brand);
-            const tax = group.subtotal * (gstRate / 100);
-            const orderTotal = group.subtotal + deliveryChargePerOrder + tax;
+            const tax = Math.round(group.subtotal * (gstRate / 100) * 100) / 100;
+            const orderTotal = Math.round((group.subtotal + deliveryChargePerOrder + tax) * 100) / 100;
             grandTotalAllOrders += orderTotal;
 
             const order = await Order.create({
@@ -138,19 +158,21 @@ export const createOrder = async (req, res) => {
             });
 
             createdOrders.push(order);
-
-            // Update product stats asynchronously
-            Promise.all(group.items.map(i =>
-                Product.findByIdAndUpdate(i.product, { $inc: { orderCount: i.quantity } })
-            )).catch(() => { });
         }
 
-        // Stats
-        for (let i = 0; i < createdOrders.length; i++) {
-            await statsService.increment('totalOrders');
-            await statsService.increment('pendingOrders');
+        // 2. Batch product stats and Dashboard increments
+        if (productUpdates.length) {
+            Product.bulkWrite(productUpdates).catch(() => { });
         }
 
+        if (createdOrders.length) {
+            await statsService.bulkIncrement({
+                totalOrders: createdOrders.length,
+                pendingOrders: createdOrders.length
+            });
+        }
+
+        // Socket and Notifications
         const io = req.app.get('io');
         if (io) {
             createdOrders.forEach(order => {
@@ -170,9 +192,8 @@ export const createOrder = async (req, res) => {
             });
         }
 
-        // Notify admins
         try {
-            const admins = await User.find({ role: { $in: ['admin', 'manager'] } });
+            const admins = await User.find({ role: { $in: ['admin', 'manager'] } }).select('_id').lean();
             createdOrders.forEach(order => {
                 notificationService.sendPushToMany(admins, {
                     title: '🛒 New Order',
@@ -219,7 +240,8 @@ export const getMyOrders = async (req, res) => {
             .populate('riderId', 'name mobile')
             .sort({ createdAt: -1 })
             .skip(skip)
-            .limit(Number(limit));
+            .limit(Number(limit))
+            .lean();
 
         const total = await Order.countDocuments(query);
 
@@ -248,21 +270,25 @@ export const getOrderById = async (req, res) => {
         const { orderId } = req.params;
         const customerId = req.user.userId;
 
+        logger.info(`GET ORDER BY ID - orderId: ${orderId}, customerId: ${customerId}, brand: ${req.activeBrand}`);
+
         const query = { _id: orderId, customerId };
         if (req.activeBrand) query.brand = req.activeBrand;
 
         const order = await Order.findOne(query)
             .populate('items.product', 'name image price')
-            .populate('riderId', 'name mobile');
+            .populate('riderId', 'name mobile')
+            .lean();
 
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
         const delivery = await Delivery.findOne({ orderId: order._id })
-            .populate('riderId', 'name mobile');
+            .populate('riderId', 'name mobile')
+            .lean();
 
-        const data = order.toObject();
+        const data = { ...order };
 
         if (delivery) {
             const allowOtp = ['in_transit', 'arrived'].includes(delivery.status);
@@ -344,16 +370,22 @@ export const reorder = async (req, res) => {
         const { orderId } = req.params;
 
         const original = await Order.findOne({ _id: orderId, customerId })
-            .populate('items.product');
+            .populate('items.product')
+            .lean();
 
         if (!original) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
         req.body.items = original.items.map(i => ({
-            product: i.product._id,
+            product: i.product?._id || i.product,
             quantity: i.quantity,
-            customization: i.customization
+            price: i.price,
+            weight: i.weight,
+            isCustomized: i.isCustomized,
+            isEggless: i.isEggless,
+            customization: i.customization,
+            customizationDetails: i.customizationDetails
         }));
 
         req.body.deliveryAddress = original.deliveryAddress;
@@ -374,7 +406,8 @@ export const downloadInvoice = async (req, res) => {
 
         const order = await Order.findOne({ _id: orderId, customerId })
             .populate('items.product')
-            .populate('customerId', 'name mobile email');
+            .populate('customerId', 'name mobile email')
+            .lean();
 
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });

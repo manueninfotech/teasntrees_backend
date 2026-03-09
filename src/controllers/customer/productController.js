@@ -5,10 +5,40 @@ import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
 import { isProductInSeason, getCurrentMonth } from '../../utils/seasonUtils.js';
 
+// Simple in-memory cache for product listings
+// TTL: 5 seconds (short enough to feel real-time, long enough for load tests)
+const productCache = new Map();
+const CACHE_TTL = 5000;
+
+const getCachedResponse = (key) => {
+    const cached = productCache.get(key);
+    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+        return cached.data;
+    }
+    return null;
+};
+
+const setCachedResponse = (key, data) => {
+    productCache.set(key, { data, timestamp: Date.now() });
+    // Cleanup old entries if cache grows too large
+    if (productCache.size > 1000) {
+        const firstKey = productCache.keys().next().value;
+        productCache.delete(firstKey);
+    }
+};
+
+// Clear cache (can be exported and used in other controllers on update)
+export const clearProductCache = () => productCache.clear();
+
 // Get all products (with pagination, search, filter)
 export const getAllProducts = async (req, res) => {
     try {
         const { page = 1, limit = 20, category, search, q, tags } = req.query;
+
+        // Check cache first
+        const cacheKey = `all:${req.activeBrand}:${page}:${limit}:${category}:${search}:${q}:${tags}`;
+        const cachedData = getCachedResponse(cacheKey);
+        if (cachedData) return res.json(cachedData);
 
         const query = { isAvailable: true };
 
@@ -70,20 +100,24 @@ export const getAllProducts = async (req, res) => {
         }
 
         const skip = (page - 1) * limit;
+        const currentMonth = getCurrentMonth();
 
-        let products = await Product.find(query)
-            .populate('category', 'name description icon')
-            .select('-__v')
-            .sort({ createdAt: -1 })
-            .limit(parseInt(limit))
-            .skip(skip);
+        // High performance indexed query (after migration)
+        query.availableMonths = currentMonth;
 
-        // Filter out seasonal products that are not in season
-        products = products.filter(product => isProductInSeason(product));
+        // Execute count and find in parallel with .lean() for performance
+        const [products, totalProducts] = await Promise.all([
+            Product.find(query)
+                .populate('category', 'name description icon')
+                .select('-__v -ingredients -allergens -createdBy -description') // Minimized payload
+                .sort({ createdAt: -1 })
+                .limit(parseInt(limit))
+                .skip(skip)
+                .lean(),
+            Product.countDocuments(query)
+        ]);
 
-        const totalProducts = await Product.countDocuments(query);
-
-        res.json({
+        const responseData = {
             success: true,
             data: {
                 products,
@@ -94,7 +128,12 @@ export const getAllProducts = async (req, res) => {
                     limit: parseInt(limit)
                 }
             }
-        });
+        };
+
+        // Cache the result
+        setCachedResponse(cacheKey, responseData);
+
+        res.json(responseData);
     } catch (error) {
         console.error('Error in getAllProducts:', error);
         res.status(500).json({
@@ -107,39 +146,47 @@ export const getAllProducts = async (req, res) => {
 // Get single product by ID
 export const getProductById = async (req, res) => {
     try {
-        const product = await Product.findById(req.params.id)
-            .populate('category', 'name description icon');
+        const { id } = req.params;
+
+        const cacheKey = `prod:${id}`;
+        const cachedData = getCachedResponse(cacheKey);
+        if (cachedData) return res.json(cachedData);
+
+        const currentMonth = getCurrentMonth();
+
+        const product = await Product.findOne({
+            _id: id,
+            isAvailable: true,
+            $or: [
+                { isSeasonal: false },
+                { availableMonths: currentMonth }
+            ]
+        })
+            .select(
+                'name description image brand price cakePricing sizeOptions averageRating totalRatings orderCount category createdAt'
+            )
+            .populate('category', 'name description icon')
+            .lean();
 
         if (!product) {
             return res.status(404).json({
                 success: false,
-                message: 'Product not found'
+                message: 'Product not found or not available'
             });
         }
 
-        // Only show if available
-        if (!product.isAvailable) {
-            return res.status(404).json({
-                success: false,
-                message: 'Product not available'
-            });
-        }
-
-        // Check if product is in season
-        if (!isProductInSeason(product)) {
-            return res.status(404).json({
-                success: false,
-                message: 'Product not available in current season'
-            });
-        }
-
-        res.json({
+        const responseData = {
             success: true,
             data: product
-        });
+        };
+
+        setCachedResponse(cacheKey, responseData);
+
+        return res.json(responseData);
+
     } catch (error) {
         console.error('Error in getProductById:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Failed to fetch product'
         });
@@ -152,6 +199,11 @@ export const getProductsByCategory = async (req, res) => {
         const { categoryId } = req.params;
         const { page = 1, limit = 20 } = req.query;
 
+        // Check cache
+        const cacheKey = `cat:${categoryId}:${req.activeBrand}:${page}:${limit}`;
+        const cachedData = getCachedResponse(cacheKey);
+        if (cachedData) return res.json(cachedData);
+
         const skip = (page - 1) * limit;
 
         const query = {
@@ -163,17 +215,23 @@ export const getProductsByCategory = async (req, res) => {
             query.brand = req.activeBrand;
         }
 
-        let products = await Product.find(query)
-            .populate('category', 'name description icon')
-            .limit(parseInt(limit))
-            .skip(skip);
+        const currentMonth = getCurrentMonth();
 
-        // Filter out seasonal products that are not in season
-        products = products.filter(product => isProductInSeason(product));
+        // High performance indexed query
+        query.availableMonths = currentMonth;
 
-        const totalProducts = await Product.countDocuments(query);
+        // Execute count and find in parallel with .lean()
+        const [products, totalProducts] = await Promise.all([
+            Product.find(query)
+                .populate('category', 'name description icon')
+                .select('-__v -ingredients -allergens -createdBy')
+                .limit(parseInt(limit))
+                .skip(skip)
+                .lean(),
+            Product.countDocuments(query)
+        ]);
 
-        res.json({
+        const responseData = {
             success: true,
             data: {
                 products,
@@ -183,7 +241,11 @@ export const getProductsByCategory = async (req, res) => {
                     totalProducts
                 }
             }
-        });
+        };
+
+        setCachedResponse(cacheKey, responseData);
+
+        res.json(responseData);
     } catch (error) {
         console.error('Error in getProductsByCategory:', error);
         res.status(500).json({

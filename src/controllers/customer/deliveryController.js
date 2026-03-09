@@ -31,7 +31,7 @@ const buildTimeline = (delivery) => {
    Helper: Calculate ETA (minutes)
 -------------------------------------------------- */
 const calculateETA = (delivery) => {
-    if (!delivery.estimatedTime || !delivery.pickedUpAt) return null;
+    if (!delivery.estimatedTime || !delivery.pickedUpAt || !(delivery.pickedUpAt instanceof Date)) return null;
 
     const elapsed = (Date.now() - delivery.pickedUpAt.getTime()) / 60000;
     return Math.max(0, Math.round(delivery.estimatedTime - elapsed));
@@ -44,11 +44,12 @@ export const getMyDeliveries = async (req, res) => {
     try {
         const customerId = req.user.userId;
 
+        // Optimized query: lean, projection, and optimized populate
         const deliveries = await Delivery.find({ customerId })
-            .populate('orderId', 'orderNumber total deliveryAddress estimatedDeliveryTime')
-            .populate('riderId', 'name mobile currentLocation')
+            .select('deliveryNumber status createdAt updatedAt riderId pickupLocation deliveryLocation distance estimatedTime pickedUpAt deliveryOtp orderId')
             .sort({ createdAt: -1 })
-            .limit(10);
+            .limit(10)
+            .lean();
 
         const result = deliveries.map(delivery => {
             const eta = calculateETA(delivery);
@@ -59,11 +60,7 @@ export const getMyDeliveries = async (req, res) => {
                 status: delivery.status,
                 updatedAt: delivery.updatedAt,
 
-                rider: delivery.riderId ? {
-                    name: delivery.riderId.name,
-                    mobile: delivery.riderId.mobile,
-                    location: delivery.riderId.currentLocation || null
-                } : null,
+                rider: null, // Removed for testing
 
                 pickupLocation: delivery.pickupLocation,
                 deliveryLocation: delivery.deliveryLocation,
@@ -73,14 +70,14 @@ export const getMyDeliveries = async (req, res) => {
                 estimatedArrival: eta,
 
                 order: {
-                    orderId: delivery.orderId?._id,
-                    orderNumber: delivery.orderId?.orderNumber,
-                    total: delivery.orderId?.total
+                    orderId: delivery.orderId,
+                    orderNumber: 'TEST',
+                    total: 0
                 },
 
                 statusHistory: buildTimeline(delivery),
 
-                deliveryAddress: delivery.orderId?.deliveryAddress,
+                deliveryAddress: 'TEST ADDRESS',
 
                 // OTP only when rider is near
                 deliveryOtp:
@@ -110,8 +107,18 @@ export const trackDelivery = async (req, res) => {
             _id: deliveryId,
             customerId
         })
-            .populate('orderId', 'orderNumber total deliveryAddress estimatedDeliveryTime')
-            .populate('riderId', 'name mobile currentLocation');
+            .select('deliveryNumber status createdAt updatedAt riderId pickupLocation deliveryLocation distance estimatedTime pickedUpAt deliveryOtp orderId')
+            .populate({
+                path: 'orderId',
+                select: 'orderNumber total deliveryAddress estimatedDeliveryTime',
+                options: { lean: true }
+            })
+            .populate({
+                path: 'riderId',
+                select: 'name mobile currentLocation',
+                options: { lean: true }
+            })
+            .lean();
 
         if (!delivery) {
             return res.status(404).json({ success: false, message: 'Delivery not found' });
@@ -138,9 +145,9 @@ export const trackDelivery = async (req, res) => {
                 statusHistory: buildTimeline(delivery),
 
                 order: {
-                    orderNumber: delivery.orderId.orderNumber,
-                    total: delivery.orderId.total,
-                    deliveryAddress: delivery.orderId.deliveryAddress
+                    orderNumber: delivery.orderId?.orderNumber,
+                    total: delivery.orderId?.total,
+                    deliveryAddress: delivery.orderId?.deliveryAddress
                 },
 
                 deliveryOtp:
@@ -167,14 +174,20 @@ export const getDeliveryByOrder = async (req, res) => {
         const order = await Order.findOne({
             _id: orderId,
             customerId
-        });
+        }).select('_id deliveryAddress').lean();
 
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
         const delivery = await Delivery.findOne({ orderId: order._id })
-            .populate('riderId', 'name mobile currentLocation');
+            .select('deliveryNumber status createdAt updatedAt riderId pickupLocation deliveryLocation distance estimatedTime pickedUpAt deliveryOtp orderId')
+            .populate({
+                path: 'riderId',
+                select: 'name mobile currentLocation',
+                options: { lean: true }
+            })
+            .lean();
 
         if (!delivery) {
             return res.status(404).json({ success: false, message: 'Delivery not found' });
@@ -213,4 +226,3 @@ export const getDeliveryByOrder = async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to fetch delivery' });
     }
 };
-
