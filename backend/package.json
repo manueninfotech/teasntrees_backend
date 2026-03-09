@@ -9,7 +9,10 @@
     "seed:categories": "node src/seeders/categorySeeder.js",
     "seed:products": "node src/seeders/productSeeder.js",
     "seed:admin": "node src/seeders/adminSeeder.js",
-    "seed:rider": "node src/seeders/riderSeeder.js"
+    "seed:rider": "node src/seeders/riderSeeder.js",
+    "perf:engine": "node ../performance/automation/runner.js",
+    "perf:pipeline": "node ../performance/api-performance-pipeline/src/run-pipeline.js",
+    "perf:db-clone": "node ../performance/api-performance-pipeline/src/db/clone-database.js"
   },
   "keywords": [],
   "author": "",
