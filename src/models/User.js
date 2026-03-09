@@ -42,8 +42,15 @@ const userSchema = new mongoose.Schema({
     },
 
     location: {
-        type: Object,
-        default: null
+        type: {
+            type: String,
+            enum: ['Point'],
+            // default: 'Point'
+        },
+        coordinates: {
+            type: [Number],
+            default: undefined
+        }
     },
 
     preferences: {
@@ -111,6 +118,11 @@ const userSchema = new mongoose.Schema({
     timestamps: true,
     discriminatorKey: 'kind'
 });
+
+userSchema.index({ mobile: 1 });
+userSchema.index({ email: 1 });
+userSchema.index({ managerId: 1 });
+userSchema.index({ location: '2dsphere' });
 
 userSchema.methods.checkProfileComplete = function () {
     return !!(this.name && this.email && this.address && this.role);

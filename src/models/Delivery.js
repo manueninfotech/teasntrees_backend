@@ -119,6 +119,7 @@ const deliverySchema = new mongoose.Schema({
    INDEXES
 ----------------------------------- */
 deliverySchema.index({ riderId: 1, status: 1 });
+deliverySchema.index({ customerId: 1, createdAt: -1 }); // Fast delivery history
 deliverySchema.index({ createdAt: -1 });
 deliverySchema.index({ pickupLocation: '2dsphere' });
 deliverySchema.index({ deliveryLocation: '2dsphere' });
