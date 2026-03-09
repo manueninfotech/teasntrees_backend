@@ -37,7 +37,7 @@ const AboutPage = () => {
                             <div className="order-2 md:order-1 relative">
                                 <div className="absolute inset-0 bg-[#565A47] translate-x-4 translate-y-4 -z-10 opacity-10"></div>
                                 <img
-                                    src="https://images.unsplash.com/photo-1556910103-1c02745a872f?auto=format&fit=crop&q=80&w=800"
+                                    src="https://img.freepik.com/free-photo/front-view-female-cook-pouring-milk-into-eggs-sugar-dough-dark-hotcake-pastry-cake-pie-cuisine-job-worker_179666-43877.jpg?semt=ais_hybrid&w=740&q=80"
                                     alt="Baker whisking"
                                     className="w-full aspect-[4/5] object-cover grayscale-[0.2]"
                                 />
