@@ -52,6 +52,9 @@ export const SOCKET_EVENTS = {
     USER_DEACTIVATED: 'user:deactivated',
     USER_REGISTERED: 'user:registered',
     USER_DELETED: 'user:deleted',
+    USER_APPROVED: 'user:approved',
+    USER_REJECTED: 'user:rejected',
+    MANAGER_STATUS_UPDATED: 'manager:status-updated',
 
     // Notification events
     NOTIFICATION_NEW: 'notification:new',
