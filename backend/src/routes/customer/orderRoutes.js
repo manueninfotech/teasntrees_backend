@@ -26,7 +26,6 @@ router.post('/:orderId/reorder', checkProfileComplete, reorder);
 router.get('/my-orders', getMyOrders);
 
 // Get single order
-router.post('/:orderId/reorder', reorder);         // Reorder
 router.get('/:orderId/invoice', downloadInvoice);    // Download invoice
 router.get('/:orderId', getOrderById);
 
