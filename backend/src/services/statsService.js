@@ -43,8 +43,8 @@ class StatsService {
         }
     }
 
-    async getStats() {
-        return await DashboardStats.getStats();
+    async getStats(options = {}) {
+        return await DashboardStats.getStats(options);
     }
 
     // Atomic Increment
@@ -55,6 +55,17 @@ class StatsService {
             return stats;
         } catch (error) {
             logger.error(`Failed to increment ${field}:`, error);
+        }
+    }
+
+    // Bulk Atomic Increment
+    async bulkIncrement(increments) {
+        try {
+            const update = { $inc: increments, lastUpdated: new Date() };
+            const stats = await DashboardStats.findOneAndUpdate({}, update, { new: true, upsert: true });
+            return stats;
+        } catch (error) {
+            logger.error(`Failed bulk increment:`, error);
         }
     }
 
