@@ -43,7 +43,7 @@ export const updateProfile = async (req, res) => {
 
         // Log Activity
         await activityLogService.log(req, {
-            action: 'update_profile',
+            action: 'update',
             resource: 'user',
             resourceId: updatedManager._id,
             details: { name: updatedManager.name, role: 'manager' }
