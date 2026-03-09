@@ -1,8 +1,10 @@
 import User from '../../models/User.js';
 import Order from '../../models/Order.js';
+import Product from '../../models/Product.js';
 import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
 import activityLogService from '../../services/activityLogService.js';
+import mongoose from 'mongoose';
 
 // Get all customers with filters and search
 export const getAllCustomers = async (req, res) => {
@@ -116,12 +118,14 @@ export const getCustomerStats = async (req, res) => {
 // Get single customer by ID with detailed info
 export const getCustomerById = async (req, res) => {
     try {
-        const customer = await User.findOne({ _id: req.params.id, role: 'customer' })
+        const customerId = req.params.id;
+
+        const customer = await User.findOne({
+            _id: customerId,
+            role: 'customer'
+        })
             .select('-password -__v')
-            .populate({
-                path: 'wishlist',
-                select: 'name price image isAvailable'
-            });
+            .lean();
 
         if (!customer) {
             return res.status(404).json({
@@ -130,51 +134,78 @@ export const getCustomerById = async (req, res) => {
             });
         }
 
-        // Get order statistics
-        const orderCount = await Order.countDocuments({ customerId: customer._id });
-        const orders = await Order.find({ customerId: customer._id })
-            .select('status total paymentStatus createdAt')
-            .sort({ createdAt: -1 });
+        const wishlistIds = customer.wishlist || [];
 
-        const totalSpent = await Order.aggregate([
-            { $match: { customerId: customer._id, status: 'delivered', paymentStatus: 'paid' } },
-            { $group: { _id: null, total: { $sum: '$total' } } }
+        const [
+            wishlist,
+            orderCount,
+            orders,
+            totalSpentAgg,
+            pendingOrders,
+            completedOrders,
+            cancelledOrders
+        ] = await Promise.all([
+
+            Product.find({ _id: { $in: wishlistIds } })
+                .select('name price image isAvailable')
+                .lean(),
+
+            Order.countDocuments({ customerId }),
+
+            Order.find({ customerId })
+                .select('status total paymentStatus createdAt')
+                .sort({ createdAt: -1 })
+                .limit(20)
+                .lean(),
+
+            Order.aggregate([
+                {
+                    $match: {
+                        customerId: new mongoose.Types.ObjectId(customerId),
+                        status: 'delivered',
+                        paymentStatus: 'paid'
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: '$total' }
+                    }
+                }
+            ]),
+
+            Order.countDocuments({
+                customerId,
+                status: { $in: ['pending', 'confirmed', 'preparing', 'ready', 'out-for-delivery'] }
+            }),
+
+            Order.countDocuments({ customerId, status: 'delivered' }),
+
+            Order.countDocuments({ customerId, status: 'cancelled' })
         ]);
-
-        const pendingOrders = await Order.countDocuments({
-            customerId: customer._id,
-            status: { $in: ['pending', 'confirmed', 'preparing', 'ready', 'out-for-delivery'] }
-        });
-
-        const completedOrders = await Order.countDocuments({
-            customerId: customer._id,
-            status: 'delivered'
-        });
-
-        const cancelledOrders = await Order.countDocuments({
-            customerId: customer._id,
-            status: 'cancelled'
-        });
 
         res.status(200).json({
             success: true,
             data: {
-                ...customer.toObject(),
+                ...customer,
+                wishlist,
+                orders,
                 stats: {
                     orderCount,
-                    totalSpent: totalSpent.length > 0 ? totalSpent[0].total : 0,
+                    totalSpent: totalSpentAgg.length ? totalSpentAgg[0].total : 0,
                     pendingOrders,
                     completedOrders,
                     cancelledOrders
                 }
             }
         });
+
     } catch (error) {
         console.error('GetCustomerById Error:', error);
+
         res.status(500).json({
             success: false,
-            message: 'Error fetching customer details',
-            error: error.message
+            message: 'Error fetching customer details'
         });
     }
 };

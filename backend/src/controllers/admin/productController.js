@@ -5,6 +5,7 @@ import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
 import { statsService } from "../../services/statsService.js";
 import activityLogService from '../../services/activityLogService.js';
 import { isLittlehCakeCategory } from '../../utils/cakeUtils.js';
+import { clearProductCache } from '../customer/productController.js';
 
 const parseNumberOrNull = (value) => {
     if (value === '' || value === undefined || value === null) return null;
@@ -269,6 +270,9 @@ export const createProduct = async (req, res) => {
             details: { name: product.name, price: product.price }
         });
 
+        // Invalidate customer cache
+        clearProductCache();
+
         res.status(201).json({
             success: true,
             message: 'Product created successfully',
@@ -421,6 +425,9 @@ export const updateProduct = async (req, res) => {
             details: { name: product.name }
         });
 
+        // Invalidate customer cache
+        clearProductCache();
+
         res.status(200).json({
             success: true,
             message: 'Product updated successfully',
@@ -479,6 +486,9 @@ export const deleteProduct = async (req, res) => {
             details: { name: productData.name }
         });
 
+        // Invalidate customer cache
+        clearProductCache();
+
         res.status(200).json({
             success: true,
             message: 'Product deleted successfully'
@@ -512,6 +522,9 @@ export const toggleProductAvailability = async (req, res) => {
             resourceId: product._id,
             details: { name: product.name }
         });
+
+        // Invalidate customer cache
+        clearProductCache();
 
         res.status(200).json({
             success: true,
@@ -569,6 +582,9 @@ export const bulkUpdateProducts = async (req, res) => {
                 productIds: productIds.slice(0, 5)
             }
         });
+        // Invalidate customer cache
+        clearProductCache();
+
         res.status(200).json({
             success: true,
             message: `Successfully updated ${result.modifiedCount} products`,
@@ -689,6 +705,9 @@ export const updateProductSeason = async (req, res) => {
 
         const updatedProduct = await Product.findById(id)
             .populate('category', 'name icon');
+
+        // Invalidate customer cache
+        clearProductCache();
 
         res.status(200).json({
             success: true,

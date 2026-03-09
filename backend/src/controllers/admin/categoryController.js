@@ -1,6 +1,8 @@
 import Category from "../../models/Category.js";
 import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
 import activityLogService from '../../services/activityLogService.js';
+import { clearProductCache } from '../customer/productController.js';
+import { clearCategoryCache } from '../customer/categoryController.js';
 
 // Get all categories
 export const getAllCategories = async (req, res) => {
@@ -108,6 +110,10 @@ export const createCategory = async (req, res) => {
             details: { name: category.name }
         });
 
+        // Invalidate customer caches
+        clearProductCache();
+        clearCategoryCache();
+
         res.status(200).json({
             success: true,
             message: 'Category created successfully',
@@ -171,6 +177,10 @@ export const updateCategory = async (req, res) => {
             details: { name: category.name }
         });
 
+        // Invalidate customer caches
+        clearProductCache();
+        clearCategoryCache();
+
         res.status(200).json({
             success: true,
             message: 'Category updated successfully',
@@ -214,6 +224,10 @@ export const deleteCategory = async (req, res) => {
             resourceId: categoryData.id,
             details: { name: categoryData.name }
         });
+
+        // Invalidate customer caches
+        clearProductCache();
+        clearCategoryCache();
 
         res.status(200).json({
             success: true,
