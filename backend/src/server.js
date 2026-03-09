@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import './env.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -243,17 +243,34 @@ function getLanIP() {
 
 // Start server
 // const PORT = process.env.PORT || 5000;
+// ============================
+// Server Performance Tuning
+// ============================
+
 const HOST = '0.0.0.0';
 const PORT = process.env.PORT || 5000;
 const LAN_IP = getLanIP();
 
+// 🔹 Increase connection backlog (important for load testing)
+const BACKLOG = 2048;
 
-httpServer.listen(PORT, HOST, () => {
+httpServer.keepAliveTimeout = 120000;
+httpServer.headersTimeout = 125000;
+httpServer.requestTimeout = 120000;
+httpServer.maxConnections = 10000;
+
+// 🔹 Reduce connection delays under load
+httpServer.on('connection', (socket) => {
+    socket.setNoDelay(true);           // Disable Nagle's algorithm
+    socket.setKeepAlive(true, 60000);  // Enable TCP keepalive
+});
+
+// 🔹 Start server with increased backlog
+httpServer.listen(PORT, HOST, BACKLOG, () => {
     console.log(`Server running on:`);
     console.log(`- Local:   http://localhost:${PORT}`);
     console.log(`- Network: http://${LAN_IP}:${PORT}`);
     console.log(`Socket.io enabled`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
-
 export default app;
