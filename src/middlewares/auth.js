@@ -3,6 +3,22 @@
 import { verifyToken } from '../utils/jwtHelper.js';
 import User from '../models/User.js';
 
+// Auth cache to avoid redundant User.findById calls
+const authCache = new Map();
+const AUTH_CACHE_TTL = 5000; // 5 seconds is plenty for high traffic
+
+const getCachedUser = (userId) => {
+    const cached = authCache.get(userId.toString());
+    if (cached && (Date.now() - cached.timestamp < AUTH_CACHE_TTL)) {
+        return cached.user;
+    }
+    return null;
+};
+
+const setCachedUser = (userId, user) => {
+    authCache.set(userId.toString(), { user, timestamp: Date.now() });
+};
+
 // Authenticate User by verifying jwt token 
 const authenticateUser = async (req, res, next) => {
     try {
@@ -19,8 +35,15 @@ const authenticateUser = async (req, res, next) => {
         // verify token
         const decode = verifyToken(token);
 
-        // Find user from decoded token
-        const user = await User.findById(decode.userId);
+        // Check cache first
+        let user = getCachedUser(decode.userId);
+
+        if (!user) {
+            // Find user from decoded token
+            user = await User.findById(decode.userId).lean();
+            if (user) setCachedUser(decode.userId, user);
+        }
+
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -73,7 +96,13 @@ const optionalAuthenticate = async (req, res, next) => {
         }
         const token = authHeader.substring(7);
         const decoded = verifyToken(token);
-        const user = await User.findById(decoded.userId);
+
+        let user = getCachedUser(decoded.userId);
+        if (!user) {
+            user = await User.findById(decoded.userId).lean();
+            if (user) setCachedUser(decoded.userId, user);
+        }
+
         if (user && user.isActive) {
             req.user = {
                 userId: user._id,
