@@ -6,15 +6,22 @@ import activityLogService from '../../services/activityLogService.js';
 export const getAllUsers = async (req, res) => {
     try {
         const { role, search, isProfileComplete } = req.query;
+
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const sortBy = req.query.sortBy || 'createdAt';
         const order = req.query.order === 'desc' ? -1 : 1;
+
         const skip = (page - 1) * limit;
-        let query = {};
+
+        const query = {};
+
+        // Filter by role
         if (role) {
             query.role = role;
         }
+
+        // Search filter
         if (search) {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
@@ -22,28 +29,39 @@ export const getAllUsers = async (req, res) => {
                 { mobile: { $regex: search, $options: 'i' } }
             ];
         }
-        if (isProfileComplete) {
+
+        // Profile complete filter
+        if (isProfileComplete !== undefined) {
             query.isProfileComplete = isProfileComplete === 'true';
         }
-        const users = await User.find(query)
-            .select('-__v')
-            .sort({ [sortBy]: order })
-            .limit(limit)
-            .skip(skip);
-        const total = await User.countDocuments(query);
-        res.status(200).json({
+
+        // Fetch users + total count in parallel
+        const [users, total] = await Promise.all([
+            User.find(query)
+                .select('_id name email mobile role isActive createdAt')
+                .sort({ [sortBy]: order })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            User.countDocuments(query)
+        ]);
+
+        return res.status(200).json({
             success: true,
             count: users.length,
             data: users,
             pagination: {
                 current: page,
                 totalPages: Math.ceil(total / limit),
-                limit: limit,
+                limit,
                 totalItems: total
             }
         });
+
     } catch (error) {
-        res.status(500).json({
+        console.error('Error fetching users:', error);
+
+        return res.status(500).json({
             success: false,
             message: 'Error fetching users',
             error: error.message
@@ -204,16 +222,20 @@ export const getUsersByRole = async (req, res) => {
         }
 
         const users = await User.find({ role })
-            .select('-__v')
-            .sort({ createdAt: -1 });
+            .select('_id name email mobile role isActive createdAt')
+            .sort({ createdAt: -1 })
+            .lean();
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             count: users.length,
             data: users
         });
+
     } catch (error) {
-        res.status(500).json({
+        console.error('Error fetching users by role:', error);
+
+        return res.status(500).json({
             success: false,
             message: 'Error fetching users by role',
             error: error.message
@@ -383,7 +405,21 @@ export const deactivateUser = async (req, res) => {
  */
 export const deleteUser = async (req, res) => {
     try {
-        const user = await User.findById(req.params.id);
+        const userId = req.params.id;
+
+        // Prevent deleting own account
+        if (userId === req.user.userId.toString()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete your own account'
+            });
+        }
+
+        // Get minimal user data
+        const user = await User.findById(userId)
+            .select('_id name role')
+            .lean();
+
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -391,38 +427,38 @@ export const deleteUser = async (req, res) => {
             });
         }
 
-        // Prevent deleting own account
-        if (user._id.toString() === req.user.userId.toString()) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cannot delete your own account'
-            });
-        }
-        const userData = { id: user._id, name: user.name, role: user.role };
+        // Delete user
+        await User.deleteOne({ _id: userId });
 
-        // Optimistic Emission: Notify clients BEFORE DB deletion to ensure instant UI update
-        // Using Direct IO
+        const userData = {
+            id: user._id,
+            name: user.name,
+            role: user.role
+        };
+
+        // Emit socket event
         const io = req.app.get('io');
         if (io) {
             io.emit(SOCKET_EVENTS.USER_DELETED, userData);
         }
 
-        await user.deleteOne();
-
-        // Log Activity
-        await activityLogService.log(req, {
+        // Log activity in background (non-blocking)
+        activityLogService.log(req, {
             action: 'delete',
             resource: 'user',
             resourceId: userData.id,
             details: { name: userData.name, role: userData.role }
-        });
+        }).catch(() => { });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: 'User deleted successfully'
         });
+
     } catch (error) {
-        res.status(500).json({
+        console.error('Delete user error:', error);
+
+        return res.status(500).json({
             success: false,
             message: 'Error deleting user',
             error: error.message

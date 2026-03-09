@@ -32,43 +32,18 @@ export const getSettings = async (req, res) => {
 // Update application settings
 export const updateSettings = async (req, res) => {
     try {
-        const {
-            deliveryCharge,
-            maxDeliveryDistance,
-            gstRate,
-            minOrderAmount,
-            serviceAreas,
-            riderBaseEarning,
-            distanceBonusPerKm,
-            contactPhone,
-            contactEmail,
-            address,
-            operatingHours,
-            socialMedia
-        } = req.body;
-
-        let settings = await Settings.findOne({ brand: req.activeBrand });
-
-        if (!settings) {
-            // Create new settings if none exist
-            settings = await Settings.create({ ...req.body, brand: req.activeBrand });
-        } else {
-            // Update existing settings
-            if (deliveryCharge !== undefined) settings.deliveryCharge = deliveryCharge;
-            if (maxDeliveryDistance !== undefined) settings.maxDeliveryDistance = maxDeliveryDistance;
-            if (gstRate !== undefined) settings.gstRate = gstRate;
-            if (minOrderAmount !== undefined) settings.minOrderAmount = minOrderAmount;
-            if (serviceAreas !== undefined) settings.serviceAreas = serviceAreas;
-            if (riderBaseEarning !== undefined) settings.riderBaseEarning = riderBaseEarning;
-            if (distanceBonusPerKm !== undefined) settings.distanceBonusPerKm = distanceBonusPerKm;
-            if (contactPhone !== undefined) settings.contactPhone = contactPhone;
-            if (contactEmail !== undefined) settings.contactEmail = contactEmail;
-            if (address !== undefined) settings.address = address;
-            if (operatingHours !== undefined) settings.operatingHours = operatingHours;
-            if (socialMedia !== undefined) settings.socialMedia = socialMedia;
-
-            await settings.save();
-        }
+        const settings = await Settings.findOneAndUpdate(
+            { brand: req.activeBrand },
+            {
+                $set: req.body,
+                updatedBy: req.user.userId // Track who updated
+            },
+            {
+                new: true, // Return updated doc
+                upsert: true, // Create if doesn't exist
+                runValidators: true
+            }
+        );
 
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
@@ -81,20 +56,20 @@ export const updateSettings = async (req, res) => {
             });
         }
 
-        // Log Activity
-        await activityLogService.log(req, {
+        // Log Activity in background
+        activityLogService.log(req, {
             action: 'update',
             resource: 'settings',
             details: { updatedFields: Object.keys(req.body) }
-        });
+        }).catch(() => { });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: 'Settings updated successfully',
             data: settings
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Error updating settings',
             error: error.message
@@ -128,7 +103,7 @@ export const getDeliveryZones = async (req, res) => {
 // update delivery zones (mapped to serviceAreas)
 export const updateDeliveryZones = async (req, res) => {
     try {
-        const { serviceAreas } = req.body; // Expect serviceAreas in body now
+        const { serviceAreas } = req.body;
 
         if (!Array.isArray(serviceAreas)) {
             return res.status(400).json({
@@ -137,14 +112,18 @@ export const updateDeliveryZones = async (req, res) => {
             });
         }
 
-        let settings = await Settings.findOne({ brand: req.activeBrand });
-
-        if (!settings) {
-            settings = await Settings.create({ serviceAreas, brand: req.activeBrand });
-        } else {
-            settings.serviceAreas = serviceAreas;
-            await settings.save();
-        }
+        const settings = await Settings.findOneAndUpdate(
+            { brand: req.activeBrand },
+            {
+                $set: { serviceAreas },
+                updatedBy: req.user.userId
+            },
+            {
+                new: true,
+                upsert: true,
+                runValidators: true
+            }
+        );
 
         // Emit Socket.io event
         const socketService = req.app.get('socketService');
@@ -161,20 +140,20 @@ export const updateDeliveryZones = async (req, res) => {
             });
         }
 
-        // Log Activity
-        await activityLogService.log(req, {
+        // Log Activity in background
+        activityLogService.log(req, {
             action: 'update_zones',
             resource: 'settings',
             details: { zonesCount: serviceAreas.length }
-        });
+        }).catch(() => { });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: 'Delivery zones updated successfully',
             data: settings.serviceAreas
         });
     } catch (error) {
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Error updating delivery zones',
             error: error.message
