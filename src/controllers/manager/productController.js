@@ -62,7 +62,7 @@ export const toggleProductAvailability = async (req, res) => {
 
         // Log Activity
         await activityLogService.log(req, {
-            action: 'update_availability',
+            action: 'toggle_availability',
             resource: 'product',
             resourceId: product._id,
             details: {
