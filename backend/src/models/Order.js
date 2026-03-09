@@ -177,6 +177,8 @@ orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ brand: 1, createdAt: -1 });
 orderSchema.index({ 'deliveryAddress.location': '2dsphere' });
 orderSchema.index({ pickupLocation: '2dsphere' });
+orderSchema.index({ customerId: 1 });
+orderSchema.index({ customerId: 1, status: 1 });
 
 /* ----------------------------------
    ORDER NUMBER GENERATION

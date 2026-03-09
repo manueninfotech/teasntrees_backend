@@ -16,12 +16,12 @@ const productSchema = new mongoose.Schema(
     category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
-      required: true
+      required: true,
+      index: true
     },
 
     price: {
       type: Number,
-      required: false,
       min: 0
     },
 
@@ -49,14 +49,12 @@ const productSchema = new mongoose.Schema(
       }
     },
 
-    // Brand is important for multi‑outlet support.  stored as a simple string
-    // with an enum of the two brands used by the app.  controllers already pass
-    // this value but the schema didn’t enforce it previously.
     brand: {
       type: String,
       enum: ['teasntrees', 'littleh'],
       required: true,
-      default: 'teasntrees'
+      default: 'teasntrees',
+      index: true
     },
 
     image: {
@@ -72,7 +70,8 @@ const productSchema = new mongoose.Schema(
 
     isAvailable: {
       type: Boolean,
-      default: true
+      default: true,
+      index: true
     },
 
     preparationTime: {
@@ -225,13 +224,30 @@ productSchema.pre('validate', function () {
     const b = this.brand || 'teasntrees';
     this.image = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
   }
+
+  // Normalize availableMonths for indexing
+  if (!this.isSeasonal) {
+    this.availableMonths = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  }
 });
 
 //
 // INDEXES
 //
-productSchema.index({ category: 1, isAvailable: 1 });
-productSchema.index({ brand: 1 }); // used heavily in filters
+productSchema.index({ brand: 1, isAvailable: 1, createdAt: -1 }); // Optimized for customer browsing
+productSchema.index({
+  brand: 1,
+  isAvailable: 1,
+  category: 1,
+  createdAt: -1
+});
 productSchema.index({ name: 'text', description: 'text' });
+// Optimized for customer browsing with seasonal filtering (availableMonths holds all months for non-seasonal)
+productSchema.index({ brand: 1, isAvailable: 1, availableMonths: 1, createdAt: -1 });
+
+// Tag filtering
+productSchema.index({
+  tags: 1
+});
 
 export default mongoose.model('Product', productSchema);

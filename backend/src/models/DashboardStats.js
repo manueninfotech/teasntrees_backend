@@ -14,10 +14,14 @@ const dashboardStatsSchema = new mongoose.Schema({
 });
 
 // Singleton pattern: ensure only one stats document exists
-dashboardStatsSchema.statics.getStats = async function () {
-    let stats = await this.findOne();
+dashboardStatsSchema.statics.getStats = async function (options = {}) {
+    let query = this.findOne();
+    if (options.lean) query = query.lean();
+
+    let stats = await query;
     if (!stats) {
         stats = await this.create({});
+        if (options.lean) return stats.toObject();
     }
     return stats;
 };
