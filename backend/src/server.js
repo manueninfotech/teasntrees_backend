@@ -1,4 +1,4 @@
-import './env.js';
+import 'dotenv/config';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -158,8 +158,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// Static files
-app.use(express.static(join(__dirname, '..')));
+// Static files - only serve the uploads directory, not the entire backend folder!
+const uploadsDir = join(__dirname, '../../uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // Database connection
 import './models/Counter.js';
@@ -192,21 +193,21 @@ customerApiRouter.use('/contact', customerContactRoutes);
 customerApiRouter.use('/payments', customerPaymentRoutes);
 
 // Finally mount the customer sub-router to the main app
-app.use('/api/:brand/customer', customerApiRouter);
+app.use(['/api/:brand/customer', '/api/customer'], customerApiRouter);
 
 // Admin
-app.use('/api/:brand/admin/auth', brandMiddleware, adminAuthRoutes);
-app.use('/api/:brand/admin/profile', brandMiddleware, adminProfileRoutes);
-app.use('/api/:brand/v1/admin/contact', brandMiddleware, adminContactRoutes);
-app.use('/api/:brand/admin', brandMiddleware, adminRoutes);
-app.use('/api/:brand/admin/payouts', brandMiddleware, payoutRoutes);
+app.use(['/api/:brand/admin/auth', '/api/admin/auth'], brandMiddleware, adminAuthRoutes);
+app.use(['/api/:brand/admin/profile', '/api/admin/profile'], brandMiddleware, adminProfileRoutes);
+app.use(['/api/:brand/v1/admin/contact', '/api/v1/admin/contact'], brandMiddleware, adminContactRoutes);
+app.use(['/api/:brand/admin', '/api/admin'], brandMiddleware, adminRoutes);
+app.use(['/api/:brand/admin/payouts', '/api/admin/payouts'], brandMiddleware, payoutRoutes);
 
 // Rider
 app.use('/api/rider/auth', riderAuthRoutes);
 app.use('/api/rider/deliveries', riderDeliveryRoutes);
 
 // Manager
-app.use('/api/:brand/manager', brandMiddleware, managerRoutes);
+app.use(['/api/:brand/manager', '/api/manager'], brandMiddleware, managerRoutes);
 
 // Basic routes
 app.get('/', (req, res) => {
@@ -243,34 +244,17 @@ function getLanIP() {
 
 // Start server
 // const PORT = process.env.PORT || 5000;
-// ============================
-// Server Performance Tuning
-// ============================
-
 const HOST = '0.0.0.0';
 const PORT = process.env.PORT || 5000;
 const LAN_IP = getLanIP();
 
-// 🔹 Increase connection backlog (important for load testing)
-const BACKLOG = 2048;
 
-httpServer.keepAliveTimeout = 120000;
-httpServer.headersTimeout = 125000;
-httpServer.requestTimeout = 120000;
-httpServer.maxConnections = 10000;
-
-// 🔹 Reduce connection delays under load
-httpServer.on('connection', (socket) => {
-    socket.setNoDelay(true);           // Disable Nagle's algorithm
-    socket.setKeepAlive(true, 60000);  // Enable TCP keepalive
-});
-
-// 🔹 Start server with increased backlog
-httpServer.listen(PORT, HOST, BACKLOG, () => {
+httpServer.listen(PORT, HOST, () => {
     console.log(`Server running on:`);
     console.log(`- Local:   http://localhost:${PORT}`);
     console.log(`- Network: http://${LAN_IP}:${PORT}`);
     console.log(`Socket.io enabled`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
 export default app;
