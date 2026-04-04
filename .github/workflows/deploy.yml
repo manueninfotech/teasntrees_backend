@@ -17,7 +17,13 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd backend
+            echo Current directory:
+            cd
+            cd "C:\Users\tntadmin\Documents\teasntrees_littleh_backend\backend"
+
+            echo Inside backend folder:
+            dir
+
             git pull origin feature/littleh-multi-brand
             npm install
             pm2 reload teas-backend
