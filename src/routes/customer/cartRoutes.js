@@ -20,6 +20,13 @@ router.use(authenticate);
 // Get cart
 router.get('/', getCart);
 
+// Temp: catch mysterious DELETE calls to /
+router.delete('/', (req, res) => {
+    console.log('CATCHED DELETE / on cartRoutes!');
+    console.log('Headers:', req.headers);
+    res.status(200).json({ success: true, message: 'Catched' });
+});
+
 // Add item to cart
 router.post('/add', addToCart);
 
