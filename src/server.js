@@ -88,6 +88,7 @@ app.use(cors({
 // Security and parsers
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: false, // Required for Firebase Google Login popups
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
