@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { cn } from '../lib/utils';
 import { useSocket } from '../context/SocketContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Loader2, XCircle } from 'lucide-react';
@@ -9,6 +10,7 @@ import MenuCard from '../components/MenuCard';
 import { productService } from '../services/productService';
 import { useBrand } from '../context/BrandContext';
 import { Sparkles, Cookie } from 'lucide-react';
+import MenuSkeleton from '../components/MenuSkeleton';
 
 // Debounce hook for search
 const useDebounce = (value, delay) => {
@@ -90,7 +92,7 @@ const MenuPage = () => {
     ];
 
     // Fetch Products (Backend supports both, but UI handles exclusivity)
-    const { data: products, isLoading, isError, error } = useQuery({
+    const { data: products, isLoading, isError, error, isPlaceholderData, isFetching } = useQuery({
         queryKey: ['products', activeCategory, queryQ, querySearch, brand],
         queryFn: () => {
             return productService.getAllProducts({
@@ -100,6 +102,7 @@ const MenuPage = () => {
                 brand: brand
             });
         },
+        placeholderData: keepPreviousData,
     });
 
     // Real-time updates
@@ -189,11 +192,7 @@ const MenuPage = () => {
                         </div>
                     )}
 
-                    {isLoading && (
-                        <div className="flex justify-center items-center h-64">
-                            <Loader2 className="w-8 h-8 text-[#565A47] animate-spin" strokeWidth={1} />
-                        </div>
-                    )}
+                    {isLoading && <MenuSkeleton />}
 
                     {!isLoading && isError && (
                         <div className="text-center py-20 font-playfair italic text-red-900/70 text-lg">
@@ -201,13 +200,15 @@ const MenuPage = () => {
                         </div>
                     )}
 
-                    {/* Masonry-style CSS Grid for items */}
-                    <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                        <AnimatePresence mode="popLayout">
-                            {displayProducts.map((product) => (
-                                <MenuCard key={product._id} product={product} />
-                            ))}
-                        </AnimatePresence>
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: isFetching && !isLoading ? 0.5 : 1 }}
+                        transition={{ duration: 0.3 }}
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12 min-h-[400px]"
+                    >
+                        {displayProducts.map((product) => (
+                            <MenuCard key={product._id} product={product} />
+                        ))}
                     </motion.div>
 
                     {displayProducts.length === 0 && !isLoading && (
@@ -289,11 +290,7 @@ const MenuPage = () => {
                     </div>
                 </div>
 
-                {isLoading && (
-                    <div className="flex justify-center items-center h-64">
-                        <Loader2 className={`w-10 h-10 ${theme.textColorClass} animate-spin`} />
-                    </div>
-                )}
+                {isLoading && <MenuSkeleton />}
 
                 {!isLoading && isError && (
                     <div className="text-center py-12 text-red-500">
@@ -301,12 +298,15 @@ const MenuPage = () => {
                     </div>
                 )}
 
-                <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    <AnimatePresence mode="popLayout">
-                        {displayProducts.map((product) => (
-                            <MenuCard key={product._id} product={product} />
-                        ))}
-                    </AnimatePresence>
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: isFetching && !isLoading ? 0.5 : 1 }}
+                    transition={{ duration: 0.3 }}
+                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 min-h-[400px]"
+                >
+                    {displayProducts.map((product) => (
+                        <MenuCard key={product._id} product={product} />
+                    ))}
                 </motion.div>
 
                 {displayProducts.length === 0 && !isLoading && (

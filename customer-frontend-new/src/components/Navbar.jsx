@@ -6,6 +6,8 @@ import { cn } from '../lib/utils';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useBrand } from '../context/BrandContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { productService } from '../services/productService';
 import Logo from '../assets/logoteasntrees-removebg-preview.png';
 import LittleHLogo from '../assets/littleh-logo.png'; // Make sure this file exists!
 
@@ -16,6 +18,7 @@ const Navbar = () => {
     const { brand, setBrand, theme } = useBrand();
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const handleSearch = (e) => {
         if (e) e.preventDefault();
@@ -27,6 +30,27 @@ const Navbar = () => {
             navigate(`/${brand}/menu`);
         }
         setIsOpen(false);
+    };
+
+    const prefetchMenu = () => {
+        // Prefetch categories
+        queryClient.prefetchQuery({
+            queryKey: ['categories', brand],
+            queryFn: () => productService.getCategories(brand),
+            staleTime: 1000 * 60 * 5,
+        });
+
+        // Prefetch products for 'all' category
+        queryClient.prefetchQuery({
+            queryKey: ['products', 'all', '', '', brand],
+            queryFn: () => productService.getAllProducts({
+                category: 'all',
+                q: '',
+                search: '',
+                brand: brand
+            }),
+            staleTime: 1000 * 60 * 5,
+        });
     };
 
     return (
@@ -94,7 +118,13 @@ const Navbar = () => {
 
                 {/* Desktop Actions */}
                 <div className="hidden lg:flex items-center gap-6">
-                    <Link to={`/${brand}/menu`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Menu</Link>
+                    <Link 
+                        to={`/${brand}/menu`} 
+                        onMouseEnter={prefetchMenu}
+                        className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}
+                    >
+                        Menu
+                    </Link>
                     <Link to={`/${brand}/about`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>About</Link>
                     <Link to={`/${brand}/gallery`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Gallery</Link>
                     <Link to={`/${brand}/reviews`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Reviews</Link>
@@ -183,7 +213,12 @@ const Navbar = () => {
                                 </button>
                             </form>
 
-                            <Link to={`/${brand}/menu`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
+                            <Link 
+                                to={`/${brand}/menu`} 
+                                onMouseEnter={prefetchMenu}
+                                className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" 
+                                onClick={() => setIsOpen(false)}
+                            >
                                 <Coffee className="w-5 h-5 text-cafe-emerald" />
                                 <span className="font-medium">Menu</span>
                             </Link>
