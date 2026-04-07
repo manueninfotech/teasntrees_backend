@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { productService } from './services/productService';
 import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { AuthProvider } from './context/AuthContext';
@@ -25,7 +28,52 @@ const CartPage = () => <div className="pt-32 text-center text-4xl font-bold text
 
 // Inner wrapper that reads BrandContext to set the root background
 const BrandRoot = () => {
-  const { theme } = useBrand();
+  const { theme, brand } = useBrand();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!brand) return;
+
+    // Background prefetch for instant loading of ALL categories
+    const prefetchData = async () => {
+      try {
+        // 1. Prefetch Categories first to know what to prefetch next
+        const categoriesData = await queryClient.fetchQuery({
+          queryKey: ['categories', brand],
+          queryFn: () => productService.getCategories(brand),
+          staleTime: 1000 * 60 * 60,
+        });
+
+        const categories = categoriesData?.data || [];
+
+        // 2. Prefetch 'All' products (default view)
+        queryClient.prefetchQuery({
+          queryKey: ['products', 'all', '', '', brand],
+          queryFn: () => productService.getAllProducts({
+            category: 'all', q: '', search: '', brand: brand
+          }),
+          staleTime: 1000 * 60 * 60,
+        });
+
+        // 3. Prefetch EACH category's products so they are all 'instant'
+        categories.forEach(cat => {
+          const catId = cat._id || cat.id;
+          queryClient.prefetchQuery({
+            queryKey: ['products', catId, '', '', brand],
+            queryFn: () => productService.getAllProducts({
+              category: catId, q: '', search: '', brand: brand
+            }),
+            staleTime: 1000 * 60 * 60,
+          });
+        });
+      } catch (err) {
+        console.error('Menu prefetch failed:', err);
+      }
+    };
+
+    prefetchData();
+  }, [brand, queryClient]);
+
   return (
     <div
       className="relative min-h-screen font-sans antialiased text-slate-800"

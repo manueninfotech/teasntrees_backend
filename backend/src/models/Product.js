@@ -63,8 +63,8 @@ const productSchema = new mongoose.Schema(
       default: function () {
         const b = this.brand || 'teasntrees';
         if (b === 'littleh') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1771913436/products/gt4qc5az6vxyiauiellt.jpg';
-        if (b === 'teasntrees') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1771913166/products/xbacarjgxk64umg36aoz.jpg';
-        return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1771913166/products/xbacarjgxk64umg36aoz.jpg';
+        if (b === 'teasntrees') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
+        return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
       }
     },
 

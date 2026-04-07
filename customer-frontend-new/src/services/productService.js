@@ -13,10 +13,9 @@ export const productService = {
         params.append('limit', limit);
 
         const response = await api.get(`/customer/products?${params.toString()}`);
-
-        // Backend returns: { success: true, data: { products: [], pagination: {} } }
-        // We return just the products array for the component to use directly
-        return response.data?.data?.products || [];
+        
+        // Return full data object so MenuPage can check success and pagination
+        return response.data;
     },
 
     // Get categories from backend

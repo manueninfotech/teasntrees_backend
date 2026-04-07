@@ -1,70 +1,42 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useDebounce } from '../hooks/useDebounce';
 import { cn } from '../lib/utils';
+import { useBrand } from '../context/BrandContext';
+import { productService } from '../services/productService';
 import { useSocket } from '../context/SocketContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Loader2, XCircle } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Search, Loader2, XCircle, Sparkles, Cookie } from 'lucide-react';
 import CategoryTabs from '../components/CategoryTabs';
 import MenuCard from '../components/MenuCard';
-import { productService } from '../services/productService';
-import { useBrand } from '../context/BrandContext';
-import { Sparkles, Cookie } from 'lucide-react';
 import MenuSkeleton from '../components/MenuSkeleton';
-
-// Debounce hook for search
-const useDebounce = (value, delay) => {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedValue(value);
-        }, delay);
-        return () => {
-            clearTimeout(handler);
-        };
-    }, [value, delay]);
-    return debouncedValue;
-};
-
 const MenuPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const { brand, theme } = useBrand();
 
-    // 1. URL Source of Truth
-    const queryQ = searchParams.get('q') || ''; // From Navbar
-    const querySearch = searchParams.get('search') || ''; // From local Menu bar
+    // 1. URL Source of Truth: Local Search only
+    const querySearch = searchParams.get('search') || '';
 
     const [activeCategory, setActiveCategory] = useState('all');
 
     // 2. Local state for the input
     const [searchTerm, setSearchTerm] = useState(querySearch);
-    const debouncedSearch = useDebounce(searchTerm, 500);
+    const debouncedSearch = useDebounce(searchTerm, 200);
 
-    // 3. EXCLUSIVITY LOGIC: If Global search (q) comes in, clear Local
+    // 3. Sync local input with 'search' URL param
     useEffect(() => {
-        if (queryQ) {
-            setSearchTerm('');
-            setActiveCategory('all');
+        setSearchTerm(querySearch);
+    }, [querySearch]);
 
-            // Also ensure 'search' is removed from URL if it was there
-            if (searchParams.has('search')) {
-                const newParams = Object.fromEntries(searchParams);
-                delete newParams.search;
-                setSearchParams(newParams);
-            }
-        }
-    }, [queryQ]);
-
-    // 4. EXCLUSIVITY LOGIC: If Local search (debouncedSearch) comes in, clear Global
+    // 4. Update 'search' URL param from local input
     useEffect(() => {
         const urlSearch = searchParams.get('search') || '';
-
         if (debouncedSearch !== urlSearch) {
             const newParams = Object.fromEntries(searchParams);
-
             if (debouncedSearch) {
                 newParams.search = debouncedSearch;
-                delete newParams.q;
+                setActiveCategory('all');
             } else {
                 delete newParams.search;
             }
@@ -72,12 +44,12 @@ const MenuPage = () => {
         }
     }, [debouncedSearch]);
 
-    // 5. Back/Forward button support
-    useEffect(() => {
-        if (querySearch !== searchTerm && !queryQ) {
-            setSearchTerm(querySearch);
-        }
-    }, [querySearch, queryQ]);
+    // 5. Cleanup
+    const clearAll = () => {
+        setSearchTerm('');
+        setSearchParams({});
+        setActiveCategory('all');
+    };
 
 
     // Fetch Categories
@@ -91,18 +63,33 @@ const MenuPage = () => {
         ...(rawCategories || [])
     ];
 
-    // Fetch Products (Backend supports both, but UI handles exclusivity)
+    // Persistence Logic: Load from localStorage if available
+    const getStoredProducts = () => {
+        const key = `products_cache_${brand}_${activeCategory}`;
+        const stored = localStorage.getItem(key);
+        return stored ? JSON.parse(stored) : undefined;
+    };
+
+    // Fetch Products
     const { data: products, isLoading, isError, error, isPlaceholderData, isFetching } = useQuery({
-        queryKey: ['products', activeCategory, queryQ, querySearch, brand],
-        queryFn: () => {
-            return productService.getAllProducts({
-                category: activeCategory,
-                q: queryQ,
+        queryKey: ['products', activeCategory, querySearch, brand],
+        queryFn: async () => {
+            // Force global search if local search term is present
+            const searchCategory = querySearch ? 'all' : activeCategory;
+
+            const data = await productService.getAllProducts({
+                category: searchCategory,
                 search: querySearch,
                 brand: brand
             });
+            // Save to localStorage for future instant loading
+            if (data?.success) {
+                localStorage.setItem(`products_cache_${brand}_${activeCategory}`, JSON.stringify(data));
+            }
+            return data;
         },
         placeholderData: keepPreviousData,
+        initialData: getStoredProducts,
     });
 
     // Real-time updates
@@ -116,12 +103,7 @@ const MenuPage = () => {
         return () => events.forEach(e => socket.off(e, handleUpdate));
     }, [socket, queryClient]);
 
-    const displayProducts = products || [];
-
-    const clearAll = () => {
-        setSearchTerm('');
-        setSearchParams({});
-    };
+    const displayProducts = products?.data?.products || [];
 
     if (theme.isLittleH) {
         return (
@@ -174,24 +156,6 @@ const MenuPage = () => {
                         </div>
                     </div>
 
-                    {/* Active Filters Display */}
-                    {(queryQ || querySearch) && (
-                        <div className="mb-10 flex flex-wrap items-center gap-4 justify-center">
-                            {queryQ && (
-                                <span className="text-xs uppercase tracking-widest text-[#565A47] bg-[#FDF5EC] border border-[#565A47]/20 px-4 py-2 flex items-center gap-2">
-                                    Global: {queryQ}
-                                    <button onClick={() => setSearchParams({})} className="hover:text-red-900 transition-colors ml-2"><XCircle className="w-3 h-3" /></button>
-                                </span>
-                            )}
-                            {querySearch && (
-                                <span className="text-xs uppercase tracking-widest text-[#565A47] bg-[#FDF5EC] border border-[#565A47]/20 px-4 py-2 flex items-center gap-2">
-                                    Filter: {querySearch}
-                                    <button onClick={() => setSearchTerm('')} className="hover:text-red-900 transition-colors ml-2"><XCircle className="w-3 h-3" /></button>
-                                </span>
-                            )}
-                        </div>
-                    )}
-
                     {isLoading && <MenuSkeleton />}
 
                     {!isLoading && isError && (
@@ -242,27 +206,7 @@ const MenuPage = () => {
 
             <div className="container mx-auto px-4 lg:px-8 py-8">
 
-                {/* Search Feedback Header */}
-                {(queryQ || querySearch) && (
-                    <div className="mb-6 flex flex-wrap items-center gap-3">
-                        {queryQ && (
-                            <div className={`bg-${theme.primaryColor}/10 ${theme.textColorClass} px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium border border-${theme.primaryColor}/20`}>
-                                Global: "{queryQ}"
-                                <button onClick={() => setSearchParams({})} className="hover:text-red-500 transition-colors">
-                                    <XCircle className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                        {querySearch && (
-                            <div className="bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full flex items-center gap-2 text-sm font-medium border border-blue-100">
-                                Filtering: "{querySearch}"
-                                <button onClick={() => setSearchTerm('')} className="hover:text-red-500 transition-colors">
-                                    <XCircle className="w-4 h-4" />
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )}
+                {/* Search Feedback Header removed for cleaner UI */}
 
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
                     <h2 className="text-3xl font-bold text-slate-800 self-start">

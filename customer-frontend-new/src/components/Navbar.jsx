@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, Heart, User, Menu, X, Coffee, Users, ZoomIn, Star, Phone } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { ShoppingCart, Heart, User, Menu, X, Coffee, Users, ZoomIn, Star, Phone } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import { useCart } from '../context/CartContext';
@@ -16,21 +16,9 @@ const Navbar = () => {
     const { cartCount, toggleCart } = useCart();
     const { wishlistItems } = useWishlist();
     const { brand, setBrand, theme } = useBrand();
-    const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
+    const location = useLocation();
     const queryClient = useQueryClient();
-
-    const handleSearch = (e) => {
-        if (e) e.preventDefault();
-        const term = searchTerm.trim();
-
-        if (term) {
-            navigate(`/${brand}/menu?q=${encodeURIComponent(term)}`);
-        } else {
-            navigate(`/${brand}/menu`);
-        }
-        setIsOpen(false);
-    };
 
     const prefetchMenu = () => {
         // Prefetch categories
@@ -93,28 +81,8 @@ const Navbar = () => {
                     </div>
                 </div>
 
-                {/* DESKTOP SEARCH */}
-                <div className="hidden lg:flex items-center justify-center flex-1 mx-12">
-                    <form onSubmit={handleSearch} className="relative w-full max-w-md group">
-                        <input
-                            type="text"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search for 'Masala Chai'..."
-                            className={cn(
-                                "w-full border py-2.5 pl-12 pr-12 text-sm focus:outline-none transition-all shadow-sm hover:shadow-md",
-                                theme.isLittleH ? "bg-bakery-light border-bakery-accent/20 focus:ring-2 focus:ring-bakery-accent/50 rounded-none font-playfair" : "bg-white/50 backdrop-blur-sm border-white/40 rounded-full focus:ring-2 focus:ring-cafe-emerald/50 hover:bg-white/70"
-                            )}
-                            autoComplete="off"
-                        />
-                        <button
-                            type="submit"
-                            className={`absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}
-                        >
-                            <Search className="w-4 h-4" />
-                        </button>
-                    </form>
-                </div>
+                {/* Center Spacer */}
+                <div className="hidden lg:flex flex-1" />
 
                 {/* Desktop Actions */}
                 <div className="hidden lg:flex items-center gap-6">
@@ -200,18 +168,7 @@ const Navbar = () => {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSearch} className="relative">
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Search..."
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-cafe-emerald/50"
-                                />
-                                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2">
-                                    <Search className="w-5 h-5 text-slate-400" />
-                                </button>
-                            </form>
+                            {/* Mobile Search Removed */}
 
                             <Link 
                                 to={`/${brand}/menu`} 
