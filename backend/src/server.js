@@ -60,37 +60,42 @@ app.use(cors({
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        // Check if origin matches any allowed origins (with www/non-www flexibility)
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (allowed === '*' || allowed === origin) return true;
+
+            // Normalize both to compare without www. prefix
+            const originBase = origin.replace(/^https?:\/\/(www\.)?/, '');
+            const allowedBase = allowed.replace(/^https?:\/\/(www\.)?/, '');
+            return originBase === allowedBase;
+        });
+
+        if (isAllowed) {
             callback(null, true);
         } else {
             logger.error(`CORS blocked for origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
+            const error = new Error('Not allowed by CORS');
+            error.statusCode = 403;
+            callback(error);
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-client-type'],
     optionsSuccessStatus: 200
 }));
 
-// No need for separate app.options if cors is used early
-
 // Security and parsers
 app.use(helmet({
-    // allow other origins to load static assets (required when frontend is on
-    // a different host/port during development)
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
             "script-src": ["'self'", "'unsafe-inline'"],
             "script-src-attr": ["'unsafe-inline'"],
-            // allow images from our own api server and the frontend origin(s)
             "img-src": [
                 "'self'",
                 "data:",
-                // when frontend runs on another port it still needs to fetch
-                // product placeholders from the backend.
                 'http://localhost:5000',
                 ...(allowedOrigins.includes('*') ? [] : allowedOrigins)
             ]
