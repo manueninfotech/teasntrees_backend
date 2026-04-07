@@ -3,6 +3,11 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    {
+      "source": "/proxy-api/:path*",
+      "destination": "http://api.teasntrees.in/api/:path*"
+    },
     { "source": "/(.*)", "destination": "/" }
   ]
 }
+
