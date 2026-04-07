@@ -4,10 +4,13 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/proxy-api/:path*",
+      "source": "/api/:path*",
       "destination": "http://api.teasntrees.in/api/:path*"
     },
-    { "source": "/(.*)", "destination": "/" }
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
   ]
 }
 
