@@ -17,7 +17,7 @@ const notFound = (req, res, next) => {
  */
 const errorHandler = (err, req, res, next) => {
     // Determine status code
-    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    const statusCode = err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
 
     // Log error in development
     if (process.env.NODE_ENV === 'development') {
