@@ -273,7 +273,6 @@ export const getOrderById = async (req, res) => {
         logger.info(`GET ORDER BY ID - orderId: ${orderId}, customerId: ${customerId}, brand: ${req.activeBrand}`);
 
         const query = { _id: orderId, customerId };
-        if (req.activeBrand) query.brand = req.activeBrand;
 
         const order = await Order.findOne(query)
             .populate('items.product', 'name image price')
