@@ -93,6 +93,11 @@ const Navbar = () => {
                     >
                         Menu
                     </Link>
+                    {theme.isTeasNTrees && (
+                        <Link to={`/${brand}/seasonal`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors animate-pulse-slow`}>
+                            Seasonal
+                        </Link>
+                    )}
                     <Link to={`/${brand}/about`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>About</Link>
                     <Link to={`/${brand}/gallery`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Gallery</Link>
                     <Link to={`/${brand}/reviews`} className={`text-sm font-medium ${theme.textColorClass.replace('text-', 'hover:text-')} transition-colors`}>Reviews</Link>
@@ -179,6 +184,12 @@ const Navbar = () => {
                                 <Coffee className="w-5 h-5 text-cafe-emerald" />
                                 <span className="font-medium">Menu</span>
                             </Link>
+                            {theme.isTeasNTrees && (
+                                <Link to={`/${brand}/seasonal`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
+                                    <Sparkles className="w-5 h-5 text-amber-500" />
+                                    <span className="font-medium">Seasonal</span>
+                                </Link>
+                            )}
                             <Link to={`/${brand}/about`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50" onClick={() => setIsOpen(false)}>
                                 <Users className="w-5 h-5 text-blue-500" />
                                 <span className="font-medium">About Us</span>

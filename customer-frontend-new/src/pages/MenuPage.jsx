@@ -80,7 +80,8 @@ const MenuPage = () => {
             const data = await productService.getAllProducts({
                 category: searchCategory,
                 search: querySearch,
-                brand: brand
+                brand: brand,
+                limit: 50
             });
             // Save to localStorage for future instant loading
             if (data?.success) {
