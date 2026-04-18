@@ -45,7 +45,7 @@ export default function Products() {
     const [bulkAction, setBulkAction] = useState(null);
 
     const { brand: urlBrand } = useParams();
-    const [pagination, setPagination] = useState({ currentPage: 1, limit: 12 });
+    const [pagination, setPagination] = useState({ currentPage: 1, limit: 50 });
     const [filters, setFilters] = useState({ category: '', tag: '', availability: 'all' });
 
     // Fetch Categories for Filter

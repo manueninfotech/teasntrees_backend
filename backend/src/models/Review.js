@@ -72,4 +72,4 @@ reviewSchema.index({ productId: 1, createdAt: -1 });
 reviewSchema.index({ customerId: 1 });
 reviewSchema.index({ orderId: 1 }, { unique: true, sparse: true });
 
-export default mongoose.model('Review', reviewSchema);
+export default mongoose.model('Review', reviewSchema, 'reviews');

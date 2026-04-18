@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
+import { requestFCMToken } from '../config/firebase';
+import { userService } from '../services/userService';
 
 const AuthContext = createContext();
 
@@ -29,6 +31,23 @@ export const AuthProvider = ({ children }) => {
         };
         checkAuth();
     }, []);
+
+    // Sync FCM Token on login
+    useEffect(() => {
+        if (user) {
+            const syncFCM = async () => {
+                const token = await requestFCMToken();
+                if (token) {
+                    try {
+                        await userService.updateFCMToken(token);
+                    } catch (err) {
+                        console.error("FCM Token sync failed", err);
+                    }
+                }
+            };
+            syncFCM();
+        }
+    }, [user]);
 
     // Step 2: Verify OTP (Now accepts idToken)
     const verifyOtp = async (mobile, idToken) => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion'; // Added missing motion import
+import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useBrand } from '../context/BrandContext';
@@ -8,10 +8,11 @@ import AddressModal from '../components/AddressModal';
 import { cn } from '../lib/utils';
 import { userService } from '../services/userService';
 import { orderService } from '../services/orderService';
+import { cartService } from '../services/cartService';
 import settingsService from '../services/settingsService';
 import {
     ArrowLeft, MapPin, Loader2, CheckCircle2, AlertCircle, ShoppingBag,
-    ChevronLeft, Plus, CreditCard, ArrowRight, X, Navigation, Save, CheckCircle
+    ChevronLeft, Plus, CreditCard, ArrowRight, X, Navigation, Save, CheckCircle, Ticket, Tag
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -27,14 +28,13 @@ const CheckoutPage = () => {
     const [selectedAddress, setSelectedAddress] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState('COD');
     const [isRedirecting, setIsRedirecting] = useState(false);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponInfo, setCouponInfo] = useState(null);
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
 
     // Address Modal State
     const [showAddressModal, setShowAddressModal] = useState(false);
-    const [newAddress, setNewAddress] = useState({
-        tag: 'Home', flatNo: '', street: '', area: '', city: '', pincode: ''
-    });
     const [savingAddress, setSavingAddress] = useState(false);
-    const [fetchingLocation, setFetchingLocation] = useState(false);
 
     // Initial Data Fetch
     useEffect(() => {
@@ -147,6 +147,41 @@ const CheckoutPage = () => {
         }
     };
 
+    // Handle Coupon Validation
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) return;
+
+        setIsValidatingCoupon(true);
+        setError('');
+
+        try {
+            const response = await cartService.validateCoupon(
+                couponCode.trim().toUpperCase(),
+                cartTotal,
+                brand
+            );
+
+            if (response.success) {
+                setCouponInfo(response.data);
+                setError('');
+            } else {
+                setError(response.message || 'Invalid coupon code');
+                setCouponInfo(null);
+            }
+        } catch (err) {
+            console.error("Coupon error", err);
+            setError(err.response?.data?.message || 'Failed to validate coupon');
+            setCouponInfo(null);
+        } finally {
+            setIsValidatingCoupon(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setCouponCode('');
+        setCouponInfo(null);
+    };
+
     // Handle Place Order
     const handlePlaceOrder = async () => {
         if (!selectedAddress) {
@@ -167,7 +202,8 @@ const CheckoutPage = () => {
                 },
                 paymentMethod: paymentMethod,
                 deliveryZone: 'Standard',
-                deliveryInstructions: ''
+                deliveryInstructions: '',
+                couponCode: couponInfo?.couponCode || null
             };
 
             const response = await checkout(checkoutData);
@@ -335,7 +371,8 @@ const CheckoutPage = () => {
 
     // Calculate totals locally
     const tax = (cartTotal * 0.05);
-    const calculatedGrandTotal = (cartTotal + tax + deliveryFee).toFixed(2);
+    const discount = couponInfo ? couponInfo.discountAmount : 0;
+    const calculatedGrandTotal = (cartTotal + tax + deliveryFee - discount).toFixed(2);
 
     return (
         <div className={cn("min-h-screen pt-24 pb-20 transition-colors duration-300", theme.isLittleH ? "bg-bakery-bg" : "bg-slate-50")}>
@@ -483,6 +520,62 @@ const CheckoutPage = () => {
 
                             <div className="border-t border-dashed border-slate-200 my-4" />
 
+                            {/* Coupon Section */}
+                            <div className="mb-6">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Apply Coupon</label>
+                                {!couponInfo ? (
+                                    <div className="flex gap-2">
+                                        <div className="relative flex-1">
+                                            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                value={couponCode}
+                                                onChange={(e) => setCouponCode(e.target.value)}
+                                                placeholder="Enter Coupon Code"
+                                                className={cn(
+                                                    "w-full pl-9 pr-4 py-2.5 rounded-xl border-none text-sm focus:ring-1 focus:ring-slate-200",
+                                                    theme.isLittleH ? "bg-[#FDF5EC]" : "bg-slate-50"
+                                                )}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleApplyCoupon}
+                                            disabled={isValidatingCoupon || !couponCode.trim()}
+                                            className={cn(
+                                                "px-4 py-2 rounded-xl font-bold text-xs transition-all",
+                                                theme.isLittleH 
+                                                    ? "bg-[#565A47] text-[#FAF1E8] hover:bg-[#3f4233]" 
+                                                    : "bg-cafe-emerald text-white hover:bg-cafe-teal",
+                                                (isValidatingCoupon || !couponCode.trim()) && "opacity-50"
+                                            )}
+                                        >
+                                            {isValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className={cn(
+                                        "flex items-center justify-between p-3 rounded-xl border border-dashed",
+                                        theme.isLittleH ? "border-[#565A47]/30 bg-[#565A47]/5" : "border-cafe-emerald/30 bg-cafe-emerald/5"
+                                    )}>
+                                        <div className="flex items-center gap-2">
+                                            <Ticket className={cn("w-5 h-5", theme.isLittleH ? "text-[#565A47]" : "text-cafe-emerald")} />
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-800">{couponInfo.couponCode}</div>
+                                                <div className="text-[10px] text-slate-500">₹{couponInfo.discountAmount} discount applied</div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={handleRemoveCoupon}
+                                            className="p-1.5 hover:bg-white rounded-full transition-colors text-slate-400 hover:text-red-500"
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="border-t border-dashed border-slate-200 my-4" />
+
                             <div className="space-y-2 mb-6">
                                 <div className="flex justify-between text-sm text-slate-500">
                                     <span>Item Total</span>
@@ -496,6 +589,12 @@ const CheckoutPage = () => {
                                     <span>Taxes (5%)</span>
                                     <span>₹{tax.toFixed(2)}</span>
                                 </div>
+                                {couponInfo && (
+                                    <div className="flex justify-between text-sm font-bold text-cafe-emerald">
+                                        <span>Coupon Discount</span>
+                                        <span>-₹{couponInfo.discountAmount}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-lg font-bold text-slate-800 pt-2 border-t border-slate-100 mt-2">
                                     <span>Grand Total</span>
                                     <span>₹{calculatedGrandTotal}</span>
@@ -524,119 +623,16 @@ const CheckoutPage = () => {
                     </div>
                 </div>
 
-                <AnimatePresence>
-                    {showAddressModal && (
-                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.95 }}
-                                className={cn("w-full max-w-lg overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
-                            >
-                                <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FAF1E8] border-[#8B8E7B]/15" : "bg-slate-50 border-slate-100")}>
-                                    <h3 className={cn("text-xl font-bold text-slate-800", theme.isLittleH && "font-playfair")}>Add New Address</h3>
-                                    <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                        <X className="w-5 h-5 text-slate-400" />
-                                    </button>
-                                </div>
+                <AddressModal
+                    isOpen={showAddressModal}
+                    onClose={() => setShowAddressModal(false)}
+                    onSelect={(addr) => {
+                        setSelectedAddress(addr._id);
+                        setShowAddressModal(false);
+                    }}
+                    selectedAddressId={selectedAddress}
+                />
 
-                                <form onSubmit={handleSaveAddress} className="p-6 space-y-4">
-                                    <button
-                                        type="button"
-                                        onClick={handleUseMyLocation}
-                                        disabled={fetchingLocation}
-                                        className="w-full py-3 bg-blue-50 text-blue-600 rounded-xl font-bold hover:bg-blue-100 transition-all flex items-center justify-center gap-2 mb-4"
-                                    >
-                                        {fetchingLocation ? 'Fetching Location...' : <>Use My Location <Navigation className="w-4 h-4" /></>}
-                                    </button>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Tag</label>
-                                            <select
-                                                value={newAddress.tag}
-                                                onChange={e => setNewAddress({ ...newAddress, tag: e.target.value })}
-                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                            >
-                                                <option>Home</option>
-                                                <option>Work</option>
-                                                <option>Other</option>
-                                            </select>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Pincode</label>
-                                            <input
-                                                type="text"
-                                                value={newAddress.pincode}
-                                                onChange={e => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                placeholder="560001"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Flat / House No</label>
-                                        <input
-                                            type="text"
-                                            value={newAddress.flatNo}
-                                            onChange={e => setNewAddress({ ...newAddress, flatNo: e.target.value })}
-                                            className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                            placeholder="A-101, Tea Garden Apts"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-slate-500 uppercase">Street / Colony</label>
-                                        <input
-                                            type="text"
-                                            value={newAddress.street}
-                                            onChange={e => setNewAddress({ ...newAddress, street: e.target.value })}
-                                            className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                            placeholder="Green St, Indiranagar"
-                                            required
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">Area</label>
-                                            <input
-                                                type="text"
-                                                value={newAddress.area}
-                                                onChange={e => setNewAddress({ ...newAddress, area: e.target.value })}
-                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                placeholder="Indiranagar"
-                                                required
-                                            />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-xs font-bold text-slate-500 uppercase">City</label>
-                                            <input
-                                                type="text"
-                                                value={newAddress.city}
-                                                onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
-                                                className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                placeholder="Bangalore"
-                                                required
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        type="submit"
-                                        disabled={savingAddress}
-                                        className={`w-full py-4 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233]' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30 rounded-xl'} text-white font-bold shadow-lg transition-all flex items-center justify-center gap-2 mt-4`}
-                                    >
-                                        {savingAddress ? 'Saving...' : <>Save Address <Save className="w-5 h-5" /></>}
-                                    </button>
-                                </form>
-                            </motion.div>
-                        </div>
-                    )}
-                </AnimatePresence>
             </div>
         </div>
     );

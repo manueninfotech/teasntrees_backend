@@ -261,7 +261,51 @@ const updateBrandPreference = async (req, res) => {
     }
 };
 
+// Update FCM Token for push notifications
+const updateFCMToken = async (req, res) => {
+    try {
+        const { fcmToken } = req.body;
+        const userId = req.user.userId;
+
+        if (!fcmToken) {
+            return res.status(400).json({
+                success: false,
+                message: 'FCM Token is required'
+            });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            userId,
+            { $set: { fcmToken: fcmToken } },
+            { new: true, select: 'fcmToken' }
+        ).lean();
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'FCM Token updated successfully',
+            data: {
+                fcmToken: user.fcmToken
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating FCM token:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to update FCM token'
+        });
+    }
+};
+
 export {
     updateProfile,
-    updateBrandPreference
+    updateBrandPreference,
+    updateFCMToken
 };

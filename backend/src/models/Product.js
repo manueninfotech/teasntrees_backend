@@ -62,7 +62,7 @@ const productSchema = new mongoose.Schema(
       // default to brand-specific Cloudinary placeholder URLs
       default: function () {
         const b = this.brand || 'teasntrees';
-        if (b === 'littleh') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1771913436/products/gt4qc5az6vxyiauiellt.jpg';
+        if (b === 'littleh') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775625934/products/gfo3tkaqhft9km47nhoi.jpg';
         if (b === 'teasntrees') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
         return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
       }
@@ -217,12 +217,13 @@ productSchema.pre('validate', function () {
     this.cakePricing.customizationPricePerKg = null;
   }
 
-  // if image field is empty/undefined/null we want to populate the brand
-  // specific placeholder before saving.  the default() defined above only
-  // runs when the field is omitted, and updates sometimes set it to null.
   if (!this.image) {
     const b = this.brand || 'teasntrees';
-    this.image = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
+    if (b === 'littleh') {
+      this.image = 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775625934/products/gfo3tkaqhft9km47nhoi.jpg';
+    } else {
+      this.image = 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
+    }
   }
 
   // Normalize availableMonths for indexing

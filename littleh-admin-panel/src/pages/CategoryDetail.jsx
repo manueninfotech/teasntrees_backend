@@ -35,7 +35,7 @@ export default function CategoryDetail() {
     const fetchCategoryProducts = async () => {
         try {
             setProductsLoading(true);
-            const response = await api.get(`/admin/products?category=${id}&limit=20`);
+            const response = await api.get(`/admin/products?category=${id}&limit=100`);
             setProducts(response.data.data || []);
         } catch (error) {
             console.error('Failed to fetch products:', error);

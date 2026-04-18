@@ -9,10 +9,14 @@ import {
     rejectReview,
     deleteReview,
     getRiderReviews,
-    getReviewStats
+    getReviewStats,
+    syncAllRatings
 } from '../../controllers/admin/reviewController.js';
 
 const router = express.Router({ mergeParams: true });
+
+// Sync all product ratings
+router.post('/sync', syncAllRatings);
 
 // Get all reviews with filters
 router.get('/', getAllReviews);

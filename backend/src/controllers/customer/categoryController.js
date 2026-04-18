@@ -26,7 +26,8 @@ export const clearCategoryCache = () => categoryCache.clear();
 export const getAllCategories = async (req, res) => {
     try {
         // Check cache first
-        const cacheKey = `categories:${req.activeBrand}`;
+        const activeBrand = req.activeBrand || 'teasntrees';
+        const cacheKey = `categories:${activeBrand}`;
         const cachedData = getCachedResponse(cacheKey);
         if (cachedData) return res.json(cachedData);
 

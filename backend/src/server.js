@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -11,6 +13,12 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+
+// Database connection MUST be first to ensure models use correct connection
+import './models/Counter.js';
+import connectDB from './config/db.js';
+connectDB();
+
 
 // Routes and controllers
 import customerAuthRoutes from './routes/customer/authRoutes.js';
@@ -27,6 +35,8 @@ import customerSettingsRoutes from './routes/customer/settingsRoutes.js';
 import customerUploadRoutes from './routes/customer/uploadRoutes.js';
 import customerContactRoutes from './routes/customer/contactRoutes.js';
 import customerPaymentRoutes from './routes/customer/paymentRoutes.js';
+import customerCouponRoutes from './routes/customer/couponRoutes.js';
+import customerStatusRoutes from './routes/customer/statusRoutes.js';
 
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
@@ -46,6 +56,7 @@ import { SocketService } from './services/socketService.js';
 import { apiLimiter } from './middlewares/rateLimiter.js';
 import logger from './config/logger.js';
 import { SOCKET_EVENTS } from './sockets/socketEvents.js';
+import { initNudgeWorker } from './workers/nudgeWorker.js';
 
 const app = express();
 
@@ -55,30 +66,32 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
     .split(',')
     .map(o => o.trim());
 
+// Helper function to check if origin is allowed (with www/non-www flexibility)
+const checkOrigin = (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+
+    const isAllowed = allowedOrigins.some(allowed => {
+        if (allowed === '*' || allowed === origin) return true;
+
+        // Normalize both to compare without www. prefix
+        const originBase = origin.replace(/^https?:\/\/(www\.)?/, '');
+        const allowedBase = allowed.replace(/^https?:\/\/(www\.)?/, '');
+        return originBase === allowedBase;
+    });
+
+    if (isAllowed) {
+        callback(null, true);
+    } else {
+        logger.error(`CORS blocked for origin: ${origin}`);
+        const error = new Error('Not allowed by CORS');
+        error.statusCode = 403;
+        callback(error);
+    }
+};
+
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        // Check if origin matches any allowed origins (with www/non-www flexibility)
-        const isAllowed = allowedOrigins.some(allowed => {
-            if (allowed === '*' || allowed === origin) return true;
-
-            // Normalize both to compare without www. prefix
-            const originBase = origin.replace(/^https?:\/\/(www\.)?/, '');
-            const allowedBase = allowed.replace(/^https?:\/\/(www\.)?/, '');
-            return originBase === allowedBase;
-        });
-
-        if (isAllowed) {
-            callback(null, true);
-        } else {
-            logger.error(`CORS blocked for origin: ${origin}`);
-            const error = new Error('Not allowed by CORS');
-            error.statusCode = 403;
-            callback(error);
-        }
-    },
+    origin: checkOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-client-type'],
@@ -88,7 +101,7 @@ app.use(cors({
 // Security and parsers
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' },
-    crossOriginOpenerPolicy: false, // Required for Firebase Google Login popups
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: {
         directives: {
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
@@ -119,7 +132,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
     cors: {
-        origin: allowedOrigins,
+        origin: checkOrigin, // Use the same flexible check as the main API
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
         credentials: true
     }
@@ -168,10 +181,7 @@ app.use((req, res, next) => {
 const uploadsDir = join(__dirname, '../../uploads');
 app.use('/uploads', express.static(uploadsDir));
 
-// Database connection
-import './models/Counter.js';
-import connectDB from './config/db.js';
-connectDB();
+// Database connection moved to top
 
 import { brandMiddleware } from './middlewares/brandMiddleware.js';
 
@@ -197,6 +207,8 @@ customerApiRouter.use('/settings', customerSettingsRoutes);
 customerApiRouter.use('/upload', customerUploadRoutes);
 customerApiRouter.use('/contact', customerContactRoutes);
 customerApiRouter.use('/payments', customerPaymentRoutes);
+customerApiRouter.use('/coupons', customerCouponRoutes);
+customerApiRouter.use('/status', customerStatusRoutes);
 
 // Finally mount the customer sub-router to the main app
 app.use(['/api/:brand/customer', '/api/customer'], customerApiRouter);
@@ -254,6 +266,8 @@ const HOST = '0.0.0.0';
 const PORT = process.env.PORT || 5000;
 const LAN_IP = getLanIP();
 
+// Initialize Nudge Worker (Background Jobs)
+initNudgeWorker();
 
 httpServer.listen(PORT, HOST, () => {
     console.log(`Server running on:`);

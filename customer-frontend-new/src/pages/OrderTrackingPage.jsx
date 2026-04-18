@@ -489,7 +489,7 @@ const OrderTrackingPage = () => {
                 </div>
 
                 {/* Order Details Preview */}
-                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-8">
                     <h2 className="font-bold text-slate-800 mb-4">Items in Order</h2>
                     <div className="space-y-4">
                         {order.items.map((item, idx) => (
@@ -506,8 +506,138 @@ const OrderTrackingPage = () => {
                         <span>₹{order.total}</span>
                     </div>
                 </div>
+
+                {/* PREMIUM RATING SECTION */}
+                {order.status === 'delivered' && !order.foodRating && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white rounded-3xl p-8 md:p-10 shadow-xl border border-white relative overflow-hidden group"
+                    >
+                        {/* Decorative Background */}
+                        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full opacity-5 group-hover:scale-110 transition-transform duration-1000" style={{ background: theme.isLittleH ? '#565A47' : '#10b981' }} />
+                        
+                        <div className="relative z-10 text-center max-w-lg mx-auto">
+                            <div className={`w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-6 transform group-hover:rotate-6 transition-transform`} style={{ background: theme.isLittleH ? '#FDF5EC' : '#F0FDFA' }}>
+                                <MessageSquarePlus className={`w-10 h-10 ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-600'}`} />
+                            </div>
+                            
+                            <h2 className={`text-3xl font-black text-slate-800 mb-3 ${theme.isLittleH ? 'font-playfair' : ''}`}>
+                                How was your {theme.isLittleH ? 'Bakery' : 'Tea'}?
+                            </h2>
+                            <p className="text-slate-500 mb-8 font-medium">
+                                We'd love to hear your thoughts on the quality of food and our delivery service!
+                            </p>
+
+                            <RatingForm orderId={orderId} brand={brand} theme={theme} onComplete={fetchOrder} />
+                        </div>
+                    </motion.div>
+                )}
             </div>
         </div>
+    );
+};
+
+// Extracted Rating Form for better state management
+import { reviewService } from '../services/reviewService';
+import { Star, MessageSquarePlus, Send } from 'lucide-react';
+
+const RatingForm = ({ orderId, brand, theme, onComplete }) => {
+    const [foodRating, setFoodRating] = useState(0);
+    const [riderRating, setRiderRating] = useState(0);
+    const [review, setReview] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [hoverFood, setHoverFood] = useState(0);
+    const [hoverRider, setHoverRider] = useState(0);
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (foodRating === 0) return toast.error("Please rate the food quality");
+        
+        setIsSubmitting(true);
+        try {
+            await reviewService.createReview({
+                orderId,
+                brand,
+                foodRating,
+                riderRating: riderRating || foodRating, // fallback
+                review,
+                type: 'order'
+            });
+            toast.success("Thank you for your feedback!");
+            onComplete();
+        } catch (err) {
+            toast.error("Failed to submit review");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                {/* Food Rating */}
+                <div className="space-y-3">
+                    <p className="text-xs uppercase tracking-widest font-black text-slate-400">Food Quality</p>
+                    <div className="flex justify-center gap-2">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                            <button
+                                key={s}
+                                type="button"
+                                onClick={() => setFoodRating(s)}
+                                onMouseEnter={() => setHoverFood(s)}
+                                onMouseLeave={() => setHoverFood(0)}
+                                className="transform transition-transform hover:scale-125"
+                            >
+                                <Star 
+                                    className={cn("w-8 h-8 transition-colors", (hoverFood || foodRating) >= s ? "text-yellow-400 fill-yellow-400" : "text-slate-200")} 
+                                />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Rider Rating */}
+                <div className="space-y-3">
+                    <p className="text-xs uppercase tracking-widest font-black text-slate-400">Delivery Service</p>
+                    <div className="flex justify-center gap-2">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                            <button
+                                key={s}
+                                type="button"
+                                onClick={() => setRiderRating(s)}
+                                onMouseEnter={() => setHoverRider(s)}
+                                onMouseLeave={() => setHoverRider(0)}
+                                className="transform transition-transform hover:scale-125"
+                            >
+                                <Star 
+                                    className={cn("w-8 h-8 transition-colors", (hoverRider || riderRating) >= s ? "text-yellow-400 fill-yellow-400" : "text-slate-200")} 
+                                />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            <div className="relative pt-4">
+                <textarea 
+                    value={review}
+                    onChange={(e) => setReview(e.target.value)}
+                    placeholder="Share a short note about your experience..."
+                    rows={3}
+                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-5 text-slate-700 focus:outline-none focus:border-slate-200 transition-all resize-none font-medium"
+                />
+            </div>
+
+            <button
+                type="submit"
+                disabled={isSubmitting || foodRating === 0}
+                className="w-full py-4 rounded-2xl text-white font-black text-sm uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl disabled:opacity-50"
+                style={{ background: theme.isLittleH ? '#565A47' : '#10b981' }}
+            >
+                {isSubmitting ? "Sending..." : "Submit My Review"} <Send className="w-5 h-5" />
+            </button>
+        </form>
     );
 };
 

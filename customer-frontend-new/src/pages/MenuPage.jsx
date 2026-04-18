@@ -83,14 +83,9 @@ const MenuPage = () => {
                 brand: brand,
                 limit: 50
             });
-            // Save to localStorage for future instant loading
-            if (data?.success) {
-                localStorage.setItem(`products_cache_${brand}_${activeCategory}`, JSON.stringify(data));
-            }
             return data;
         },
         placeholderData: keepPreviousData,
-        initialData: getStoredProducts,
     });
 
     // Real-time updates

@@ -5,20 +5,16 @@ export const brandMiddleware = (req, res, next) => {
     const { brand } = req.params;
     const allowedBrands = ['littleh', 'teasntrees'];
 
-    if (!brand) {
+    // If brand is missing from URL, try query or headers, otherwise default to teasntrees
+    const activeBrand = (brand || req.query.brand || req.headers['x-brand'] || 'teasntrees').toLowerCase();
+
+    if (!allowedBrands.includes(activeBrand)) {
         return res.status(400).json({
             success: false,
-            message: 'Brand identifier is required in the URL'
+            message: `Invalid brand: ${activeBrand}. Allowed brands are: ${allowedBrands.join(', ')}`
         });
     }
 
-    if (!allowedBrands.includes(brand.toLowerCase())) {
-        return res.status(400).json({
-            success: false,
-            message: `Invalid brand: ${brand}. Allowed brands are: ${allowedBrands.join(', ')}`
-        });
-    }
-
-    req.activeBrand = brand.toLowerCase();
+    req.activeBrand = activeBrand;
     next();
 };

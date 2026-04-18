@@ -18,6 +18,7 @@ import { reviewService } from '../services/reviewService';
 import { auth } from '../config/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useBrand } from '../context/BrandContext';
+import AddressModal from '../components/AddressModal';
 
 const ProfilePage = () => {
     const navigate = useNavigate();
@@ -462,8 +463,6 @@ const ProfilePage = () => {
                 }
             }
 
-            // If parsing failed to get valid components, it might be safer to let user fill it again 
-            // but populating first field is better than nothing.
             setNewAddress(parsed);
         }
 
@@ -1474,340 +1473,224 @@ const ProfilePage = () => {
                                         </AnimatePresence>
 
                                         {/* Address Modal */}
-                                        <AnimatePresence>
-                                            {showAddressModal && (
-                                                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
-                                                    <motion.div
-                                                        initial={{ opacity: 0, scale: 0.95 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        exit={{ opacity: 0, scale: 0.95 }}
-                                                        className={cn("w-full max-w-lg overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
-                                                    >
-                                                        <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FAF1E8] border-[#8B8E7B]/15" : "bg-slate-50 border-slate-100")}>
-                                                            <h3 className="text-xl font-bold text-slate-800">
-                                                                {editingAddressId ? 'Edit Address' : 'Add New Address'}
-                                                            </h3>
-                                                            <div className="flex items-center gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => handleDetectLocation(e, 'addressModal')}
-                                                                    disabled={detectingLocation}
-                                                                    className="px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-bold flex items-center gap-1.5 hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                                                                >
-                                                                    {detectingLocation ? <Loader2 className="w-3 h-3 animate-spin" /> : <MapPin className="w-3 h-3" />}
-                                                                    Detect
-                                                                </button>
-                                                                <button onClick={() => setShowAddressModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-                                                                    <X className="w-5 h-5 text-slate-400" />
-                                                                </button>
-                                                            </div>
-                                                        </div>
+                                        <AddressModal
+                                             isOpen={showAddressModal}
+                                             onClose={() => { setShowAddressModal(false); setEditingAddressId(null); }}
+                                             initialView="map"
+                                             initialData={editingAddressId ? addresses.find(a => a._id === editingAddressId) : null}
+                                             onSaveSuccess={async () => {
+                                                 const data = await userService.getAddresses();
+                                                 setAddresses(data || []);
+                                                 setShowAddressModal(false);
+                                                 setEditingAddressId(null);
+                                             }}
+                                         />
 
-                                                        <form onSubmit={handleSaveAddress} className="p-6 space-y-4">
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div className="space-y-2">
-                                                                    <label className="text-xs font-bold text-slate-500 uppercase">Tag</label>
-                                                                    <select
-                                                                        value={newAddress.tag}
-                                                                        onChange={e => setNewAddress({ ...newAddress, tag: e.target.value })}
-                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                                    >
-                                                                        <option>Home</option>
-                                                                        <option>Work</option>
-                                                                        <option>Other</option>
-                                                                    </select>
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <label className="text-xs font-bold text-slate-500 uppercase">Pincode</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={newAddress.pincode}
-                                                                        onChange={e => setNewAddress({ ...newAddress, pincode: e.target.value })}
-                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                                        placeholder="560001"
-                                                                        required
-                                                                    />
-                                                                </div>
-                                                            </div>
 
-                                                            <div className="space-y-2">
-                                                                <label className="text-xs font-bold text-slate-500 uppercase">Flat / House No</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={newAddress.flatNo}
-                                                                    onChange={e => setNewAddress({ ...newAddress, flatNo: e.target.value })}
-                                                                    className={`w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 ${theme.isLittleH ? 'focus:ring-[#565A47]/50' : 'focus:ring-cafe-emerald/50'}`}
-                                                                    placeholder="A-101, Tea Garden Apts"
-                                                                    required
-                                                                />
-                                                            </div>
 
-                                                            <div className="space-y-2">
-                                                                <label className="text-xs font-bold text-slate-500 uppercase">Street / Colony</label>
-                                                                <input
-                                                                    type="text"
-                                                                    value={newAddress.street}
-                                                                    onChange={e => setNewAddress({ ...newAddress, street: e.target.value })}
-                                                                    className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                                    placeholder="Green St, Indiranagar"
-                                                                    required
-                                                                />
-                                                            </div>
+                        {activeTab === 'settings' && (
+                            <div className={`rounded-3xl p-8 shadow-sm border ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
+                                <h2 className={cn("text-xl font-bold text-slate-800 mb-6", theme.isLittleH && "font-playfair")}>Preferences</h2>
 
-                                                            <div className="grid grid-cols-2 gap-4">
-                                                                <div className="space-y-2">
-                                                                    <label className="text-xs font-bold text-slate-500 uppercase">Area</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={newAddress.area}
-                                                                        onChange={e => setNewAddress({ ...newAddress, area: e.target.value })}
-                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                                        placeholder="Indiranagar"
-                                                                        required
-                                                                    />
-                                                                </div>
-                                                                <div className="space-y-2">
-                                                                    <label className="text-xs font-bold text-slate-500 uppercase">City</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        value={newAddress.city}
-                                                                        onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
-                                                                        className={`w-full px-4 py-3 rounded-xl border-none focus:ring-2 ${theme.isLittleH ? 'bg-[#FDF5EC] focus:ring-[#565A47]/30' : 'bg-slate-50 focus:ring-cafe-emerald/50'}`}
-                                                                        placeholder="Bangalore"
-                                                                        required
-                                                                    />
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="flex items-center gap-3 pt-2">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    id="isDefault"
-                                                                    checked={newAddress.isDefault}
-                                                                    onChange={e => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
-                                                                    className={`w-5 h-5 rounded border-slate-300 ${theme.isLittleH ? 'text-[#565A47] focus:ring-[#565A47]' : 'text-cafe-emerald focus:ring-cafe-emerald'}`}
-                                                                />
-                                                                <label htmlFor="isDefault" className="text-sm font-medium text-slate-700 cursor-pointer">
-                                                                    Set as Default Address
-                                                                </label>
-                                                            </div>
-
-                                                            <button
-                                                                type="submit"
-                                                                disabled={savingAddress}
-                                                                className={`w-full py-4 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233]' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30 rounded-xl'} text-white font-bold shadow-lg transition-all flex items-center justify-center gap-2 mt-4`}
-                                                            >
-                                                                {savingAddress ? 'Saving...' : <>Save Address <Save className="w-5 h-5" /></>}
-                                                            </button>
-                                                        </form>
-                                                    </motion.div>
-                                                </div>
-                                            )}
-                                        </AnimatePresence>
-
-                                        {activeTab === 'settings' && (
-                                            <div className={`rounded-3xl p-8 shadow-sm border ${theme.isLittleH ? 'bg-bakery-light border-bakery-accent/30' : 'bg-white border-slate-100'}`}>
-                                                <h2 className={cn("text-xl font-bold text-slate-800 mb-6", theme.isLittleH && "font-playfair")}>Preferences</h2>
-
-                                                <div className="space-y-6">
-                                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                                                <Mail className="w-5 h-5" />
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="font-bold text-slate-800">Email Notifications</h3>
-                                                                <p className="text-xs text-slate-500">Receive order updates via email</p>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => toggleNotification('email')}
-                                                            className={cn(
-                                                                "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.email ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
-                                                            )}
-                                                        >
-                                                            <div className={cn(
-                                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
-                                                                profileData?.notificationPreferences?.email ? "translate-x-6" : "translate-x-0"
-                                                            )} />
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                                                                <Smartphone className="w-5 h-5" />
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="font-bold text-slate-800">SMS Notifications</h3>
-                                                                <p className="text-xs text-slate-500">Receive delivery updates via SMS</p>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => toggleNotification('sms')}
-                                                            className={cn(
-                                                                "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.sms ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
-                                                            )}
-                                                        >
-                                                            <div className={cn(
-                                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
-                                                                profileData?.notificationPreferences?.sms ? "translate-x-6" : "translate-x-0"
-                                                            )} />
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-                                                                <Bell className="w-5 h-5" />
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="font-bold text-slate-800">Push Notifications</h3>
-                                                                <p className="text-xs text-slate-500">Receive app alerts & delivery updates</p>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => toggleNotification('push')}
-                                                            className={cn(
-                                                                "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.push ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
-                                                            )}
-                                                        >
-                                                            <div className={cn(
-                                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
-                                                                profileData?.notificationPreferences?.push ? "translate-x-6" : "translate-x-0"
-                                                            )} />
-                                                        </button>
-                                                    </div>
-
-                                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
-                                                                <Percent className="w-5 h-5" />
-                                                            </div>
-                                                            <div>
-                                                                <h3 className="font-bold text-slate-800">Offers & Promotions</h3>
-                                                                <p className="text-xs text-slate-500">Get notified about sales & coupons</p>
-                                                            </div>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => toggleNotification('offers')}
-                                                            className={cn(
-                                                                "relative w-12 h-6 rounded-full transition-colors",
-                                                                profileData?.notificationPreferences?.offers ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
-                                                            )}
-                                                        >
-                                                            <div className={cn(
-                                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
-                                                                profileData?.notificationPreferences?.offers ? "translate-x-6" : "translate-x-0"
-                                                            )} />
-                                                        </button>
-                                                    </div>
-                                                </div>
+                                <div className="space-y-6">
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                                <Mail className="w-5 h-5" />
                                             </div>
-                                        )}
-                                    </>
-                                )}
-                            </motion.div>
-                        </AnimatePresence>
-                    </div>
-                </div>
-            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800">Email Notifications</h3>
+                                                <p className="text-xs text-slate-500">Receive order updates via email</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => toggleNotification('email')}
+                                            className={cn(
+                                                "relative w-12 h-6 rounded-full transition-colors",
+                                                profileData?.notificationPreferences?.email ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
+                                                profileData?.notificationPreferences?.email ? "translate-x-6" : "translate-x-0"
+                                            )} />
+                                        </button>
+                                    </div>
 
-            {/* Review Modal */}
-            <AnimatePresence>
-                {showReviewModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className={cn("w-full max-w-lg overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
-                        >
-                            <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FDF5EC] border-[#8B8E7B]/20" : "bg-slate-50 border-slate-100")}>
-                                <h3 className="text-xl font-bold text-slate-800">Rate your experience</h3>
-                                <button
-                                    onClick={() => setShowReviewModal(false)}
-                                    className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"
-                                >
-                                    <X className="w-5 h-5 text-slate-500" />
-                                </button>
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                                                <Smartphone className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800">SMS Notifications</h3>
+                                                <p className="text-xs text-slate-500">Receive delivery updates via SMS</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => toggleNotification('sms')}
+                                            className={cn(
+                                                "relative w-12 h-6 rounded-full transition-colors",
+                                                profileData?.notificationPreferences?.sms ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
+                                                profileData?.notificationPreferences?.sms ? "translate-x-6" : "translate-x-0"
+                                            )} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                                <Bell className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800">Push Notifications</h3>
+                                                <p className="text-xs text-slate-500">Receive app alerts & delivery updates</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => toggleNotification('push')}
+                                            className={cn(
+                                                "relative w-12 h-6 rounded-full transition-colors",
+                                                profileData?.notificationPreferences?.push ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
+                                                profileData?.notificationPreferences?.push ? "translate-x-6" : "translate-x-0"
+                                            )} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600">
+                                                <Percent className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800">Offers & Promotions</h3>
+                                                <p className="text-xs text-slate-500">Get notified about sales & coupons</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => toggleNotification('offers')}
+                                            className={cn(
+                                                "relative w-12 h-6 rounded-full transition-colors",
+                                                profileData?.notificationPreferences?.offers ? (theme.isLittleH ? "bg-[#565A47]" : "bg-cafe-emerald") : "bg-slate-300"
+                                            )}
+                                        >
+                                            <div className={cn(
+                                                "absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform",
+                                                profileData?.notificationPreferences?.offers ? "translate-x-6" : "translate-x-0"
+                                            )} />
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-
-                            <form onSubmit={handleSubmitReview} className="p-6 space-y-6">
-                                {/* Food Rating */}
-                                <div className="flex flex-col items-center gap-4">
-                                    <p className="text-slate-500 text-sm font-bold">Food Quality</p>
-                                    <div className="flex gap-2">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <button
-                                                key={`food-${star}`}
-                                                type="button"
-                                                onClick={() => setReviewForm({ ...reviewForm, foodRating: star })}
-                                                className="focus:outline-none transition-transform hover:scale-110"
-                                            >
-                                                <Star
-                                                    className={cn(
-                                                        "w-8 h-8 transition-colors",
-                                                        star <= reviewForm.foodRating
-                                                            ? "fill-amber-400 text-amber-400"
-                                                            : "text-slate-200"
-                                                    )}
-                                                />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Rider Rating */}
-                                <div className="flex flex-col items-center gap-4 border-t border-slate-100 pt-6">
-                                    <p className="text-slate-500 text-sm font-bold">Delivery Experience</p>
-                                    <div className="flex gap-2">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <button
-                                                key={`rider-${star}`}
-                                                type="button"
-                                                onClick={() => setReviewForm({ ...reviewForm, riderRating: star })}
-                                                className="focus:outline-none transition-transform hover:scale-110"
-                                            >
-                                                <Star
-                                                    className={cn(
-                                                        "w-8 h-8 transition-colors",
-                                                        star <= reviewForm.riderRating
-                                                            ? (theme.isLittleH ? "fill-[#565A47] text-[#565A47]" : "fill-emerald-400 text-emerald-400")
-                                                            : "text-slate-200"
-                                                    )}
-                                                />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="space-y-2 pt-2">
-                                    <label className="text-sm font-bold text-slate-700">Comments (Optional)</label>
-                                    <textarea
-                                        value={reviewForm.comment}
-                                        onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                                        placeholder="Tell us what you liked..."
-                                        className={`w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 ${theme.isLittleH ? 'focus:ring-[#565A47]/50' : 'focus:ring-cafe-emerald/50'} min-h-[100px] resize-none`}
-                                    />
-                                </div>
-
-                                <button
-                                    disabled={submittingReview}
-                                    type="submit"
-                                    className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233] shadow-[#565A47]/30' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white rounded-xl font-bold shadow-lg transition-all`}
-                                >
-                                    {submittingReview ? 'Submitting...' : 'Submit Review'}
-                                </button>
-                            </form>
-                        </motion.div>
-                    </div>
-                )}
+                        )}
+                    </>
+                                )}
+                </motion.div>
             </AnimatePresence>
         </div>
+                </div >
+            </div >
+
+    {/* Review Modal */ }
+    < AnimatePresence >
+    { showReviewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 transition-opacity">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className={cn("w-full max-w-lg overflow-hidden shadow-2xl", theme.isLittleH ? "bg-white" : "bg-white rounded-3xl")}
+            >
+                <div className={cn("p-6 border-b flex items-center justify-between", theme.isLittleH ? "bg-[#FDF5EC] border-[#8B8E7B]/20" : "bg-slate-50 border-slate-100")}>
+                    <h3 className="text-xl font-bold text-slate-800">Rate your experience</h3>
+                    <button
+                        onClick={() => setShowReviewModal(false)}
+                        className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors"
+                    >
+                        <X className="w-5 h-5 text-slate-500" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmitReview} className="p-6 space-y-6">
+                    {/* Food Rating */}
+                    <div className="flex flex-col items-center gap-4">
+                        <p className="text-slate-500 text-sm font-bold">Food Quality</p>
+                        <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                    key={`food-${star}`}
+                                    type="button"
+                                    onClick={() => setReviewForm({ ...reviewForm, foodRating: star })}
+                                    className="focus:outline-none transition-transform hover:scale-110"
+                                >
+                                    <Star
+                                        className={cn(
+                                            "w-8 h-8 transition-colors",
+                                            star <= reviewForm.foodRating
+                                                ? "fill-amber-400 text-amber-400"
+                                                : "text-slate-200"
+                                        )}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Rider Rating */}
+                    <div className="flex flex-col items-center gap-4 border-t border-slate-100 pt-6">
+                        <p className="text-slate-500 text-sm font-bold">Delivery Experience</p>
+                        <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                    key={`rider-${star}`}
+                                    type="button"
+                                    onClick={() => setReviewForm({ ...reviewForm, riderRating: star })}
+                                    className="focus:outline-none transition-transform hover:scale-110"
+                                >
+                                    <Star
+                                        className={cn(
+                                            "w-8 h-8 transition-colors",
+                                            star <= reviewForm.riderRating
+                                                ? (theme.isLittleH ? "fill-[#565A47] text-[#565A47]" : "fill-emerald-400 text-emerald-400")
+                                                : "text-slate-200"
+                                        )}
+                                    />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                        <label className="text-sm font-bold text-slate-700">Comments (Optional)</label>
+                        <textarea
+                            value={reviewForm.comment}
+                            onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
+                            placeholder="Tell us what you liked..."
+                            className={`w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 ${theme.isLittleH ? 'focus:ring-[#565A47]/50' : 'focus:ring-cafe-emerald/50'} min-h-[100px] resize-none`}
+                        />
+                    </div>
+
+                    <button
+                        disabled={submittingReview}
+                        type="submit"
+                        className={`w-full py-3.5 ${theme.isLittleH ? 'bg-[#565A47] hover:bg-[#3f4233] shadow-[#565A47]/30' : 'bg-cafe-emerald hover:bg-cafe-teal shadow-cafe-emerald/30'} text-white rounded-xl font-bold shadow-lg transition-all`}
+                    >
+                        {submittingReview ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                </form>
+            </motion.div>
+        </div>
+    )}
+            </AnimatePresence >
+        </div >
     );
 };
 

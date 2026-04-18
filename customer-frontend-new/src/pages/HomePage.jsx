@@ -1,15 +1,61 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, Star, Clock, Coffee, Truck, Heart, Sparkles, ChefHat, Cake } from 'lucide-react';
+import { ArrowRight, Star, Clock, Coffee, Truck, Heart, Sparkles, ChefHat, Cake, Copy, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useBrand } from '../context/BrandContext';
+import { useAuth } from '../context/AuthContext';
+import { orderService } from '../services/orderService';
+import { userService } from '../services/userService';
 import HeroImage from '../assets/TTNoName.png';
 import LittleHHero from '../assets/littleh-hero.png';
+import CouponTicker from '../components/CouponTicker';
+import RatingNudge from '../components/RatingNudge';
+import PromotionBanners from '../components/PromotionBanners';
+
+// Inline copy button used by welcome nudge sections
+const CopyButton = ({ code, accentColor, isLittleH }) => {
+    const [copied, setCopied] = React.useState(false);
+    const handleCopy = () => {
+        navigator.clipboard.writeText(code).catch(() => {});
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+    return (
+        <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={handleCopy}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-white text-xs font-black transition-all shadow-lg ${isLittleH ? 'font-playfair' : ''}`}
+            style={{ background: accentColor }}
+        >
+            {copied ? (
+                <><Check className="w-4 h-4" /> Copied!</>
+            ) : (
+                <><Copy className="w-4 h-4" /> Copy Code</>
+            )}
+        </motion.button>
+    );
+};
 
 const HomePage = () => {
     const navigate = useNavigate();
     const { brand, theme } = useBrand();
+    const { isAuthenticated } = useAuth();
+    const [showNudge, setShowNudge] = useState(true);
+    const [statusData, setStatusData] = useState(null);
+
+    useEffect(() => {
+        const fetchStatus = async () => {
+            try {
+                const data = await userService.getStatus(brand);
+                setStatusData(data);
+                setShowNudge(data.showWelcomeBanner);
+            } catch (err) {
+                console.error("Failed to fetch user status", err);
+            }
+        };
+        fetchStatus();
+    }, [brand, isAuthenticated]);
 
     if (theme.isLittleH) {
         return (
@@ -119,6 +165,70 @@ const HomePage = () => {
                         </div>
                     </div>
                 </section>
+
+                {/* WELCOME NUDGE — Swiggy style */}
+                {showNudge && (
+                    <section className="py-8 px-4">
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5 }}
+                            className="max-w-4xl mx-auto rounded-2xl overflow-hidden border border-slate-200 relative group"
+                        >
+                            {/* Bold colored top bar */}
+                            <div className="relative overflow-hidden px-8 pt-8 pb-6" style={{ background: 'linear-gradient(135deg, #565A47 0%, #3f4233 60%, #8B8E7B 100%)' }}>
+                                <motion.div 
+                                    animate={{ x: [-500, 500] }}
+                                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+                                />
+                                <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5" />
+                                <div className="absolute -bottom-6 left-10 w-28 h-28 rounded-full bg-white/5" />
+                                <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full mb-4">
+                                    <span className="text-white font-black text-[10px] uppercase tracking-widest">🎉 New Customer Offer</span>
+                                </div>
+                                <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                                    <div>
+                                        <div className="flex items-end gap-2">
+                                            <span className="text-7xl font-black text-white leading-none tracking-tighter drop-shadow-lg">₹100</span>
+                                            <span className="text-2xl font-bold text-white/70 mb-2">OFF</span>
+                                        </div>
+                                        <p className="text-white/70 text-sm font-medium mt-1">On your very first order above ₹200</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* White bottom section */}
+                            <div className="bg-white px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div>
+                                    <p className={`text-[#565A47] text-sm font-bold ${brand === 'littleh' ? 'font-playfair' : ''}`}>Welcome to the LittleH family ✨</p>
+                                    <p className="text-[#8B8E7B] text-[10px] uppercase tracking-wider font-bold">First order exclusive</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <div className="px-5 py-2.5 rounded-xl" style={{ background: '#FAF1E8', border: '2px dashed #565A4740' }}>
+                                        <span className={`font-black text-lg tracking-widest text-[#565A47] ${brand === 'littleh' ? 'font-playfair' : ''}`}>HELLO100</span>
+                                    </div>
+                                    <CopyButton code="HELLO100" accentColor="#565A47" isLittleH={true} />
+                                </div>
+                            </div>
+                        </motion.div>
+                    </section>
+                )}
+
+                {/* PROMOTION BANNERS */}
+                <PromotionBanners brand={brand} theme={theme} />
+
+                {/* COUPON TICKER */}
+                <CouponTicker brand={brand} theme={theme} showFirstOrder={showNudge} />
+
+                {/* RATING NUDGE — Smart discovery */}
+                {statusData?.lastOrderRatingPending && (
+                    <RatingNudge 
+                        orderId={statusData.lastOrderRatingPending} 
+                        brand={brand}
+                        theme={theme}
+                    />
+                )}
             </div>
         );
     }
@@ -243,6 +353,61 @@ const HomePage = () => {
                 </div>
             </section>
 
+            {/* PROMOTION BANNERS */}
+            <PromotionBanners brand={brand} theme={theme} />
+
+            {/* WELCOME NUDGE — Swiggy style */}
+            {showNudge && (
+                <section className="py-8 px-4">
+                    <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="max-w-5xl mx-auto rounded-2xl overflow-hidden border border-slate-200 relative group"
+                    >
+                        {/* Bold colored top */}
+                        <div className="relative overflow-hidden px-8 pt-8 pb-6" style={{ background: 'linear-gradient(135deg, #0f766e 0%, #059669 60%, #10b981 100%)' }}>
+                            <motion.div 
+                                animate={{ x: [-500, 500] }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+                            />
+                            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5" />
+                            <div className="absolute -bottom-6 left-10 w-28 h-28 rounded-full bg-white/5" />
+                            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full mb-4">
+                                <span className="text-white font-black text-[10px] uppercase tracking-widest">🎉 New Customer Offer</span>
+                            </div>
+                            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                                <div>
+                                    <div className="flex items-end gap-2">
+                                        <span className="text-7xl font-black text-white leading-none tracking-tighter drop-shadow-lg">₹100</span>
+                                        <span className="text-2xl font-bold text-white/70 mb-2">OFF</span>
+                                    </div>
+                                    <p className="text-white/70 text-sm font-medium mt-1">On your very first order above ₹200</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* White bottom */}
+                        <div className="bg-white px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                            <div>
+                                <p className="text-emerald-900 text-sm font-bold">Welcome to Teas N Trees ✨</p>
+                                <p className="text-emerald-600/60 text-[10px] uppercase tracking-wider font-bold">New customer special</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="px-5 py-2.5 rounded-xl" style={{ background: '#ecfdf5', border: '2px dashed #05966940' }}>
+                                    <span className="font-black text-lg tracking-widest text-emerald-700">HELLO100</span>
+                                </div>
+                                <CopyButton code="HELLO100" accentColor="#059669" isLittleH={false} />
+                            </div>
+                        </div>
+                    </motion.div>
+                </section>
+            )}
+
+            {/* COUPON TICKER */}
+            <CouponTicker brand={brand} theme={theme} showFirstOrder={showNudge} />
+
             {/* WHY CHOOSE US SECTION */}
             <section className="py-20 bg-white relative overflow-hidden">
                 <div className="container mx-auto px-4 lg:px-8 relative z-10">
@@ -324,6 +489,15 @@ const HomePage = () => {
                     </div>
                 </div>
             </section>
+
+            {/* RATING NUDGE — Smart discovery */}
+            {statusData?.lastOrderRatingPending && (
+                <RatingNudge 
+                    orderId={statusData.lastOrderRatingPending} 
+                    brand={brand}
+                    theme={theme}
+                />
+            )}
         </div>
     )
 }

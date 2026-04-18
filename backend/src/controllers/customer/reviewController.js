@@ -32,10 +32,17 @@ const updateRiderRating = async (riderId, orderId, riderRating) => {
 const updateProductRating = async (productId) => {
     if (!productId) return;
     try {
+        // Find all orders that contain this product
+        const orders = await Order.find({ "items.product": productId }, '_id');
+        const orderIds = orders.map(o => o._id);
+
         const stats = await Review.aggregate([
             {
                 $match: {
-                    productId: new mongoose.Types.ObjectId(productId),
+                    $or: [
+                        { productId: new mongoose.Types.ObjectId(productId) },
+                        { orderId: { $in: orderIds }, type: 'order' }
+                    ],
                     $or: [
                         { productRating: { $exists: true, $ne: null } },
                         { foodRating: { $exists: true, $ne: null } }
@@ -120,25 +127,31 @@ export const createReview = async (req, res) => {
         }
 
         // --- EXISTING ORDER REVIEW LOGIC ---
+        logger.info('Review submission attempt', { orderId, customerId, brand: req.activeBrand });
+
         const query = {
             _id: orderId,
             customerId
         };
-        if (req.activeBrand) query.brand = req.activeBrand;
+        // RELAXED BRAND CHECK: Sometimes orders might be stored with different brand strings
+        // or the request might not have the brand param correctly.
+        // We'll check the order first, then verify the brand if needed.
 
         const order = await Order.findOne(query);
 
         if (!order) {
+            logger.warn('Order not found for review', { orderId, customerId });
             return res.status(404).json({
                 success: false,
-                message: 'Order not found'
+                message: 'Order not found. Please ensure you are logged in and this is your order.'
             });
         }
 
-        if (order.status !== 'delivered') {
+        if (order.status !== 'delivered' && order.status !== 'completed') {
+            logger.warn('Order not delivered for review', { orderId, status: order.status });
             return res.status(400).json({
                 success: false,
-                message: 'Order is not delivered yet'
+                message: `Order status is ${order.status}. You can only rate delivered orders.`
             });
         }
 
@@ -162,7 +175,13 @@ export const createReview = async (req, res) => {
             });
 
             await updateRiderRating(existingReview.riderId || order.riderId, orderId, riderRating);
-            await updateProductRating(existingReview.productId || (order.items && order.items.length > 0 ? order.items[0].product : null));
+            
+            // Update ratings for ALL products in this order
+            if (order.items && order.items.length > 0) {
+                for (const item of order.items) {
+                    if (item.product) await updateProductRating(item.product);
+                }
+            }
 
             return res.status(200).json({
                 success: true,
@@ -192,8 +211,13 @@ export const createReview = async (req, res) => {
         });
 
         await updateRiderRating(newReview.riderId, orderId, riderRating);
-        await updateProductRating(newReview.productId);
-
+        
+        // Update ratings for ALL products in this order
+        if (order.items && order.items.length > 0) {
+            for (const item of order.items) {
+                if (item.product) await updateProductRating(item.product);
+            }
+        }
         const io = req.app.get('io');
         if (io) {
             const socketData = {

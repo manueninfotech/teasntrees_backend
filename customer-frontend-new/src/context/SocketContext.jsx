@@ -12,9 +12,6 @@ export const SocketProvider = ({ children }) => {
     const [isConnected, setIsConnected] = useState(false);
 
     useEffect(() => {
-        // Socket.io should connect to the base origin, not the /api namespace
-        const BACKEND_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/api$/, '');
-
         let newSocket;
 
         if (isAuthenticated && token) {
@@ -23,9 +20,11 @@ export const SocketProvider = ({ children }) => {
             const activeBrand = pathSegments[1] || 'teasntrees';
 
             // Initialize Socket
-            newSocket = io(BACKEND_URL, {
+            // Force 'polling' to allow traffic through the Vercel proxy
+            // Connect to '/' (current origin) to use the vercel.json rewrites
+            newSocket = io('/', {
                 auth: { token, brand: activeBrand },
-                transports: ['websocket'], // force websocket for performance
+                transports: ['websocket', 'polling'],
                 reconnection: true,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,

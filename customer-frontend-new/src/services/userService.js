@@ -72,5 +72,17 @@ export const userService = {
     removeFromWishlist: async (productId) => {
         const response = await api.delete(`/customer/wishlist/remove/${productId}`);
         return response.data.data;
+    },
+
+    // FCM
+    updateFCMToken: async (fcmToken) => {
+        const response = await api.put('/customer/profile/fcm-token', { fcmToken });
+        return response.data;
+    },
+
+    // Unified Status & Discovery
+    getStatus: async (brand) => {
+        const response = await api.get('/customer/status', { params: { brand } });
+        return response.data.data;
     }
 };

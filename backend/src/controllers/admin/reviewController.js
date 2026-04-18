@@ -1,5 +1,7 @@
 import Review from '../../models/Review.js';
 import Delivery from '../../models/Delivery.js';
+import Product from '../../models/Product.js';
+import Order from '../../models/Order.js';
 import logger from '../../config/logger.js';
 import mongoose from 'mongoose';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
@@ -426,6 +428,68 @@ export const getReviewStats = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch review statistics'
+        });
+    }
+};
+
+export const syncAllRatings = async (req, res) => {
+    try {
+        const products = await Product.find({}, '_id');
+        let count = 0;
+
+        for (const product of products) {
+            const productId = product._id;
+            
+            // Find all orders that contain this product
+            const orders = await Order.find({ "items.product": productId }, '_id');
+            const orderIds = orders.map(o => o._id);
+
+            const stats = await Review.aggregate([
+                {
+                    $match: {
+                        $or: [
+                            { productId: new mongoose.Types.ObjectId(productId), type: 'product' },
+                            { orderId: { $in: orderIds }, type: 'order', orderId: { $ne: null } }
+                        ],
+                        $or: [
+                            { productRating: { $exists: true, $ne: null } },
+                            { foodRating: { $exists: true, $ne: null } }
+                        ]
+                    }
+                },
+                {
+                    $project: {
+                        rating: { $ifNull: ['$productRating', '$foodRating'] }
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        avg: { $avg: '$rating' },
+                        count: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            const avg = stats.length > 0 ? Math.round(stats[0].avg * 10) / 10 : 0;
+            const ratingCount = stats.length > 0 ? stats[0].count : 0;
+
+            await Product.findByIdAndUpdate(productId, {
+                averageRating: avg,
+                totalRatings: ratingCount
+            });
+            count++;
+        }
+
+        res.json({
+            success: true,
+            message: `Successfully synchronized ratings for ${count} products`
+        });
+    } catch (error) {
+        logger.error('Error syncing all ratings:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to synchronize ratings'
         });
     }
 };
