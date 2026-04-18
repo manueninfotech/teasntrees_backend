@@ -57,6 +57,10 @@ const cartSchema = new mongoose.Schema({
     subtotal: {
         type: Number,
         default: 0
+    },
+    lastAbandonedNotificationSentAt: {
+        type: Date,
+        default: null
     }
 }, {
     timestamps: true
@@ -69,7 +73,6 @@ cartSchema.pre('save', async function () {
     }, 0);
 });
 
-// Index for faster queries
-cartSchema.index({ userId: 1 });
+// Indexing is handled by unique: true in the field definition
 
 export default mongoose.model('Cart', cartSchema);

@@ -13,6 +13,7 @@ import { geocodingService } from '../../services/geocodingService.js';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
 import { isCakeCategoryName } from '../../utils/cakeUtils.js';
+import Coupon from '../../models/Coupon.js';
 
 // Helper function for background geocoding
 async function processGeocoding(orderId, address) {
@@ -403,7 +404,7 @@ export const clearCart = async (req, res) => {
 export const checkoutCart = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { deliveryAddress, deliveryInstructions, paymentMethod = 'COD' } = req.body;
+        const { deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode } = req.body;
 
         // Get cart
         const cart = await Cart.findOne({ userId }).populate('items.product');
@@ -534,6 +535,60 @@ export const checkoutCart = async (req, res) => {
             }
         }
 
+        // --- COUPON: Validate & apply discount to grandTotal ---
+        let couponDiscount = 0;
+        let appliedCoupon = null;
+
+        if (couponCode) {
+            const coupon = await Coupon.findOne({
+                code: couponCode.trim().toUpperCase(),
+                isActive: true
+            });
+
+            if (coupon && new Date() <= new Date(coupon.expiryDate)) {
+                if (grandTotalAllOrders >= coupon.minOrderValue) {
+                    const userEntry = coupon.userUsage.find(u => u.userId.toString() === userId.toString());
+                    const userCount = userEntry ? userEntry.count : 0;
+                    const withinUserLimit = coupon.perUserLimit === null || userCount < coupon.perUserLimit;
+                    const withinGlobalLimit = coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit;
+
+                    let firstOrderOk = true;
+                    if (coupon.firstOrderOnly) {
+                        const prevOrders = await Order.countDocuments({
+                            customerId: userId,
+                            status: { $nin: ['cancelled'] },
+                            _id: { $nin: createdOrders.map(o => o._id) }
+                        });
+                        firstOrderOk = prevOrders === 0;
+                    }
+
+                    if (withinUserLimit && withinGlobalLimit && firstOrderOk) {
+                        if (coupon.discountType === 'flat') {
+                            couponDiscount = Math.min(coupon.discountAmount, grandTotalAllOrders);
+                        } else {
+                            couponDiscount = (grandTotalAllOrders * coupon.discountAmount) / 100;
+                            if (coupon.maxDiscount !== null) {
+                                couponDiscount = Math.min(couponDiscount, coupon.maxDiscount);
+                            }
+                        }
+                        couponDiscount = Math.round(couponDiscount * 100) / 100;
+                        grandTotalAllOrders = Math.max(0, grandTotalAllOrders - couponDiscount);
+                        appliedCoupon = coupon.code;
+
+                        // Track coupon usage
+                        coupon.usedCount += 1;
+                        if (userEntry) {
+                            userEntry.count += 1;
+                        } else {
+                            coupon.userUsage.push({ userId, count: 1 });
+                        }
+                        await coupon.save();
+                        logger.info(`Coupon ${coupon.code} applied`, { userId, discount: couponDiscount });
+                    }
+                }
+            }
+        }
+
         // Clear cart after successful orders
         cart.items = [];
         await cart.save();
@@ -574,10 +629,12 @@ export const checkoutCart = async (req, res) => {
             message: 'Order(s) placed successfully',
             data: {
                 orderNumber: createdOrders[0].orderNumber,
-                orderId: createdOrders[0]._id, // legacy frontend support
-                orderIds: createdOrders.map(o => o._id), // new multi-brand support
+                orderId: createdOrders[0]._id,
+                orderIds: createdOrders.map(o => o._id),
                 orders: createdOrders,
                 total: grandTotalAllOrders,
+                couponDiscount,
+                appliedCoupon,
                 status: 'pending'
             }
         });
