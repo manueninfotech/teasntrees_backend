@@ -8,11 +8,12 @@ export const cartService = {
     },
 
     // Add item
-    addToCart: async (productId, quantity = 1, customization = '') => {
+    addToCart: async (productId, quantity = 1, customization = '', selectedVariants = []) => {
         const response = await api.post('/customer/cart/add', {
             productId,
             quantity,
-            customization
+            customization,
+            selectedVariants
         });
         return response.data;
     },

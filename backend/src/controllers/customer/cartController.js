@@ -125,7 +125,7 @@ export const addToCart = async (req, res) => {
     try {
 
         const userId = req.user.userId;
-        const { productId, quantity = 1, customization = '' } = req.body;
+        const { productId, quantity = 1, customization = '', selectedVariants = [] } = req.body;
 
         // Get product
         const product = await Product.findById(productId).lean();
@@ -208,13 +208,20 @@ export const addToCart = async (req, res) => {
             }
         }
 
+        // Add variants/addons price
+        if (selectedVariants && Array.isArray(selectedVariants)) {
+            const variantsPrice = selectedVariants.reduce((sum, v) => sum + (v.price || 0), 0);
+            itemPrice += variantsPrice;
+        }
+
         // Check existing item
         const existingItemIndex = cart.items.findIndex(item =>
             item.product.toString() === productId &&
             item.customization === itemCustomizationLabel &&
             (item.weight || null) === (itemWeight || null) &&
             Boolean(item.isCustomized) === Boolean(itemIsCustomized) &&
-            Boolean(item.isEggless) === Boolean(itemIsEggless)
+            Boolean(item.isEggless) === Boolean(itemIsEggless) &&
+            JSON.stringify(item.selectedVariants || []) === JSON.stringify(selectedVariants || [])
         );
 
         if (existingItemIndex > -1) {
@@ -235,6 +242,7 @@ export const addToCart = async (req, res) => {
                 isCustomized: itemIsCustomized,
                 isEggless: itemIsEggless,
                 customizationDetails: itemCustomizationDetails,
+                selectedVariants: selectedVariants,
                 brand: product.brand || "teasntrees"
             });
 
@@ -449,7 +457,8 @@ export const checkoutCart = async (req, res) => {
                     isCustomized: Boolean(item.isCustomized),
                     isEggless: Boolean(item.isEggless),
                     customization: item.customization,
-                    customizationDetails: item.customizationDetails
+                    customizationDetails: item.customizationDetails,
+                    selectedVariants: item.selectedVariants || []
                 });
                 brandsGrouped[brand].subtotal += (item.price * item.quantity);
             }

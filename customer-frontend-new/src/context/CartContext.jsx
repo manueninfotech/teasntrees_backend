@@ -65,7 +65,8 @@ export const CartProvider = ({ children }) => {
         description: serverItem.product?.description,
         isAvailable: serverItem.product?.isAvailable,
         brand: serverItem.product?.brand || 'teasntrees',
-        category: serverItem.product?.category?.name || 'Artisan Pastry'
+        category: serverItem.product?.category?.name || 'Artisan Pastry',
+        selectedVariants: serverItem.selectedVariants || []
     });
 
     // Sync with Server on Auth change
@@ -118,7 +119,10 @@ export const CartProvider = ({ children }) => {
         const isCakeOption = selectedOption?.type === 'cake';
         const sizeLabel = isCakeOption
             ? `${selectedOption.weight}kg${selectedOption.isCustomized ? ' | Customized' : ''}${selectedOption.isEggless ? ' | Eggless' : ''}`
-            : (selectedOption ? selectedOption.size : '');
+            : (selectedOption ? (selectedOption.size || '') : '');
+
+        const addonsPrice = selectedOption?.selectedVariants?.reduce((sum, v) => sum + (v.price || 0), 0) || 0;
+
         const price = isCakeOption
             ? (() => {
                 const perKg = selectedOption.isCustomized
@@ -127,7 +131,10 @@ export const CartProvider = ({ children }) => {
                 const eggless = selectedOption.isEggless ? (product.cakePricing?.egglessExtraCharge ?? 100) : 0;
                 return perKg * selectedOption.weight + eggless;
             })()
-            : (selectedOption ? selectedOption.price : (product.displayPrice || product.price));
+            : (selectedOption ? (selectedOption.price || product.displayPrice || product.price || 0) : (product.displayPrice || product.price || 0));
+
+        const finalItemPrice = price + addonsPrice;
+
         const customizationPayload = isCakeOption
             ? {
                 weight: selectedOption.weight,
@@ -135,7 +142,10 @@ export const CartProvider = ({ children }) => {
                 isEggless: selectedOption.isEggless,
                 customizationDetails: selectedOption.customizationDetails || {}
             }
-            : sizeLabel;
+            : {
+                customization: sizeLabel,
+                selectedVariants: selectedOption?.selectedVariants || []
+            };
 
         // Optimistic Update
         const newItem = {
@@ -143,9 +153,10 @@ export const CartProvider = ({ children }) => {
             id: product._id,
             name: product.name,
             image: product.image,
-            price: price,
+            price: finalItemPrice,
             size: sizeLabel,
             customizationPayload,
+            selectedVariants: selectedOption?.selectedVariants || [],
             quantity: 1,
             description: product.description,
             isAvailable: true,
@@ -155,7 +166,10 @@ export const CartProvider = ({ children }) => {
 
         if (isAuthenticated) {
             try {
-                const response = await cartService.addToCart(product._id, 1, customizationPayload);
+                const customizationStr = isCakeOption ? '' : sizeLabel;
+                const variants = isCakeOption ? [] : (selectedOption?.selectedVariants || []);
+
+                const response = await cartService.addToCart(product._id, 1, customizationStr, variants);
                 if (response.success && response.data) {
                     setCartItems(response.data.items.map(mapServerItemToUI));
                     setIsCartOpen(true);

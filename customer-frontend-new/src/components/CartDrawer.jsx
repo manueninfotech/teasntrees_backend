@@ -144,6 +144,15 @@ const CartDrawer = () => {
                                                                             {item.size}
                                                                         </div>
                                                                     )}
+                                                                    {item.selectedVariants?.length > 0 && (
+                                                                        <div className="mt-1 space-y-0.5">
+                                                                            {item.selectedVariants.map((v, i) => (
+                                                                                <div key={i} className="text-[9px] text-emerald-600 font-medium">
+                                                                                    + {v.name} (₹{v.price})
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
                                                                 </div>
 
                                                                 <div className="flex items-center justify-between mt-2">
@@ -299,6 +308,15 @@ const CartDrawer = () => {
                                                                 {item.size && (
                                                                     <div className="text-xs text-slate-500 font-medium bg-slate-100 w-fit px-1.5 py-0.5 rounded mt-1">
                                                                         {item.size}
+                                                                    </div>
+                                                                )}
+                                                                {item.selectedVariants?.length > 0 && (
+                                                                    <div className="mt-1 space-y-0.5">
+                                                                        {item.selectedVariants.map((v, i) => (
+                                                                            <div key={i} className="text-[10px] text-emerald-600 font-bold leading-tight">
+                                                                                + {v.name} (₹{v.price})
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
                                                                 )}
                                                             </div>

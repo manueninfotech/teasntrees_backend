@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Trash2 } from 'lucide-react';
 import api from '../utils/api';
 
 const isCakeCategoryName = (name = '') => {
@@ -26,7 +26,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess, bran
         isSeasonal: false,
         availableMonths: [],
         tags: '',
-        sizeOptions: []
+        sizeOptions: [],
+        variants: []
     });
     const [imageFile, setImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
@@ -58,7 +59,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess, bran
                 isSeasonal: product.isSeasonal ?? false,
                 availableMonths: product.availableMonths || [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                 tags: product.tags?.join(', ') || '',
-                sizeOptions: product.sizeOptions || []
+                sizeOptions: product.sizeOptions || [],
+                variants: product.variants || []
             });
             if (product.image) setImagePreview(product.image);
         } else {
@@ -79,7 +81,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess, bran
                 isSeasonal: false,
                 availableMonths: [],
                 tags: '',
-                sizeOptions: []
+                sizeOptions: [],
+                variants: []
             });
             setImagePreview('');
             setImageFile(null);
@@ -182,7 +185,8 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess, bran
                     }
                     : undefined,
                 tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-                sizeOptions: formData.sizeOptions
+                sizeOptions: formData.sizeOptions,
+                variants: formData.variants
             };
 
             if (product) {
@@ -309,6 +313,71 @@ export default function ProductModal({ isOpen, onClose, product, onSuccess, bran
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Variants / Add-ons Section */}
+                        {!isLittlehCakeCategory && (
+                            <div className="col-span-2 space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Product Add-ons (Variants)</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData(prev => ({ ...prev, variants: [...prev.variants, { name: '', price: '' }] }))}
+                                        className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-600 hover:text-white transition-all"
+                                    >
+                                        + Add Add-on
+                                    </button>
+                                </div>
+
+                                {formData.variants.length > 0 ? (
+                                    <div className="space-y-4 bg-gray-50/50 p-6 rounded-[2rem] border border-gray-100">
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Add-ons Configuration</p>
+                                        {formData.variants.map((v, index) => (
+                                            <div key={index} className="grid grid-cols-12 gap-3 items-center">
+                                                <div className="col-span-6">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="NAME (E.G. HONEY)"
+                                                        value={v.name}
+                                                        onChange={(e) => {
+                                                            const newVariants = [...formData.variants];
+                                                            newVariants[index].name = e.target.value;
+                                                            setFormData({ ...formData, variants: newVariants });
+                                                        }}
+                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-[10px] font-black uppercase focus:ring-2 focus:ring-emerald-600/20"
+                                                    />
+                                                </div>
+                                                <div className="col-span-4">
+                                                    <input
+                                                        type="number"
+                                                        placeholder="PRICE"
+                                                        value={v.price}
+                                                        onChange={(e) => {
+                                                            const newVariants = [...formData.variants];
+                                                            newVariants[index].price = e.target.value;
+                                                            setFormData({ ...formData, variants: newVariants });
+                                                        }}
+                                                        className="w-full bg-white border-none rounded-xl py-3 px-4 text-[10px] font-black uppercase focus:ring-2 focus:ring-emerald-600/20"
+                                                    />
+                                                </div>
+                                                <div className="col-span-2 text-right">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, variants: prev.variants.filter((_, i) => i !== index) }))}
+                                                        className="w-10 h-10 inline-flex items-center justify-center bg-red-50 text-red-400 rounded-xl hover:bg-red-600 hover:text-white transition-all"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-8 border-2 border-dashed border-gray-100 rounded-[2rem] text-center">
+                                        <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest">No add-ons configured</p>
                                     </div>
                                 )}
                             </div>

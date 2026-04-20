@@ -234,6 +234,15 @@ export default function Orders() {
                                                                     )}
                                                                 </div>
                                                             )}
+                                                            {item.selectedVariants?.length > 0 && (
+                                                                <div className="ml-6 mt-1 flex flex-wrap gap-1">
+                                                                    {item.selectedVariants.map((v, idx) => (
+                                                                        <span key={idx} className="text-[8px] font-black text-emerald-600 uppercase bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                                                                            + {v.name} (₹{v.price})
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ))}
                                                 </div>

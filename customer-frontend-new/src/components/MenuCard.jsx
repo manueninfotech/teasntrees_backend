@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useBrand } from '../context/BrandContext';
 import api from '../services/api';
+import CustomizationModal from './CustomizationModal';
 
 const isCakeCategoryName = (name = '') => {
     const normalized = String(name).trim().toLowerCase();
@@ -43,6 +44,7 @@ const MenuCard = ({ product }) => {
     const [cakeDesignDescription, setCakeDesignDescription] = useState('');
     const [cakeReferenceFile, setCakeReferenceFile] = useState(null);
     const [isUploadingCakeRef, setIsUploadingCakeRef] = useState(false);
+    const [isCustomizationOpen, setIsCustomizationOpen] = useState(false);
 
     // Pricing Logic
     const getDisplayPrice = () => {
@@ -113,7 +115,18 @@ const MenuCard = ({ product }) => {
             });
             return;
         }
+        if (product.variants?.length > 0) {
+            setIsCustomizationOpen(true);
+            return;
+        }
         addToCart(product, selectedSize);
+    };
+
+    const handleCustomizationConfirm = (selectedAddons) => {
+        addToCart(product, {
+            ...selectedSize,
+            selectedVariants: selectedAddons
+        });
     };
 
     const handleSizeSelect = (e, size) => {
@@ -259,6 +272,12 @@ const MenuCard = ({ product }) => {
                     </div>
                 </div>
             </div>
+            <CustomizationModal
+                isOpen={isCustomizationOpen}
+                onClose={() => setIsCustomizationOpen(false)}
+                product={product}
+                onConfirm={handleCustomizationConfirm}
+            />
         </motion.div>
     );
 };

@@ -272,6 +272,18 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                                             <p className="text-[10px] font-bold text-gray-500 leading-tight italic">{item.customizationDetails.designDescription}</p>
                                                         </div>
                                                     )}
+                                                    {item.selectedVariants?.length > 0 && (
+                                                        <div className="flex flex-col pt-2 border-t border-gray-100/50">
+                                                            <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest mb-1">Add-ons</span>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {item.selectedVariants.map((v, idx) => (
+                                                                    <span key={idx} className="text-[9px] font-black text-gray-700 bg-white border border-gray-200 px-2 py-0.5 rounded-md">
+                                                                        {v.name} (+₹{v.price})
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             )}
                                             <div className="mt-2 inline-flex items-center px-2 py-1 bg-gray-50 rounded-md text-[8px] font-black uppercase tracking-widest text-gray-400">
