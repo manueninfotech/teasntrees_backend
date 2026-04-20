@@ -118,17 +118,24 @@ const seedProducts = async () => {
             { name: 'Strawberry Scoop', price: 89, description: 'Fresh strawberry-flavored ice cream.', category: categoryMap['Ice Cream Scoops'], tags: [] },
             { name: 'Dark Chocolate Scoop', price: 99, description: 'Intense dark chocolate ice cream scoop.', category: categoryMap['Ice Cream Scoops'], tags: [] },
 
-            // ☕ HOT COFFEE
-            { name: 'Classic Filter Coffee', price: 109, description: 'Traditional South Indian filter coffee.', category: categoryMap['Hot Coffee'], tags: [] },
-            { name: 'Espresso', price: 99, description: 'Strong and bold espresso shot.', category: categoryMap['Hot Coffee'], tags: [] },
-            { name: 'Café Americano', price: 109, description: 'Espresso diluted with hot water for a smooth taste.', category: categoryMap['Hot Coffee'], tags: [] },
-            { name: 'Affogato', price: 139, description: 'Vanilla ice cream drowned in a shot of hot espresso.', category: categoryMap['Hot Coffee'], tags: [] },
-            { name: 'Caffe Latte', price: 129, description: 'Espresso with steamed milk and a light foam.', category: categoryMap['Hot Coffee'], tags: [] },
-            { name: 'Cappuccino', price: 129, description: 'Espresso with steamed milk and thick milk foam.', category: categoryMap['Hot Coffee'], tags: [] },
-            { name: 'Hot Chocolate', price: 159, description: 'Rich and creamy hot chocolate drink.', category: categoryMap['Hot Coffee'], tags: ['best-seller'] },
-            { name: 'Hot Nutella', price: 199, description: 'Decadent hot Nutella drink with milk.', category: categoryMap['Hot Coffee'], tags: ['must-try'] },
-            { name: 'Café Mocha', price: 179, description: 'Espresso with chocolate and steamed milk.', category: categoryMap['Hot Coffee'], tags: [] },
-            { name: 'Nutella Café Mocha', price: 229, description: 'Café mocha with Nutella for extra richness.', category: categoryMap['Hot Coffee'], tags: [] },
+            // 🍨 FALOODA
+            { name: 'Kesar Pista Falooda', price: 189, description: 'Rich and creamy kesar pista falooda.', category: categoryMap['Falooda'], tags: ['new-intro'] },
+            { name: 'Mango Falooda', price: 189, description: 'Sweet and fruity mango falooda.', category: categoryMap['Falooda'], tags: ['new-intro'] },
+            { name: 'Strawberry Falooda', price: 189, description: 'Delicious strawberry falooda.', category: categoryMap['Falooda'], tags: ['new-intro'] },
+
+            // ☕ HOT COFFEES & HOT MILK
+            { name: 'Classic Filter Coffee', price: 109, description: 'Traditional South Indian filter coffee.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Espresso', price: 99, description: 'Strong and bold espresso shot.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Café Americano', price: 109, description: 'Espresso diluted with hot water for a smooth taste.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Affogato', price: 139, description: 'Vanilla ice cream drowned in a shot of hot espresso.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Caffe Latte', price: 129, description: 'Espresso with steamed milk and a light foam.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Cappuccino', price: 129, description: 'Espresso with steamed milk and thick milk foam.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Hot Chocolate', price: 159, description: 'Rich and creamy hot chocolate drink.', category: categoryMap['Hot Coffees & Hot Milk'], tags: ['best-seller'] },
+            { name: 'Hot Nutella', price: 199, description: 'Decadent hot Nutella drink with milk.', category: categoryMap['Hot Coffees & Hot Milk'], tags: ['must-try'] },
+            { name: 'Café Mocha', price: 179, description: 'Espresso with chocolate and steamed milk.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Nutella Café Mocha', price: 229, description: 'Café mocha with Nutella for extra richness.', category: categoryMap['Hot Coffees & Hot Milk'], tags: [] },
+            { name: 'Honey Cinnamon Coffee', price: 149, description: 'Aromatic coffee infused with honey and cinnamon.', category: categoryMap['Hot Coffees & Hot Milk'], tags: ['new-intro'] },
+            { name: 'Elachi Badam Milk', price: 129, description: 'Warm milk flavored with cardamom and almonds.', category: categoryMap['Hot Coffees & Hot Milk'], tags: ['new-intro'] },
 
             // 🧊 COLD COFFEE
             { name: 'Tnt Frappe', price: 199, description: 'Signature Teas N Trees frappe, cold and refreshing.', category: categoryMap['Cold Coffee'], tags: ['best-seller'] },
@@ -136,6 +143,8 @@ const seedProducts = async () => {
             { name: 'Choco Frappe', price: 249, description: 'Chocolate-flavored cold coffee frappe.', category: categoryMap['Cold Coffee'], tags: [] },
             { name: 'Cookie Frappe', price: 249, description: 'Frappe with crushed cookies blended in.', category: categoryMap['Cold Coffee'], tags: [] },
             { name: 'Brownie Frappe', price: 289, description: 'Cold frappe with brownie chunks.', category: categoryMap['Cold Coffee'], tags: ['must-try'] },
+            { name: 'Hazelnut Frappe', price: 249, description: 'Cold coffee frappe with hazelnut flavor.', category: categoryMap['Cold Coffee'], tags: ['new-intro'] },
+            { name: 'Butterscotch Frappe', price: 249, description: 'Cold coffee frappe with butterscotch flavor.', category: categoryMap['Cold Coffee'], tags: ['new-intro'] },
 
             // 🍵 CLEAR TEAS
             { name: 'Hibiscus Tea', price: 99, description: 'Refreshing herbal tea with hibiscus flowers.', category: categoryMap['Clear Teas'], tags: ['best-seller'] },
@@ -149,12 +158,18 @@ const seedProducts = async () => {
             { name: 'Slimming Tea', price: 109, description: 'Herbal tea blend for weight management.', category: categoryMap['Clear Teas'], tags: ['new-intro'] },
             { name: 'Krishna Tulsi Tea', price: 109, description: 'Pure Krishna tulsi herbal tea.', category: categoryMap['Clear Teas'], tags: ['new-intro'] },
             { name: 'Flora Tea', price: 599, description: 'Premium floral tea blend.', category: categoryMap['Clear Teas'], tags: [] },
+            { name: 'Herbal Green Tea', price: 99, description: 'Healthy and refreshing herbal green tea.', category: categoryMap['Clear Teas'], tags: ['new-intro'] },
+            { name: 'Ginger Honey Tea', price: 139, description: 'Soothing tea with ginger and honey.', category: categoryMap['Clear Teas'], tags: ['new-intro'] },
+            { name: 'Jeera Ginger Tea', price: 99, description: 'Warm tea with cumin and ginger for digestion.', category: categoryMap['Clear Teas'], tags: ['new-intro'] },
+            { name: 'Hot Peach Tea', price: 109, description: 'Warm and sweet peach-flavored tea.', category: categoryMap['Clear Teas'], tags: ['new-intro'] },
+            { name: 'Hot Green Apple Tea', price: 109, description: 'Warm and crisp green apple tea.', category: categoryMap['Clear Teas'], tags: ['new-intro'] },
 
             // ❄️ COLD CLEAR TEAS
             { name: 'Hibiscus Iced Tea', price: 129, description: 'Chilled hibiscus tea, refreshing and fruity.', category: categoryMap['Cold Clear Teas'], tags: ['best-seller'] },
             { name: 'Lemon Iced Tea', price: 129, description: 'Classic iced tea with a hint of lemon.', category: categoryMap['Cold Clear Teas'], tags: [] },
             { name: 'Peach Iced Tea', price: 129, description: 'Sweet peach-flavored iced tea.', category: categoryMap['Cold Clear Teas'], tags: ['must-try'] },
             { name: 'Lemon Grass Ice Tea', price: 179, description: 'Iced tea with fresh lemongrass flavor.', category: categoryMap['Cold Clear Teas'], tags: ['new-intro'] },
+            { name: 'Passion Fruit Ice Tea', price: 139, description: 'Cold and refreshing passion fruit ice tea.', category: categoryMap['Cold Clear Teas'], tags: ['new-intro'] },
 
             // 🥤 SHAKES (M/S – T/S)
             {
@@ -287,6 +302,88 @@ const seedProducts = async () => {
                 ]
             },
 
+            // 🥤 MILK SHAKES & THICK SHAKES
+            {
+                name: 'Vanila Milk Shake',
+                description: 'Classic creamy vanilla milkshake.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 169 },
+                    { size: 'Thick Shake', price: 249 }
+                ]
+            },
+            {
+                name: 'Belgium Chocolate Milk Shake',
+                description: 'Premium shake with Belgium chocolate.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 249 },
+                    { size: 'Thick Shake', price: 309 }
+                ]
+            },
+            {
+                name: 'Butterscotch Milk Shake',
+                description: 'Creamy butterscotch milkshake with crunchy bits.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 169 },
+                    { size: 'Thick Shake', price: 249 }
+                ]
+            },
+            {
+                name: 'Chocolate Milk Shake',
+                description: 'Rich and creamy chocolate milkshake.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 219 },
+                    { size: 'Thick Shake', price: 279 }
+                ]
+            },
+            {
+                name: 'Ferrero Rocher Milk Shake',
+                description: 'Luxurious shake with Ferrero Rocher chocolates.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 249 },
+                    { size: 'Thick Shake', price: 309 }
+                ]
+            },
+            {
+                name: 'Kitkat Milk Shake',
+                description: 'Chocolate shake blended with Kitkat pieces.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 209 },
+                    { size: 'Thick Shake', price: 289 }
+                ]
+            },
+            {
+                name: 'Nutella Brownie Milk Shake',
+                description: 'Decadent shake with Nutella and brownie chunks.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 289 },
+                    { size: 'Thick Shake', price: 369 }
+                ]
+            },
+            {
+                name: 'Oreo Milk Shake',
+                description: 'Cookies and cream shake with Oreo cookies.',
+                category: categoryMap['Milk Shakes & Thick Shakes'],
+                tags: [],
+                sizeOptions: [
+                    { size: 'Milk Shake', price: 209 },
+                    { size: 'Thick Shake', price: 289 }
+                ]
+            },
+
             // 🍹 MOJITOS
             { name: 'Lemonade', price: 89, description: 'Fresh and tangy lemonade.', category: categoryMap['Mojitos'], tags: [] },
             { name: 'Guntur Spicy Mojito', price: 109, description: 'A spicy mojito with a kick from Guntur chilies.', category: categoryMap['Mojitos'], tags: ['must-try'] },
@@ -300,6 +397,10 @@ const seedProducts = async () => {
             { name: 'Lemon Grass Mojito', price: 179, description: 'Refreshing mojito with fresh lemongrass.', category: categoryMap['Mojitos'], tags: ['new-intro'] },
             { name: 'Apple Mint Mojito', price: 179, description: 'Apple and mint mojito, crisp and refreshing.', category: categoryMap['Mojitos'], tags: ['new-intro'] },
             { name: 'Yuzu Basil Lemonade', price: 179, description: 'Exotic yuzu and basil lemonade.', category: categoryMap['Mojitos'], tags: ['new-intro'] },
+            { name: 'Passion fruit Mojito', price: 179, description: 'Sweet and tangy passion fruit mojito.', category: categoryMap['Mojitos'], tags: ['new-intro'] },
+            { name: 'Kala Khatta Mojito', price: 189, description: 'Classic kala khatta flavored mojito.', category: categoryMap['Mojitos'], tags: ['new-intro'] },
+            { name: 'Chilli Guava Mojito', price: 189, description: 'Spicy guava flavored mojito.', category: categoryMap['Mojitos'], tags: ['new-intro'] },
+            { name: 'Spicy Mango Mojito', price: 189, description: 'Tangy and spicy mango mojito.', category: categoryMap['Mojitos'], tags: ['new-intro'] },
 
             // 🍉 REAL FRUIT MOJITOS
             { name: 'Pomegranate Mojito', price: 199, description: 'Fresh pomegranate mojito with real fruit.', category: categoryMap['Real Fruit Mojitos'], tags: ['new-intro'] },
@@ -315,25 +416,57 @@ const seedProducts = async () => {
             { name: 'Almond gum Green Apple Mojito', price: 199, description: 'Green apple mojito with almond gum.', category: categoryMap['Almond Gum Special'], tags: ['new-intro'] },
             { name: 'Almond gum Strawberry Mojito', price: 199, description: 'Strawberry mojito with almond gum.', category: categoryMap['Almond Gum Special'], tags: ['new-intro'] },
 
-            // 🥛 LASSI
-            { name: 'Sweet and Salt Lassi', price: 99, description: 'Traditional yogurt-based lassi, sweet or salty.', category: categoryMap['Lassi'], tags: ['new-intro'] },
-            { name: 'Dry Fruit Lassi', price: 149, description: 'Rich lassi loaded with dry fruits.', category: categoryMap['Lassi'], tags: ['new-intro'] },
-            { name: 'Kiwi Lassi', price: 129, description: 'Fruity lassi with kiwi flavor.', category: categoryMap['Lassi'], tags: ['new-intro'] },
-            { name: 'Caramel Lassi', price: 149, description: 'Sweet caramel-flavored lassi.', category: categoryMap['Lassi'], tags: ['new-intro'] },
+            // 🥛 CHAAS/LASSI
+            { name: 'Almond Gum Chaas', price: 119, description: 'Cooling chaas with almond gum.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+            { name: 'Chilli Mint Chaas', price: 129, description: 'Spicy and refreshing mint chaas.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+            { name: 'Fresh Lemon Chaas', price: 99, description: 'Zesty lemon-flavored chaas.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+            { name: 'Sweet and Salt Lassi', price: 99, description: 'Traditional yogurt-based lassi, sweet or salty.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+            { name: 'Dry Fruit Lassi', price: 149, description: 'Rich lassi loaded with dry fruits.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+            { name: 'Mango Lassi', price: 129, description: 'Fruity lassi with sweet mango flavor.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+            { name: 'Kiwi Lassi', price: 129, description: 'Fruity lassi with kiwi flavor.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+            { name: 'Caramel Lassi', price: 149, description: 'Sweet caramel-flavored lassi.', category: categoryMap['Chaas/Lassi'], tags: ['new-intro'], isSeasonal: true },
+
+            // 🥛 REAL ROOT & FRUIT THICK MILK
+            { name: 'Sweet Potato (boiled + Milk + Jaggery)', price: 169, description: 'Healthy thick milk blended with sweet potato and jaggery.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Mango Thick Milk', price: 249, description: 'Rich thick milk blended with real mango.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Custard Apple Thick Milk', price: 269, description: 'Creamy thick milk with fresh custard apple.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Malai Thick Milk', price: 289, description: 'Traditional malai thick milk.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Dates Thick Milk', price: 289, description: 'Nutritious thick milk blended with dates.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Chickoo Thick Milk', price: 249, description: 'Thick milk blended with sweet chickoo.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Fig Thick Milk', price: 249, description: 'Healthy thick milk blended with figs.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Strawberry Thick Milk', price: 269, description: 'Sweet strawberry blended thick milk.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Tender Coconut Thick Milk', price: 249, description: 'Refreshing tender coconut thick milk.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Avocado Treat Milk Shake', price: 349, description: 'Premium avocado milk shake.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
+            { name: 'Dry Fruit Milk Shake', price: 259, description: 'Rich milk shake loaded with dry fruits.', category: categoryMap['Real Root & Fruit Thick Milk'], tags: ['new-intro'] },
 
             // 🧃 COLD PRESSED JUICES
             { name: 'Watermelon Juice', price: 109, description: 'Fresh cold-pressed watermelon juice.', category: categoryMap['Cold Pressed Juices'], tags: ['best-seller'] },
             { name: 'Watermelon + Lemon + Mint Juice', price: 139, description: 'Watermelon juice with lemon and mint.', category: categoryMap['Cold Pressed Juices'], tags: [] },
             { name: 'Grape Juice', price: 189, description: 'Fresh cold-pressed grape juice.', category: categoryMap['Cold Pressed Juices'], tags: ['must-try'] },
             { name: 'Muskmelon Juice', price: 159, description: 'Sweet muskmelon juice (on availability).', category: categoryMap['Cold Pressed Juices'], tags: [] },
+            { name: 'Pineapple Juice', price: 169, description: 'Tangy fresh pineapple juice.', category: categoryMap['Cold Pressed Juices'], tags: [] },
+            { name: 'Sweet Lime Juice', price: 169, description: 'Fresh sweet lime juice.', category: categoryMap['Cold Pressed Juices'], tags: [] },
+            { name: 'Orange Juice', price: 189, description: 'Freshly squeezed orange juice.', category: categoryMap['Cold Pressed Juices'], tags: [] },
+            { name: 'Pomegranate Juice', price: 219, description: 'Rich and healthy pomegranate juice.', category: categoryMap['Cold Pressed Juices'], tags: ['premium'] },
             { name: 'Beetroot + Carrot Juice', price: 189, description: 'Healthy mix of beetroot and carrot juice.', category: categoryMap['Cold Pressed Juices'], tags: [] },
             { name: 'Apple + Beetroot + Carrot Juice', price: 229, description: 'Nutritious blend of apple, beetroot, and carrot.', category: categoryMap['Cold Pressed Juices'], tags: ['must-try'] },
+            { name: 'Palak Cucumber Juice(O/A)', price: 199, description: 'Healthy spinach and cucumber cold pressed juice (on availability).', category: categoryMap['Cold Pressed Juices'], tags: ['new-intro'] },
 
-            // 🍓 FRUIT BOWLS
-            { name: 'Watermelon Salad', price: 129, description: 'Fresh watermelon salad with mint.', category: categoryMap['Fruit Bowls'], tags: ['new-intro'] },
-            { name: 'Mix Fruit Salad', price: 199, description: 'A colorful mix of seasonal fresh fruits.', category: categoryMap['Fruit Bowls'], tags: ['new-intro'] },
-            { name: 'Choco Banana Smoothie Bowl', price: 259, description: 'Smoothie bowl with chocolate and banana.', category: categoryMap['Fruit Bowls'], tags: ['new-intro'] },
-            { name: 'Berry Smoothie Bowl', price: 299, description: 'Smoothie bowl with mixed berries and toppings.', category: categoryMap['Fruit Bowls'], tags: ['new-intro'] },
+            // 🧊 ICED COFFEE
+            { name: 'Iced Americano', price: 129, description: 'Classic iced Americano over ice.', category: categoryMap['Iced Coffee'], tags: ['new-intro'] },
+            { name: 'Iced Latte', price: 149, description: 'Refreshing iced latte with milk.', category: categoryMap['Iced Coffee'], tags: ['new-intro'] },
+            { name: 'Iced Mocha', price: 169, description: 'Iced coffee with rich chocolate flavor.', category: categoryMap['Iced Coffee'], tags: ['new-intro'] },
+            { name: 'Iced Hazelnut Latte', price: 189, description: 'Iced latte flavored with sweet hazelnut.', category: categoryMap['Iced Coffee'], tags: ['new-intro'] },
+            { name: 'Iced Irish Latte', price: 189, description: 'Iced latte with smooth Irish cream flavor.', category: categoryMap['Iced Coffee'], tags: ['new-intro'] },
+            { name: 'Iced caramel Latte', price: 189, description: 'Iced latte with sweet caramel syrup.', category: categoryMap['Iced Coffee'], tags: ['new-intro'] },
+
+            // 🍓 FRUIT SALAD BOWL
+            { name: 'Watermelon Salad', price: 129, description: 'Fresh watermelon salad with mint.', category: categoryMap['Fruit Salad Bowl'], tags: ['new-intro'] },
+            { name: 'Mix Fruit Salad', price: 199, description: 'A colorful mix of seasonal fresh fruits.', category: categoryMap['Fruit Salad Bowl'], tags: ['new-intro'] },
+
+            // 🥣 SMOOTHIE BOWLS
+            { name: 'Choco Banana Smoothie Bowl', price: 259, description: 'Smoothie bowl with chocolate and banana.', category: categoryMap['Smoothie Bowls'], tags: ['new-intro'] },
+            { name: 'Berry Smoothie Bowl', price: 299, description: 'Smoothie bowl with mixed berries and toppings.', category: categoryMap['Smoothie Bowls'], tags: ['new-intro'] },
 
             // 🍛 CURRY RICE BOWLS
             { name: 'Jeera Rice + Masala Dal Gravy', price: 249, description: 'Cumin rice with spiced dal gravy.', category: categoryMap['Curry Rice Bowls'], tags: ['new-intro'] },

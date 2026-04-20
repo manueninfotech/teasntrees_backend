@@ -19,7 +19,8 @@ const SeasonalPage = () => {
         queryFn: () => productService.getAllProducts({
             category: 'all',
             brand: brand,
-            limit: 100 // Fetch a larger batch to find seasonal items
+            isSeasonal: true,
+            limit: 500 // Fetch all seasonal products
         }),
     });
 
@@ -62,8 +63,8 @@ const SeasonalPage = () => {
                         transition={{ delay: 0.4 }}
                         className="text-lg lg:text-xl text-slate-500 font-medium max-w-2xl mx-auto leading-relaxed"
                     >
-                        We pick the best items for each season. These are special 
-                        foods and drinks that are only available for a short time. 
+                        We pick the best items for each season. These are special
+                        foods and drinks that are only available for a short time.
                         Enjoy them while they are fresh!
                     </motion.p>
                 </header>
@@ -99,7 +100,7 @@ const SeasonalPage = () => {
                         >
                             {/* Abstract Glow */}
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-emerald-400/20 rounded-full blur-[80px] pointer-events-none group-hover:scale-125 transition-all duration-1000" />
-                            
+
                             <div className="relative z-10 px-8">
                                 <Sparkles className="w-12 h-12 text-emerald-400 mx-auto mb-8" />
                                 <h2 className="text-5xl lg:text-7xl font-black text-slate-900 mb-6 tracking-tighter">Coming Soon</h2>
