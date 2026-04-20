@@ -86,7 +86,13 @@ const orderSchema = new mongoose.Schema(
                 colorTheme: String,
                 designDescription: String,
                 referenceImage: String
-            }
+            },
+            selectedVariants: [
+                {
+                    name: String,
+                    price: Number
+                }
+            ]
         }],
 
         subtotal: Number,

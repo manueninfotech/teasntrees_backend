@@ -38,6 +38,12 @@ const cartItemSchema = new mongoose.Schema({
         designDescription: String,
         referenceImage: String
     },
+    selectedVariants: [
+        {
+            name: String,
+            price: Number
+        }
+    ],
     brand: {
         type: String,
         enum: ['teasntrees', 'littleh'],
