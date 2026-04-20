@@ -1,6 +1,7 @@
 // Customer Product Controller
 // Public access to browse products
 
+import mongoose from 'mongoose';
 import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
 import { isProductInSeason, getCurrentMonth } from '../../utils/seasonUtils.js';
@@ -33,10 +34,10 @@ export const clearProductCache = () => productCache.clear();
 // Get all products (with pagination, search, filter)
 export const getAllProducts = async (req, res) => {
     try {
-        const { page = 1, limit = 20, category, search, q, tags } = req.query;
+        const { page = 1, limit = 20, category, search, q, tags, isSeasonal } = req.query;
 
         // Check cache first
-        const cacheKey = `all:${req.activeBrand}:${page}:${limit}:${category}:${search}:${q}:${tags}`;
+        const cacheKey = `all:${req.activeBrand}:${page}:${limit}:${category}:${search}:${q}:${tags}:${isSeasonal}`;
         const cachedData = getCachedResponse(cacheKey);
         if (cachedData) return res.json(cachedData);
 
@@ -46,10 +47,13 @@ export const getAllProducts = async (req, res) => {
             query.brand = req.activeBrand;
         }
 
-        // 1. Filter by category
+        if (isSeasonal === 'true') {
+            query.isSeasonal = true;
+        }
+
+        // Filter by category
         if (category) {
-            const mongoose = await import('mongoose');
-            if (mongoose.default.Types.ObjectId.isValid(category)) {
+            if (mongoose.Types.ObjectId.isValid(category)) {
                 query.category = category;
             } else {
                 const categoryDoc = await Category.findOne({
@@ -66,7 +70,7 @@ export const getAllProducts = async (req, res) => {
             }
         }
 
-        // 2. Combined search query (Global 'q' + Local 'search')
+        // Combined search query (Global 'q' + Local 'search')
         const applySearch = async (term) => {
             if (!term) return null;
             const matchingCategories = await Category.find({
