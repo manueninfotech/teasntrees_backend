@@ -17,7 +17,8 @@ export const SocketProvider = ({ children }) => {
         const activeBrand = pathSegments[1] || 'teasntrees';
 
         // Connect to backend
-        const newSocket = io("http://localhost:5000", {
+        const backendUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://teasntrees-backend.onrender.com';
+        const newSocket = io(backendUrl, {
             auth: { token, brand: activeBrand }, // Pass JWT and Brand in handshake
             transports: ["websocket"],
         });

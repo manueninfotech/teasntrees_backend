@@ -110,9 +110,14 @@ export default function OrderDetailsModal({ isOpen, onClose, order, token }) {
                                     <div className="p-8 bg-emerald-600 rounded-[2.5rem] text-white shadow-xl shadow-emerald-100 relative overflow-hidden">
                                         <div className="relative z-10 space-y-4">
                                             <div className="flex justify-between items-end">
-                                                <div>
+                                                <div className="flex flex-col">
                                                     <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-1">Total Amount</p>
                                                     <h4 className="text-4xl font-black tracking-tighter">₹{order.total}</h4>
+                                                    {order.discount > 0 && (
+                                                        <span className="text-[10px] font-black uppercase tracking-widest mt-1 text-white/80 italic">
+                                                            (Saved ₹{order.discount} via {order.couponCode})
+                                                        </span>
+                                                    )}
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-1">Status</p>

@@ -1206,7 +1206,14 @@ const ProfilePage = () => {
                                                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
                                                             <div>
                                                                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Amount</p>
-                                                                <p className="text-2xl font-black text-slate-800">₹{order.total?.toFixed(2)}</p>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="text-2xl font-black text-slate-800">₹{order.total?.toFixed(2)}</p>
+                                                                    {order.discount > 0 && (
+                                                                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                                                                            -₹{order.discount.toFixed(2)}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </div>
 
                                                             <div className="flex items-center gap-3 w-full md:w-auto">

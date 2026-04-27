@@ -323,6 +323,15 @@ export default function OrderDetailsModal({ isOpen, onClose, order, onSuccess })
                                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Tax</span>
                                         <span className="font-black text-gray-900">₹{order.tax || 0}</span>
                                     </div>
+                                    {order.discount > 0 && (
+                                        <div className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-xl border border-emerald-100/50">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Discount</span>
+                                                <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Coupon: {order.couponCode}</span>
+                                            </div>
+                                            <span className="font-black text-emerald-600">-₹{order.discount}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="text-sm font-black text-gray-900 uppercase tracking-tight">Total Amount</span>
                                         <span className="text-2xl font-black text-emerald-600 tracking-tighter">₹{order.total}</span>

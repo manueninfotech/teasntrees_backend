@@ -68,7 +68,7 @@ const CouponTicker = ({ brand, theme, showFirstOrder = false }) => {
                     onMouseLeave={() => setIsHovered(false)}
                     className="relative bg-white rounded-[1.5rem] overflow-hidden border border-slate-200"
                 >
-                    <AnimatePresence>
+                    <AnimatePresence mode="wait">
                         <motion.div
                             key={coupon.code}
                             initial={{ x: 50, opacity: 0 }}

@@ -274,7 +274,14 @@ export default function Orders() {
                                         </td>
                                         <td className="px-6 py-5 text-right">
                                             <div className="flex items-center justify-end gap-2">
-                                                <span className="font-black text-lg mr-4 text-gray-900">₹{order.total}</span>
+                                                <div className="flex flex-col items-end mr-4">
+                                                    <span className="font-black text-lg text-gray-900">₹{order.total}</span>
+                                                    {order.discount > 0 && (
+                                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-tighter bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                                            -₹{order.discount} (COUPON)
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <button
                                                     onClick={() => toggleExpand(order._id)}
                                                     className={`p-2 rounded-xl transition-all ${expandedOrder === order._id ? 'bg-black text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}

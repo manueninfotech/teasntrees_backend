@@ -501,9 +501,29 @@ const OrderTrackingPage = () => {
                             </div>
                         ))}
                     </div>
-                    <div className={`mt-4 pt-4 border-t border-slate-100 flex justify-between font-bold text-lg ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-800'}`}>
-                        <span>Total Paid</span>
-                        <span>₹{order.total}</span>
+                    <div className="space-y-2 mt-4 pt-4 border-t border-slate-100">
+                        <div className="flex justify-between text-sm text-slate-500">
+                            <span>Subtotal</span>
+                            <span>₹{order.subtotal}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-slate-500">
+                            <span>Delivery Fee</span>
+                            <span>₹{order.deliveryCharge}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-slate-500">
+                            <span>Tax</span>
+                            <span>₹{order.tax}</span>
+                        </div>
+                        {order.discount > 0 && (
+                            <div className="flex justify-between text-sm font-bold text-emerald-600">
+                                <span>Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
+                                <span>-₹{order.discount}</span>
+                            </div>
+                        )}
+                        <div className={`pt-2 border-t border-slate-100 flex justify-between font-bold text-lg ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-800'}`}>
+                            <span>Total Paid</span>
+                            <span>₹{order.total}</span>
+                        </div>
                     </div>
                 </div>
 

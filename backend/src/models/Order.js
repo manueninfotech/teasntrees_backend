@@ -98,6 +98,8 @@ const orderSchema = new mongoose.Schema(
         subtotal: Number,
         deliveryCharge: Number,
         tax: Number,
+        couponCode: { type: String, default: null },
+        discount: { type: Number, default: 0 },
 
         total: {
             type: Number,

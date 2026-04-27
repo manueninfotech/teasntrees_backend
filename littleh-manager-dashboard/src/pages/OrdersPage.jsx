@@ -222,9 +222,17 @@ export default function OrdersPage() {
                                                                         <span className="text-[10px] font-black text-bakery-primary">₹{item.price * item.quantity}</span>
                                                                     </div>
                                                                 ))}
-                                                                <div className="pt-3 flex justify-between items-center bg-bakery-light/30 -mx-6 px-6 -mb-6 rounded-b-3xl">
-                                                                    <span className="text-[10px] font-black text-bakery-accent uppercase">Order Total</span>
-                                                                    <span className="text-xl font-black text-bakery-primary">₹{order.total}</span>
+                                                                <div className="pt-3 flex flex-col gap-1 bg-bakery-light/30 -mx-6 px-6 -mb-6 rounded-b-3xl">
+                                                                    {order.discount > 0 && (
+                                                                        <div className="flex justify-between items-center text-[10px] font-black text-emerald-600 uppercase italic">
+                                                                            <span>Discount ({order.couponCode})</span>
+                                                                            <span>-₹{order.discount}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex justify-between items-center py-2">
+                                                                        <span className="text-[10px] font-black text-bakery-accent uppercase">Order Total</span>
+                                                                        <span className="text-xl font-black text-bakery-primary">₹{order.total}</span>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </div>
