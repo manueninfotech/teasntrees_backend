@@ -2,7 +2,7 @@ import logger from '../config/logger.js';
 
 // IP Whitelist for admin routes
 
-const whitelist = process.env.ADMIN_WHITELIST_IPS?.split(',').map(ip => ip.trim()) || [];
+const whitelist = process.env.ADMIN_WHITELIST_IPS?.split(',').map(ip => ip.trim()).filter(ip => ip !== '') || [];
 
 export const checkAdminIP = (req, res, next) => {
     // Skip in development mode
