@@ -3,6 +3,7 @@ import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
 import User from '../../models/User.js';
 import Delivery from '../../models/Delivery.js';
+import Coupon from '../../models/Coupon.js';
 import PDFDocument from 'pdfkit';
 import logger from '../../config/logger.js';
 import { notificationService } from '../../services/notificationService.js';
@@ -17,7 +18,7 @@ import Outlet from '../../models/Outlet.js'
 ========================================================= */
 export const createOrder = async (req, res) => {
     try {
-        const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD' } = req.body;
+        const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode } = req.body;
         const customerId = req.user.userId;
 
         if (!items || !items.length) {
@@ -131,6 +132,59 @@ export const createOrder = async (req, res) => {
 
         const Outlet = await import('../../models/Outlet.js').then(m => m.default);
         const outlets = await Outlet.find({ isActive: true }).lean();
+        
+        // --- COUPON VALIDATION ---
+        let globalDiscount = 0;
+        let appliedCoupon = null;
+
+        if (couponCode) {
+            appliedCoupon = await Coupon.findOne({
+                code: couponCode.trim().toUpperCase(),
+                isActive: true
+            });
+
+            if (appliedCoupon) {
+                // Calculate total subtotal across all brands to validate minOrderValue
+                const totalSubtotal = Object.values(brandsGrouped).reduce((sum, g) => sum + g.subtotal, 0);
+                
+                // Expiry Check
+                const now = new Date();
+                if (now < new Date(appliedCoupon.expiryDate) && totalSubtotal >= appliedCoupon.minOrderValue) {
+                    
+                    // First Order Check
+                    let isFirstOrderEligible = true;
+                    if (appliedCoupon.firstOrderOnly) {
+                        const previousOrders = await Order.countDocuments({
+                            customerId,
+                            status: { $nin: ['cancelled'] }
+                        });
+                        if (previousOrders > 0) isFirstOrderEligible = false;
+                    }
+
+                    if (isFirstOrderEligible) {
+                        if (appliedCoupon.discountType === 'flat') {
+                            globalDiscount = Math.min(appliedCoupon.discountAmount, totalSubtotal);
+                        } else {
+                            globalDiscount = (totalSubtotal * appliedCoupon.discountAmount) / 100;
+                            if (appliedCoupon.maxDiscount) {
+                                globalDiscount = Math.min(globalDiscount, appliedCoupon.maxDiscount);
+                            }
+                        }
+                        
+                        // Increment usage count
+                        appliedCoupon.usedCount += 1;
+                        // Add to userUsage
+                        const userUsageIndex = appliedCoupon.userUsage.findIndex(u => u.userId.toString() === customerId.toString());
+                        if (userUsageIndex > -1) {
+                            appliedCoupon.userUsage[userUsageIndex].count += 1;
+                        } else {
+                            appliedCoupon.userUsage.push({ userId: customerId, count: 1 });
+                        }
+                        await appliedCoupon.save();
+                    }
+                }
+            }
+        }
 
         const createdOrders = [];
         let grandTotalAllOrders = 0;
@@ -138,7 +192,18 @@ export const createOrder = async (req, res) => {
         for (const [brand, group] of Object.entries(brandsGrouped)) {
             const outlet = outlets.find(o => o.brand === brand);
             const tax = Math.round(group.subtotal * (gstRate / 100) * 100) / 100;
-            const orderTotal = Math.round((group.subtotal + deliveryChargePerOrder + tax) * 100) / 100;
+            
+            // Apply discount to the first order that can accommodate it
+            let orderDiscount = 0;
+            if (globalDiscount > 0) {
+                // If coupon is brand-specific, only apply if brand matches
+                if (!appliedCoupon.brand || appliedCoupon.brand === brand) {
+                    orderDiscount = Math.min(globalDiscount, group.subtotal);
+                    globalDiscount -= orderDiscount;
+                }
+            }
+
+            const orderTotal = Math.round((group.subtotal + deliveryChargePerOrder + tax - orderDiscount) * 100) / 100;
             grandTotalAllOrders += orderTotal;
 
             const order = await Order.create({
@@ -150,6 +215,8 @@ export const createOrder = async (req, res) => {
                 subtotal: group.subtotal,
                 deliveryCharge: deliveryChargePerOrder,
                 tax,
+                couponCode: orderDiscount > 0 ? appliedCoupon.code : null,
+                discount: orderDiscount,
                 total: orderTotal,
                 deliveryAddress,
                 paymentMethod,
