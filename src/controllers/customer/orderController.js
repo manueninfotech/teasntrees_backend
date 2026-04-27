@@ -138,52 +138,75 @@ export const createOrder = async (req, res) => {
         let appliedCoupon = null;
 
         if (couponCode) {
+            console.log(`[Order] Validating coupon: ${couponCode} for order subtotal: ${Object.values(brandsGrouped).reduce((sum, g) => sum + g.subtotal, 0)}`);
             appliedCoupon = await Coupon.findOne({
                 code: couponCode.trim().toUpperCase(),
                 isActive: true
             });
 
-            if (appliedCoupon) {
-                // Calculate total subtotal across all brands to validate minOrderValue
-                const totalSubtotal = Object.values(brandsGrouped).reduce((sum, g) => sum + g.subtotal, 0);
-                
-                // Expiry Check
-                const now = new Date();
-                if (now < new Date(appliedCoupon.expiryDate) && totalSubtotal >= appliedCoupon.minOrderValue) {
-                    
-                    // First Order Check
-                    let isFirstOrderEligible = true;
-                    if (appliedCoupon.firstOrderOnly) {
-                        const previousOrders = await Order.countDocuments({
-                            customerId,
-                            status: { $nin: ['cancelled'] }
-                        });
-                        if (previousOrders > 0) isFirstOrderEligible = false;
-                    }
+            if (!appliedCoupon) {
+                return res.status(400).json({ success: false, message: 'Invalid or inactive coupon code' });
+            }
 
-                    if (isFirstOrderEligible) {
-                        if (appliedCoupon.discountType === 'flat') {
-                            globalDiscount = Math.min(appliedCoupon.discountAmount, totalSubtotal);
-                        } else {
-                            globalDiscount = (totalSubtotal * appliedCoupon.discountAmount) / 100;
-                            if (appliedCoupon.maxDiscount) {
-                                globalDiscount = Math.min(globalDiscount, appliedCoupon.maxDiscount);
-                            }
-                        }
-                        
-                        // Increment usage count
-                        appliedCoupon.usedCount += 1;
-                        // Add to userUsage
-                        const userUsageIndex = appliedCoupon.userUsage.findIndex(u => u.userId.toString() === customerId.toString());
-                        if (userUsageIndex > -1) {
-                            appliedCoupon.userUsage[userUsageIndex].count += 1;
-                        } else {
-                            appliedCoupon.userUsage.push({ userId: customerId, count: 1 });
-                        }
-                        await appliedCoupon.save();
-                    }
+            const totalSubtotal = Object.values(brandsGrouped).reduce((sum, g) => sum + g.subtotal, 0);
+            const now = new Date();
+
+            // Expiry Check
+            if (now > new Date(appliedCoupon.expiryDate)) {
+                return res.status(400).json({ success: false, message: 'Coupon has expired' });
+            }
+
+            // Min Order Value Check
+            if (totalSubtotal < appliedCoupon.minOrderValue) {
+                return res.status(400).json({ success: false, message: `Minimum order value of ₹${appliedCoupon.minOrderValue} required for this coupon` });
+            }
+
+            // Usage Limit Check (Global)
+            if (appliedCoupon.usageLimit !== null && appliedCoupon.usedCount >= appliedCoupon.usageLimit) {
+                return res.status(400).json({ success: false, message: 'Coupon usage limit reached' });
+            }
+
+            // Per User Limit Check
+            if (appliedCoupon.perUserLimit !== null) {
+                const userUsage = appliedCoupon.userUsage.find(u => u.userId.toString() === customerId.toString());
+                if (userUsage && userUsage.count >= appliedCoupon.perUserLimit) {
+                    return res.status(400).json({ success: false, message: 'You have already used this coupon' });
                 }
             }
+
+            // First Order Check
+            if (appliedCoupon.firstOrderOnly) {
+                const previousOrders = await Order.countDocuments({
+                    customerId,
+                    status: { $nin: ['cancelled'] }
+                });
+                if (previousOrders > 0) {
+                    return res.status(400).json({ success: false, message: 'This coupon is only valid for your first order' });
+                }
+            }
+
+            // Calculate Discount
+            if (appliedCoupon.discountType === 'flat') {
+                globalDiscount = Math.min(appliedCoupon.discountAmount, totalSubtotal);
+            } else {
+                globalDiscount = (totalSubtotal * appliedCoupon.discountAmount) / 100;
+                if (appliedCoupon.maxDiscount) {
+                    globalDiscount = Math.min(globalDiscount, appliedCoupon.maxDiscount);
+                }
+            }
+            
+            globalDiscount = Math.round(globalDiscount * 100) / 100;
+            console.log(`[Order] Global discount calculated: ₹${globalDiscount}`);
+
+            // Increment usage count
+            appliedCoupon.usedCount += 1;
+            const userUsageIndex = appliedCoupon.userUsage.findIndex(u => u.userId.toString() === customerId.toString());
+            if (userUsageIndex > -1) {
+                appliedCoupon.userUsage[userUsageIndex].count += 1;
+            } else {
+                appliedCoupon.userUsage.push({ userId: customerId, count: 1 });
+            }
+            await appliedCoupon.save();
         }
 
         const createdOrders = [];
