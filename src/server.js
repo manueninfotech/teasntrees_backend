@@ -60,6 +60,10 @@ import { initNudgeWorker } from './workers/nudgeWorker.js';
 
 const app = express();
 
+// Trust proxy for Render load balancer (required for rate limiting)
+app.set('trust proxy', 1);
+
+
 
 // CORS configuration
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
