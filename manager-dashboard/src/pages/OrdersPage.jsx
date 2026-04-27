@@ -261,7 +261,11 @@ export default function OrdersPage() {
                                                                     <div className="mt-8 pt-8 border-t-2 border-dashed border-gray-100 space-y-3">
                                                                         <div className="flex justify-between items-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
                                                                             <span>Subtotal</span>
-                                                                            <span>₹{order.subtotal || order.total - (order.deliveryCharge || 0)}</span>
+                                                                            <span>₹{order.subtotal}</span>
+                                                                        </div>
+                                                                        <div className="flex justify-between items-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                                                            <span>GST (5%)</span>
+                                                                            <span>₹{order.tax}</span>
                                                                         </div>
                                                                         {order.deliveryCharge > 0 && (
                                                                             <div className="flex justify-between items-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
@@ -269,7 +273,13 @@ export default function OrdersPage() {
                                                                                 <span>₹{order.deliveryCharge}</span>
                                                                             </div>
                                                                         )}
-                                                                        <div className="flex justify-between items-center pt-4">
+                                                                        {order.discount > 0 && (
+                                                                            <div className="flex justify-between items-center text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50/50 px-4 py-2 rounded-xl">
+                                                                                <span>Savings ({order.couponCode || 'COUPON'})</span>
+                                                                                <span>-₹{order.discount}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        <div className="flex justify-between items-center pt-4 border-t border-gray-50">
                                                                             <span className="text-[11px] font-black text-gray-900 uppercase tracking-[0.2em]">Total Amount</span>
                                                                             <span className="text-3xl font-black text-brand-primary tracking-tighter">₹{order.total}</span>
                                                                         </div>

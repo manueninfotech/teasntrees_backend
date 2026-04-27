@@ -222,14 +222,26 @@ export default function OrdersPage() {
                                                                         <span className="text-[10px] font-black text-bakery-primary">₹{item.price * item.quantity}</span>
                                                                     </div>
                                                                 ))}
-                                                                <div className="pt-3 flex flex-col gap-1 bg-bakery-light/30 -mx-6 px-6 -mb-6 rounded-b-3xl">
+                                                                <div className="pt-3 flex flex-col gap-2 bg-bakery-light/30 -mx-6 px-6 -mb-6 rounded-b-3xl">
+                                                                    <div className="flex justify-between items-center text-[10px] font-black text-bakery-accent uppercase">
+                                                                        <span>Subtotal</span>
+                                                                        <span>₹{order.subtotal}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center text-[10px] font-black text-bakery-accent uppercase">
+                                                                        <span>Taxes</span>
+                                                                        <span>₹{order.tax}</span>
+                                                                    </div>
+                                                                    <div className="flex justify-between items-center text-[10px] font-black text-bakery-accent uppercase">
+                                                                        <span>Delivery</span>
+                                                                        <span>₹{order.deliveryCharge}</span>
+                                                                    </div>
                                                                     {order.discount > 0 && (
-                                                                        <div className="flex justify-between items-center text-[10px] font-black text-emerald-600 uppercase italic">
-                                                                            <span>Discount ({order.couponCode})</span>
+                                                                        <div className="flex justify-between items-center text-[10px] font-black text-emerald-600 uppercase italic border-t border-bakery-light/50 pt-2">
+                                                                            <span>Discount ({order.couponCode || 'COUPON'})</span>
                                                                             <span>-₹{order.discount}</span>
                                                                         </div>
                                                                     )}
-                                                                    <div className="flex justify-between items-center py-2">
+                                                                    <div className="flex justify-between items-center py-2 border-t border-bakery-light/50">
                                                                         <span className="text-[10px] font-black text-bakery-accent uppercase">Order Total</span>
                                                                         <span className="text-xl font-black text-bakery-primary">₹{order.total}</span>
                                                                     </div>
