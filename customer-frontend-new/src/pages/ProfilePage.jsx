@@ -1204,15 +1204,27 @@ const ProfilePage = () => {
 
                                                         {/* Footer Actions */}
                                                         <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-2">
-                                                            <div>
-                                                                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Amount</p>
-                                                                <div className="flex items-center gap-2">
-                                                                    <p className="text-2xl font-black text-slate-800">₹{order.total?.toFixed(2)}</p>
-                                                                    {order.discount > 0 && (
-                                                                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
-                                                                            -₹{order.discount.toFixed(2)}
-                                                                        </span>
-                                                                    )}
+                                                            <div className="flex-1">
+                                                                <div className="flex flex-wrap gap-x-6 gap-y-2">
+                                                                    <div>
+                                                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Total Amount</p>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <p className="text-2xl font-black text-slate-800">₹{order.total?.toFixed(2)}</p>
+                                                                            {order.paymentStatus === 'paid' && (
+                                                                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 uppercase tracking-tighter">Paid</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div className="flex flex-col justify-center border-l border-slate-100 pl-6">
+                                                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Summary</p>
+                                                                        <div className="flex items-center gap-3 text-[11px] font-bold text-slate-600">
+                                                                            <span>Sub: ₹{order.subtotal || (order.total - (order.deliveryCharge || 0) - (order.tax || 0) + (order.discount || 0))}</span>
+                                                                            {order.discount > 0 && (
+                                                                                <span className="text-emerald-600 bg-emerald-50 px-1.5 rounded">Saved: ₹{order.discount}</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
                                                             </div>
 

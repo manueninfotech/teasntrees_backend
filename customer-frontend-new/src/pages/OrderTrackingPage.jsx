@@ -501,28 +501,39 @@ const OrderTrackingPage = () => {
                             </div>
                         ))}
                     </div>
-                    <div className="space-y-2 mt-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-3 mt-4 pt-4 border-t border-slate-100">
                         <div className="flex justify-between text-sm text-slate-500">
-                            <span>Subtotal</span>
-                            <span>₹{order.subtotal}</span>
+                            <span className="font-medium">Subtotal</span>
+                            <span className="font-bold text-slate-700">₹{order.subtotal || (order.total - (order.deliveryCharge || 0) - (order.tax || 0) + (order.discount || 0))}</span>
                         </div>
                         <div className="flex justify-between text-sm text-slate-500">
-                            <span>Delivery Fee</span>
-                            <span>₹{order.deliveryCharge}</span>
+                            <span className="font-medium">Delivery Fee</span>
+                            <span className="font-bold text-slate-700">₹{order.deliveryCharge || 0}</span>
                         </div>
                         <div className="flex justify-between text-sm text-slate-500">
-                            <span>Tax</span>
-                            <span>₹{order.tax}</span>
+                            <span className="font-medium">Taxes (GST)</span>
+                            <span className="font-bold text-slate-700">₹{order.tax || 0}</span>
                         </div>
                         {order.discount > 0 && (
-                            <div className="flex justify-between text-sm font-bold text-emerald-600">
-                                <span>Discount {order.couponCode ? `(${order.couponCode})` : ''}</span>
-                                <span>-₹{order.discount}</span>
+                            <div className="flex justify-between items-center py-2 px-3 bg-emerald-50 rounded-xl border border-emerald-100/50">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Discount Applied</span>
+                                    {order.couponCode && (
+                                        <span className="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Coupon: {order.couponCode}</span>
+                                    )}
+                                </div>
+                                <span className="font-black text-emerald-600">-₹{order.discount}</span>
                             </div>
                         )}
-                        <div className={`pt-2 border-t border-slate-100 flex justify-between font-bold text-lg ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-800'}`}>
-                            <span>Total Paid</span>
-                            <span>₹{order.total}</span>
+                        <div className={`pt-4 border-t border-slate-100 flex justify-between items-end`}>
+                            <div>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Paid Amount</p>
+                                <span className={`text-3xl font-black ${theme.isLittleH ? 'text-[#565A47]' : 'text-emerald-600'} tracking-tighter`}>₹{order.total}</span>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Payment Method</p>
+                                <span className="text-sm font-bold text-slate-700 uppercase">{order.paymentMethod}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

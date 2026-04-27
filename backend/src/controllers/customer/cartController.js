@@ -497,8 +497,52 @@ export const checkoutCart = async (req, res) => {
         // Fetch outlets for assigning pickup locations
         const outlets = await Outlet.find({ isActive: true });
 
+        // --- NEW: Calculate Discounts BEFORE saving orders ---
+        let globalDiscount = 0;
+        let appliedCouponObj = null;
+
+        if (couponCode) {
+            const coupon = await Coupon.findOne({
+                code: couponCode.trim().toUpperCase(),
+                isActive: true
+            });
+
+            if (coupon && new Date() <= new Date(coupon.expiryDate)) {
+                const totalSubtotal = Object.values(brandsGrouped).reduce((sum, g) => sum + g.subtotal, 0);
+                if (totalSubtotal >= coupon.minOrderValue) {
+                    const userEntry = coupon.userUsage.find(u => u.userId.toString() === userId.toString());
+                    const userCount = userEntry ? userEntry.count : 0;
+                    const withinUserLimit = coupon.perUserLimit === null || userCount < coupon.perUserLimit;
+                    const withinGlobalLimit = coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit;
+
+                    let firstOrderOk = true;
+                    if (coupon.firstOrderOnly) {
+                        const prevOrders = await Order.countDocuments({
+                            customerId: userId,
+                            status: { $nin: ['cancelled'] }
+                        });
+                        firstOrderOk = prevOrders === 0;
+                    }
+
+                    if (withinUserLimit && withinGlobalLimit && firstOrderOk) {
+                        if (coupon.discountType === 'flat') {
+                            globalDiscount = Math.min(coupon.discountAmount, totalSubtotal);
+                        } else {
+                            globalDiscount = (totalSubtotal * coupon.discountAmount) / 100;
+                            if (coupon.maxDiscount !== null) {
+                                globalDiscount = Math.min(globalDiscount, coupon.maxDiscount);
+                            }
+                        }
+                        globalDiscount = Math.round(globalDiscount * 100) / 100;
+                        appliedCouponObj = coupon;
+                    }
+                }
+            }
+        }
+
         const createdOrders = [];
         let grandTotalAllOrders = 0;
+        let totalCouponDiscount = 0;
 
         for (const [brand, group] of Object.entries(brandsGrouped)) {
             const settings = await Settings.findOne({ brand });
@@ -506,8 +550,19 @@ export const checkoutCart = async (req, res) => {
             const gstRate = settings ? settings.gstRate : 5;
 
             const outlet = outlets.find(o => o.brand === brand);
-            const tax = group.subtotal * (gstRate / 100);
-            const orderTotal = group.subtotal + deliveryChargePerOrder + tax;
+            const tax = Math.round(group.subtotal * (gstRate / 100) * 100) / 100;
+            
+            // Distribute global discount proportionally or to the first matching brand
+            let orderDiscount = 0;
+            if (globalDiscount > 0) {
+                if (!appliedCouponObj.brand || appliedCouponObj.brand === brand) {
+                    orderDiscount = Math.min(globalDiscount, group.subtotal);
+                    globalDiscount -= orderDiscount;
+                    totalCouponDiscount += orderDiscount;
+                }
+            }
+
+            const orderTotal = Math.round((group.subtotal + deliveryChargePerOrder + tax - orderDiscount) * 100) / 100;
             grandTotalAllOrders += orderTotal;
 
             const orderPayload = {
@@ -518,6 +573,8 @@ export const checkoutCart = async (req, res) => {
                 subtotal: group.subtotal,
                 deliveryCharge: deliveryChargePerOrder,
                 tax,
+                discount: orderDiscount,
+                couponCode: orderDiscount > 0 ? appliedCouponObj.code : null,
                 total: orderTotal,
                 deliveryAddress: finalizedAddress,
                 paymentMethod,
@@ -526,17 +583,14 @@ export const checkoutCart = async (req, res) => {
                 status: 'pending'
             };
 
-            // Only assign pickupLocation if it properly has coordinates to satisfy MongoDB's 2dsphere index
             if (outlet && outlet.location && Array.isArray(outlet.location.coordinates) && outlet.location.coordinates.length === 2 && (outlet.location.coordinates[0] !== 0 || outlet.location.coordinates[1] !== 0)) {
                 orderPayload.pickupLocation = outlet.location;
             }
 
             const order = new Order(orderPayload);
-
             await order.save();
             createdOrders.push(order);
 
-            // Trigger background geocoding if location is missing
             if (!finalizedAddress.location) {
                 setImmediate(() => {
                     processGeocoding(order._id, finalizedAddress.address);
@@ -544,58 +598,16 @@ export const checkoutCart = async (req, res) => {
             }
         }
 
-        // --- COUPON: Validate & apply discount to grandTotal ---
-        let couponDiscount = 0;
-        let appliedCoupon = null;
-
-        if (couponCode) {
-            const coupon = await Coupon.findOne({
-                code: couponCode.trim().toUpperCase(),
-                isActive: true
-            });
-
-            if (coupon && new Date() <= new Date(coupon.expiryDate)) {
-                if (grandTotalAllOrders >= coupon.minOrderValue) {
-                    const userEntry = coupon.userUsage.find(u => u.userId.toString() === userId.toString());
-                    const userCount = userEntry ? userEntry.count : 0;
-                    const withinUserLimit = coupon.perUserLimit === null || userCount < coupon.perUserLimit;
-                    const withinGlobalLimit = coupon.usageLimit === null || coupon.usedCount < coupon.usageLimit;
-
-                    let firstOrderOk = true;
-                    if (coupon.firstOrderOnly) {
-                        const prevOrders = await Order.countDocuments({
-                            customerId: userId,
-                            status: { $nin: ['cancelled'] },
-                            _id: { $nin: createdOrders.map(o => o._id) }
-                        });
-                        firstOrderOk = prevOrders === 0;
-                    }
-
-                    if (withinUserLimit && withinGlobalLimit && firstOrderOk) {
-                        if (coupon.discountType === 'flat') {
-                            couponDiscount = Math.min(coupon.discountAmount, grandTotalAllOrders);
-                        } else {
-                            couponDiscount = (grandTotalAllOrders * coupon.discountAmount) / 100;
-                            if (coupon.maxDiscount !== null) {
-                                couponDiscount = Math.min(couponDiscount, coupon.maxDiscount);
-                            }
-                        }
-                        couponDiscount = Math.round(couponDiscount * 100) / 100;
-                        grandTotalAllOrders = Math.max(0, grandTotalAllOrders - couponDiscount);
-                        appliedCoupon = coupon.code;
-
-                        // Track coupon usage
-                        coupon.usedCount += 1;
-                        if (userEntry) {
-                            userEntry.count += 1;
-                        } else {
-                            coupon.userUsage.push({ userId, count: 1 });
-                        }
-                        await coupon.save();
-                        logger.info(`Coupon ${coupon.code} applied`, { userId, discount: couponDiscount });
-                    }
-                }
+        // Update Coupon Usage if applied
+        if (appliedCouponObj && totalCouponDiscount > 0) {
+            appliedCouponObj.usedCount += 1;
+            const userEntry = appliedCouponObj.userUsage.find(u => u.userId.toString() === userId.toString());
+            if (userEntry) {
+                userEntry.count += 1;
+            } else {
+                appliedCouponObj.userUsage.push({ userId, count: 1 });
             }
+            await appliedCouponObj.save();
         }
 
         // Clear cart after successful orders
@@ -642,8 +654,8 @@ export const checkoutCart = async (req, res) => {
                 orderIds: createdOrders.map(o => o._id),
                 orders: createdOrders,
                 total: grandTotalAllOrders,
-                couponDiscount,
-                appliedCoupon,
+                couponDiscount: totalCouponDiscount,
+                appliedCoupon: appliedCouponObj ? appliedCouponObj.code : null,
                 status: 'pending'
             }
         });
