@@ -16,12 +16,7 @@ export const getAllDeliveries = async (req, res) => {
         const query = {};
         if (status) query.status = status;
         if (riderId) query.riderId = riderId;
-
-        // Brand filtering logic: Delivery schema does not have 'brand'. We filter by Order.
-        if (brand) {
-            const filteredOrders = await Order.find({ brand }).select('_id');
-            query.orderId = { $in: filteredOrders.map(o => o._id) };
-        }
+        if (brand) query.brand = brand;
 
         if (startDate || endDate) {
             query.createdAt = {};
@@ -125,8 +120,7 @@ export const getDeliveryStats = async (req, res) => {
         const query = {};
 
         if (brand) {
-            const filteredOrders = await Order.find({ brand }).select('_id');
-            query.orderId = { $in: filteredOrders.map(o => o._id) };
+            query.brand = brand;
         }
 
         const [
@@ -138,10 +132,36 @@ export const getDeliveryStats = async (req, res) => {
             Delivery.countDocuments(query),
             Delivery.countDocuments({
                 ...query,
-                status: { $in: ['pending_acceptance', 'accepted', 'heading_to_pickup', 'picked_up', 'in_transit'] }
+                status: {
+                    $in: [
+                        'new',
+                        'assigned_for_pickup',
+                        'assigned_for_seller_pickup',
+                        'ofp',
+                        'picked',
+                        'item_manifested',
+                        'bag_in_transit',
+                        'bag_received_at_via',
+                        'bag_received',
+                        'recd_at_fwd_hub',
+                        'recd_at_fwd_dc',
+                        'assigned_for_delivery',
+                        'ofd',
+                        'in_transit',
+                        'on_hold',
+                        'pickup_on_hold',
+                        'reopen_ndr',
+                        'cid',
+                        'nc',
+                        'na'
+                    ]
+                }
             }),
             Delivery.countDocuments({ ...query, status: 'delivered' }),
-            Delivery.countDocuments({ ...query, status: 'cancelled' })
+            Delivery.countDocuments({
+                ...query,
+                status: { $in: ['cancelled', 'cancelled_by_seller', 'cancelled_by_customer', 'lost', 'rto', 'rto_d', 'rts', 'rts_d'] }
+            })
         ]);
 
         const earnings = await Delivery.aggregate([

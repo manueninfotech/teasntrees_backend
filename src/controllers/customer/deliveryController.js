@@ -1,41 +1,50 @@
 import Delivery from '../../models/Delivery.js';
 import Order from '../../models/Order.js';
 
-/* --------------------------------------------------
-   Helper: Build Status Timeline
--------------------------------------------------- */
-const buildTimeline = (delivery) => {
+const buildTimeline = (delivery, order) => {
     const timeline = [];
 
-    const push = (status, time) => {
-        if (time) timeline.push({ status, timestamp: time });
+    const push = (status, timestamp, description) => {
+        if (timestamp) {
+            timeline.push({ status, timestamp, description });
+        }
     };
 
-    // Always start with when it was ready for a rider
-    push('waiting_for_rider', delivery.createdAt);
+    push('pending', order?.createdAt, 'Order created');
+    push('confirmed', order?.confirmedAt, 'Order confirmed');
+    push('preparing', order?.confirmedAt, 'Order is being prepared');
+    push('ready', delivery?.createdAt || order?.updatedAt, 'Order is ready for pickup');
+    push(delivery?.status, delivery?.updatedAt, 'Delivery status update');
+    push('delivered', delivery?.deliveredAt || order?.deliveredAt, 'Delivered');
+    push('cancelled', delivery?.cancelledAt || order?.cancelledAt, 'Cancelled');
 
-    push('assigned', delivery.assignedAt);
-    push('accepted', delivery.acceptedAt);
-    push('heading_to_pickup', delivery.acceptedAt);
-    push('arrived_at_pickup', delivery.arrivedAtPickup);
-    push('picked_up', delivery.pickedUpAt);
-    push('in_transit', delivery.pickedUpAt);
-    push('arrived', delivery.arrivedAt);
-    push('delivered', delivery.deliveredAt);
-    push('cancelled', delivery.cancelledAt);
-
-    return timeline;
+    return timeline.filter((item, index, arr) =>
+        item.status && arr.findIndex((candidate) => candidate.status === item.status && String(candidate.timestamp) === String(item.timestamp)) === index
+    );
 };
 
-/* --------------------------------------------------
-   Helper: Calculate ETA (minutes)
--------------------------------------------------- */
-const calculateETA = (delivery) => {
-    if (!delivery.estimatedTime || !delivery.pickedUpAt || !(delivery.pickedUpAt instanceof Date)) return null;
-
-    const elapsed = (Date.now() - delivery.pickedUpAt.getTime()) / 60000;
-    return Math.max(0, Math.round(delivery.estimatedTime - elapsed));
-};
+const shapeDelivery = (delivery, order) => ({
+    deliveryId: delivery._id,
+    deliveryNumber: delivery.deliveryNumber,
+    status: delivery.status,
+    updatedAt: delivery.updatedAt,
+    estimatedTime: delivery.estimatedTime,
+    pickupLocation: delivery.pickupLocation,
+    deliveryLocation: delivery.deliveryLocation,
+    order: order ? {
+        orderId: order._id,
+        orderNumber: order.orderNumber,
+        total: order.total,
+        deliveryAddress: order.deliveryAddress
+    } : null,
+    statusHistory: buildTimeline(delivery, order),
+    rider: delivery.riderId ? {
+        name: delivery.riderId.name,
+        mobile: delivery.riderId.mobile,
+        currentLocation: delivery.riderId.currentLocation
+    } : null,
+    deliveryOtp: null
+});
 
 /* ==================================================
    GET CUSTOMER DELIVERIES (LIST)
@@ -44,50 +53,22 @@ export const getMyDeliveries = async (req, res) => {
     try {
         const customerId = req.user.userId;
 
-        // Optimized query: lean, projection, and optimized populate
         const deliveries = await Delivery.find({ customerId })
-            .select('deliveryNumber status createdAt updatedAt riderId pickupLocation deliveryLocation distance estimatedTime pickedUpAt deliveryOtp orderId')
+            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId')
+            .populate({
+                path: 'orderId',
+                select: 'orderNumber total deliveryAddress createdAt confirmedAt deliveredAt cancelledAt updatedAt',
+                options: { lean: true }
+            })
+            .populate('riderId', 'name mobile currentLocation')
             .sort({ createdAt: -1 })
             .limit(10)
             .lean();
 
-        const result = deliveries.map(delivery => {
-            const eta = calculateETA(delivery);
-
-            return {
-                deliveryId: delivery._id,
-                deliveryNumber: delivery.deliveryNumber,
-                status: delivery.status,
-                updatedAt: delivery.updatedAt,
-
-                rider: null, // Removed for testing
-
-                pickupLocation: delivery.pickupLocation,
-                deliveryLocation: delivery.deliveryLocation,
-                distance: delivery.distance,
-
-                estimatedTime: delivery.estimatedTime,
-                estimatedArrival: eta,
-
-                order: {
-                    orderId: delivery.orderId,
-                    orderNumber: 'TEST',
-                    total: 0
-                },
-
-                statusHistory: buildTimeline(delivery),
-
-                deliveryAddress: 'TEST ADDRESS',
-
-                // OTP only when rider is near
-                deliveryOtp:
-                    ['picked_up', 'in_transit', 'arrived', 'out-for-delivery', 'out_for_delivery'].includes(delivery.status)
-                        ? delivery.deliveryOtp
-                        : null
-            };
+        res.json({
+            success: true,
+            data: deliveries.map((delivery) => shapeDelivery(delivery, delivery.orderId))
         });
-
-        res.json({ success: true, data: result });
 
     } catch (error) {
         console.error('getMyDeliveries error:', error);
@@ -107,17 +88,13 @@ export const trackDelivery = async (req, res) => {
             _id: deliveryId,
             customerId
         })
-            .select('deliveryNumber status createdAt updatedAt riderId pickupLocation deliveryLocation distance estimatedTime pickedUpAt deliveryOtp orderId')
+            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId')
             .populate({
                 path: 'orderId',
-                select: 'orderNumber total deliveryAddress estimatedDeliveryTime',
+                select: 'orderNumber total deliveryAddress createdAt confirmedAt deliveredAt cancelledAt updatedAt',
                 options: { lean: true }
             })
-            .populate({
-                path: 'riderId',
-                select: 'name mobile currentLocation',
-                options: { lean: true }
-            })
+            .populate('riderId', 'name mobile currentLocation')
             .lean();
 
         if (!delivery) {
@@ -126,35 +103,7 @@ export const trackDelivery = async (req, res) => {
 
         res.json({
             success: true,
-            data: {
-                deliveryNumber: delivery.deliveryNumber,
-                status: delivery.status,
-
-                rider: delivery.riderId ? {
-                    name: delivery.riderId.name,
-                    mobile: delivery.riderId.mobile,
-                    location: delivery.riderId.currentLocation || null
-                } : null,
-
-                pickupLocation: delivery.pickupLocation,
-                deliveryLocation: delivery.deliveryLocation,
-
-                estimatedTime: delivery.estimatedTime,
-                estimatedArrival: calculateETA(delivery),
-
-                statusHistory: buildTimeline(delivery),
-
-                order: {
-                    orderNumber: delivery.orderId?.orderNumber,
-                    total: delivery.orderId?.total,
-                    deliveryAddress: delivery.orderId?.deliveryAddress
-                },
-
-                deliveryOtp:
-                    ['picked_up', 'in_transit', 'arrived', 'out-for-delivery', 'out_for_delivery'].includes(delivery.status)
-                        ? delivery.deliveryOtp
-                        : null
-            }
+            data: shapeDelivery(delivery, delivery.orderId)
         });
 
     } catch (error) {
@@ -174,19 +123,15 @@ export const getDeliveryByOrder = async (req, res) => {
         const order = await Order.findOne({
             _id: orderId,
             customerId
-        }).select('_id deliveryAddress').lean();
+        }).select('_id orderNumber total deliveryAddress createdAt confirmedAt deliveredAt cancelledAt updatedAt').lean();
 
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
         const delivery = await Delivery.findOne({ orderId: order._id })
-            .select('deliveryNumber status createdAt updatedAt riderId pickupLocation deliveryLocation distance estimatedTime pickedUpAt deliveryOtp orderId')
-            .populate({
-                path: 'riderId',
-                select: 'name mobile currentLocation',
-                options: { lean: true }
-            })
+            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId')
+            .populate('riderId', 'name mobile currentLocation')
             .lean();
 
         if (!delivery) {
@@ -195,30 +140,7 @@ export const getDeliveryByOrder = async (req, res) => {
 
         res.json({
             success: true,
-            data: {
-                deliveryId: delivery._id,
-                deliveryNumber: delivery.deliveryNumber,
-                status: delivery.status,
-
-                rider: delivery.riderId ? {
-                    name: delivery.riderId.name,
-                    mobile: delivery.riderId.mobile,
-                    location: delivery.riderId.currentLocation || null
-                } : null,
-
-                estimatedTime: delivery.estimatedTime,
-                estimatedArrival: calculateETA(delivery),
-
-                pickupLocation: delivery.pickupLocation,
-                deliveryLocation: delivery.deliveryLocation,
-
-                deliveryAddress: order.deliveryAddress,
-
-                deliveryOtp:
-                    ['picked_up', 'in_transit', 'arrived', 'out-for-delivery', 'out_for_delivery'].includes(delivery.status)
-                        ? delivery.deliveryOtp
-                        : null
-            }
+            data: shapeDelivery(delivery, order)
         });
 
     } catch (error) {

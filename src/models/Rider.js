@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import User from './User.js';
+import { fixCloudinaryUrl } from '../utils/cloudinaryHelper.js';
 
 const riderSchema = new mongoose.Schema({
     // Vehicle Details
@@ -21,13 +22,13 @@ const riderSchema = new mongoose.Schema({
     // Legal Documents (URLs to images/PDFs)
     licenseNumber: { type: String, required: true },
     licenseExpiryDate: { type: Date, required: true },
-    licensePhoto: { type: String }, // URL
+    licensePhoto: { type: String, get: fixCloudinaryUrl }, // URL
 
     aadharNumber: { type: String, required: true },
-    aadharPhoto: { type: String }, // URL
+    aadharPhoto: { type: String, get: fixCloudinaryUrl }, // URL
 
     panNumber: { type: String },
-    panPhoto: { type: String }, // URL
+    panPhoto: { type: String, get: fixCloudinaryUrl }, // URL
 
     // Bank Details (For Payouts)
     bankAccountNumber: { type: String },
@@ -82,7 +83,9 @@ const riderSchema = new mongoose.Schema({
     maxDeliveriesPerDay: { type: Number, default: 30 }
 
 }, {
-    discriminatorKey: 'kind'
+    discriminatorKey: 'kind',
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 // Index for geospatial queries (finding nearest rider)

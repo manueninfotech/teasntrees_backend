@@ -3,6 +3,7 @@ import './Order.js';
 import './User.js';
 import Rider from './Rider.js';
 import { riderAssignmentService } from '../services/riderAssignmentService.js';
+import { notificationService } from '../services/notificationService.js';
 
 /* ----------------------------------
    DELIVERY → ORDER STATUS MAP
@@ -38,7 +39,8 @@ const deliverySchema = new mongoose.Schema({
         type: String,
         enum: ['teasntrees', 'littleh'],
         default: 'teasntrees',
-        required: true
+        required: true,
+        index: true
     },
 
     riderId: {
@@ -277,12 +279,17 @@ deliverySchema.post('save', async function (delivery) {
         await releaseRider(delivery.riderId);
     }
 
-    if (!mutated) return;
+    if (!mutated) {
+        // Even if no order status mutated, send notification for delivery updates
+        sendCustomerStatusPushNotification(delivery);
+        return;
+    }
 
     // Allow logistics status updates only from Delivery sync
     order.$locals.allowDeliverySync = true;
 
     await order.save();
+    sendCustomerStatusPushNotification(delivery);
 });
 
 /* ----------------------------------
@@ -332,7 +339,76 @@ deliverySchema.post('findOneAndUpdate', async function (delivery) {
     if (['delivered', 'cancelled', 'rejected'].includes(delivery.status)) {
         await releaseRider(delivery.riderId);
     }
+
+    sendCustomerStatusPushNotification(delivery);
 });
+
+/* ----------------------------------
+   REAL-TIME PUSH NOTIFICATIONS
+----------------------------------- */
+const sendCustomerStatusPushNotification = async (delivery) => {
+    try {
+        if (!delivery) return;
+        const User = mongoose.model('User');
+        const customer = await User.findById(delivery.customerId);
+        if (!customer || !customer.fcmToken) return;
+
+        const rider = await User.findById(delivery.riderId);
+        const riderName = rider ? rider.name : 'A rider';
+
+        let title = 'Order Update';
+        let body = '';
+
+        switch (delivery.status) {
+            case 'accepted':
+                title = 'Rider Assigned';
+                body = `${riderName} has been assigned to deliver your order!`;
+                break;
+            case 'heading_to_pickup':
+                title = 'Rider Heading to Cafe';
+                body = `${riderName} is heading to the outlet to collect your order.`;
+                break;
+            case 'arrived_at_pickup':
+                title = 'Rider Arrived at Cafe';
+                body = `${riderName} has arrived at the outlet and is preparing to collect your order.`;
+                break;
+            case 'picked_up':
+                title = 'Order Out for Delivery';
+                body = `${riderName} has picked up your order and is on the way!`;
+                break;
+            case 'in_transit':
+                title = 'Order In Transit';
+                body = `${riderName} is on the way to your location.`;
+                break;
+            case 'arrived':
+                title = 'Rider Arrived';
+                body = `${riderName} has arrived at your address! Share delivery PIN ${delivery.deliveryOtp} to collect.`;
+                break;
+            case 'delivered':
+                title = 'Order Delivered';
+                body = `Your order has been successfully delivered. Thank you!`;
+                break;
+            case 'cancelled':
+                title = 'Delivery Cancelled';
+                body = `We are sorry, your delivery assignment was cancelled.`;
+                break;
+            default:
+                return;
+        }
+
+        await notificationService.sendPush(customer, {
+            title,
+            body,
+            data: {
+                deliveryId: delivery._id.toString(),
+                orderId: delivery.orderId.toString(),
+                status: delivery.status
+            }
+        });
+    } catch (err) {
+        console.error('Failed to send status push notification:', err);
+    }
+};
 
 /* ----------------------------------
    EXPORT

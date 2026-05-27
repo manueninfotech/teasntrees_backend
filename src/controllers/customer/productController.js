@@ -5,6 +5,18 @@ import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
 import { isProductInSeason, getCurrentMonth } from '../../utils/seasonUtils.js';
 
+// Helper to fix Cloudinary URLs in lean objects
+const fixLeanImage = (doc) => {
+    if (!doc) return doc;
+    if (doc.image && doc.image.includes('res.cloudinary.com')) {
+        const currentCloudName = process.env.CLOUDINARY_CLOUD_NAME;
+        if (currentCloudName) {
+            doc.image = doc.image.replace(/(res\.cloudinary\.com\/)[^/]+(\/image\/upload)/, `$1${currentCloudName}$2`);
+        }
+    }
+    return doc;
+};
+
 // Simple in-memory cache for product listings
 // TTL: 5 seconds (short enough to feel real-time, long enough for load tests)
 const productCache = new Map();
@@ -117,10 +129,12 @@ export const getAllProducts = async (req, res) => {
             Product.countDocuments(query)
         ]);
 
+        const fixedProducts = products.map(fixLeanImage);
+
         const responseData = {
             success: true,
             data: {
-                products,
+                products: fixedProducts,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(totalProducts / limit),
@@ -175,9 +189,11 @@ export const getProductById = async (req, res) => {
             });
         }
 
+        const fixedProduct = fixLeanImage(product);
+
         const responseData = {
             success: true,
-            data: product
+            data: fixedProduct
         };
 
         setCachedResponse(cacheKey, responseData);
@@ -231,10 +247,12 @@ export const getProductsByCategory = async (req, res) => {
             Product.countDocuments(query)
         ]);
 
+        const fixedProducts = products.map(fixLeanImage);
+
         const responseData = {
             success: true,
             data: {
-                products,
+                products: fixedProducts,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(totalProducts / limit),

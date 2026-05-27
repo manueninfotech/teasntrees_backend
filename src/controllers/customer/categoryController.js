@@ -2,6 +2,7 @@
 // Public access to browse categories
 
 import Category from '../../models/Category.js';
+import { fixLeanUrls } from '../../utils/cloudinaryHelper.js';
 
 // Simple in-memory cache for category listings
 const categoryCache = new Map();
@@ -41,9 +42,11 @@ export const getAllCategories = async (req, res) => {
             .sort({ name: 1 })
             .lean();
 
+        const fixedCategories = fixLeanUrls(categories, ['icon']);
+
         const responseData = {
             success: true,
-            data: categories
+            data: fixedCategories
         };
 
         // Cache the result

@@ -184,6 +184,21 @@ class RiderAssignmentService {
             if (!rider) break;
 
             try {
+                const User = mongoose.model('User');
+                let dbRider = await User.findById(rider._id);
+                if (dbRider && !dbRider.verificationPin) {
+                    dbRider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+                    await User.findByIdAndUpdate(rider._id, { verificationPin: dbRider.verificationPin });
+                }
+                const riderPin = dbRider ? dbRider.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+
+                let dbCustomer = await User.findById(order.customerId);
+                if (dbCustomer && !dbCustomer.verificationPin) {
+                    dbCustomer.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+                    await User.findByIdAndUpdate(order.customerId, { verificationPin: dbCustomer.verificationPin });
+                }
+                const customerPin = dbCustomer ? dbCustomer.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+
                 const DeliveryModel = mongoose.model('Delivery');
                 const delivery = await DeliveryModel.create({
                     ...deliveryData,
@@ -191,6 +206,8 @@ class RiderAssignmentService {
                     riderId: rider._id,
                     status: "pending_acceptance",
                     assignedAt: new Date(),
+                    pickupOtp: riderPin,
+                    deliveryOtp: customerPin,
                     deliveryLocation: {
                         ...deliveryData.deliveryLocation,
                         address: order.deliveryAddress?.address || 'Customer Address'
@@ -294,6 +311,21 @@ class RiderAssignmentService {
                 deliveryLocation.coordinates[0]
             );
 
+            const User = mongoose.model('User');
+            let dbRider = await User.findById(rider._id);
+            if (dbRider && !dbRider.verificationPin) {
+                dbRider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+                await User.findByIdAndUpdate(rider._id, { verificationPin: dbRider.verificationPin });
+            }
+            const riderPin = dbRider ? dbRider.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+
+            let dbCustomer = await User.findById(order.customerId);
+            if (dbCustomer && !dbCustomer.verificationPin) {
+                dbCustomer.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+                await User.findByIdAndUpdate(order.customerId, { verificationPin: dbCustomer.verificationPin });
+            }
+            const customerPin = dbCustomer ? dbCustomer.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+
             const deliveryData = {
                 orderId: order._id,
                 brand: order.brand,
@@ -313,8 +345,8 @@ class RiderAssignmentService {
                 totalEarning: order.riderEarning || 20,
                 status: 'pending_acceptance',
                 assignedAt: new Date(),
-                pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
-                deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
+                pickupOtp: riderPin,
+                deliveryOtp: customerPin
             };
 
             delivery = await DeliveryModel.create(deliveryData);

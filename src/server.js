@@ -33,11 +33,9 @@ import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminContactRoutes from './routes/admin/contactRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 
-import riderAuthRoutes from './routes/rider/authRoutes.js';
-import riderDeliveryRoutes from './routes/rider/deliveryRoutes.js';
-
 import payoutRoutes from './routes/admin/payoutRoutes.js';
 import managerRoutes from './routes/manager/index.js';
+import riderRoutes from './routes/rider/index.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
 import { socketAuth } from './middlewares/socketAuth.js';
@@ -202,9 +200,8 @@ app.use(['/api/:brand/v1/admin/contact', '/api/v1/admin/contact'], brandMiddlewa
 app.use(['/api/:brand/admin', '/api/admin'], brandMiddleware, adminRoutes);
 app.use(['/api/:brand/admin/payouts', '/api/admin/payouts'], brandMiddleware, payoutRoutes);
 
-// Rider
-app.use('/api/rider/auth', riderAuthRoutes);
-app.use('/api/rider/deliveries', riderDeliveryRoutes);
+// Internal rider APIs
+app.use(['/api/:brand/rider', '/api/rider'], brandMiddleware, riderRoutes);
 
 // Manager
 app.use(['/api/:brand/manager', '/api/manager'], brandMiddleware, managerRoutes);
@@ -243,9 +240,8 @@ function getLanIP() {
 }
 
 // Start server
-// const PORT = process.env.PORT || 5000;
 const HOST = '0.0.0.0';
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 const LAN_IP = getLanIP();
 
 

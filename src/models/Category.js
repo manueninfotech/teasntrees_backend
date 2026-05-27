@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { fixCloudinaryUrl } from '../utils/cloudinaryHelper.js';
 
 const categorySchema = new mongoose.Schema({
     name: {
@@ -13,7 +14,10 @@ const categorySchema = new mongoose.Schema({
         required: true
     },
     description: String,
-    icon: String,
+    icon: {
+        type: String,
+        get: fixCloudinaryUrl
+    },
     isActive: {
         type: Boolean,
         default: true
@@ -23,7 +27,9 @@ const categorySchema = new mongoose.Schema({
         default: 0
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 categorySchema.index({ name: 1, brand: 1 }, { unique: true });
