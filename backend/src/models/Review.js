@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { fixCloudinaryUrl } from '../utils/cloudinaryHelper.js';
 
 const reviewSchema = new mongoose.Schema({
     orderId: {
@@ -52,7 +53,8 @@ const reviewSchema = new mongoose.Schema({
         maxlength: 1000
     },
     images: [{
-        type: String
+        type: String,
+        get: fixCloudinaryUrl
     }],
     isApproved: {
         type: Boolean,
@@ -64,7 +66,9 @@ const reviewSchema = new mongoose.Schema({
         default: 'order'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 // Indexes

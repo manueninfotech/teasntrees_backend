@@ -28,6 +28,14 @@ export const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Delivery address required' });
         }
 
+        const pincode = deliveryAddress.pincode;
+        if (!pincode || String(pincode).length !== 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'A valid 6-digit delivery pincode is required'
+            });
+        }
+
         // 1. Batch fetch products and categories
         const productIds = items.map(i => i.product);
         const products = await Product.find({ _id: { $in: productIds } }).lean();
@@ -124,12 +132,10 @@ export const createOrder = async (req, res) => {
             });
         }
 
-        const Settings = await import('../../models/Settings.js').then(m => m.default);
         const settings = await Settings.findOne().lean();
         const deliveryChargePerOrder = settings ? settings.deliveryCharge : 50;
         const gstRate = settings ? (settings.gstRate || settings.taxPercentage || 5) : 5;
 
-        const Outlet = await import('../../models/Outlet.js').then(m => m.default);
         const outlets = await Outlet.find({ isActive: true }).lean();
 
         const createdOrders = [];
@@ -291,14 +297,14 @@ export const getOrderById = async (req, res) => {
         const data = { ...order };
 
         if (delivery) {
-            const allowOtp = ['in_transit', 'arrived'].includes(delivery.status);
-
             data.delivery = {
                 status: delivery.status,
                 deliveryNumber: delivery.deliveryNumber,
                 estimatedTime: delivery.estimatedTime,
-                deliveryOtp: allowOtp ? delivery.deliveryOtp : null,
-                rider: delivery.riderId
+                rider: delivery.riderId ? {
+                    name: delivery.riderId.name,
+                    mobile: delivery.riderId.mobile
+                } : null
             };
         }
 
@@ -323,7 +329,7 @@ export const cancelOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        if (order.status !== 'pending') {
+        if (order.status !== 'pending' && order.status !== 'confirmed') {
             return res.status(400).json({
                 success: false,
                 message: 'Order can no longer be cancelled'
@@ -336,7 +342,7 @@ export const cancelOrder = async (req, res) => {
 
         // Cancel delivery ONLY if exists & not picked up
         const delivery = await Delivery.findOne({ orderId: order._id });
-        if (delivery && !['picked_up', 'in_transit', 'delivered'].includes(delivery.status)) {
+        if (delivery && !['picked_up', 'picked', 'in_transit', 'delivered'].includes(delivery.status)) {
             delivery.status = 'cancelled';
             delivery.cancelledAt = new Date();
             await delivery.save();

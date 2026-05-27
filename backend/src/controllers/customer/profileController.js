@@ -6,6 +6,7 @@ import User from '../../models/User.js';
 import Customer from '../../models/Customer.js'; // Import Customer to ensure discriminator registration
 import { isValidEmail, sanitizeString } from '../../utils/validators.js';
 import { geocodingService } from '../../services/geocodingService.js';
+import { fixLeanUrls } from '../../utils/cloudinaryHelper.js';
 
 // Get current user profile
 export const getProfile = async (req, res) => {
@@ -23,6 +24,8 @@ export const getProfile = async (req, res) => {
                 message: 'User not found'
             });
         }
+
+        user = fixLeanUrls(user, ['profileImage']);
 
         return res.status(200).json({
             success: true,

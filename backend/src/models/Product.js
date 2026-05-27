@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { fixCloudinaryUrl } from '../utils/cloudinaryHelper.js';
 
 const productSchema = new mongoose.Schema(
   {
@@ -59,10 +60,11 @@ const productSchema = new mongoose.Schema(
 
     image: {
       type: String,
+      get: fixCloudinaryUrl,
       // default to brand-specific Cloudinary placeholder URLs
       default: function () {
         const b = this.brand || 'teasntrees';
-        if (b === 'littleh') return 'https://res.cloudinary.com/deirtouso/image/upload/v1765887089/samples/coffee.jpg';
+        if (b === 'littleh') return 'https://paradiseyatra.com/_next/image?url=https%3A%2F%2Fres.cloudinary.com%2Fdop1mi4lg%2Fimage%2Fupload%2Ff_auto%2Cq_auto%3Agood%2Cdpr_auto%2Cw_1400%2Ch_788%2Cc_fill%2Cg_auto%2Fv1773308943%2Fparadise-yatra%2Fblogs%2Fimage-1773308940385-28447481_s1wb24.jpg&w=3840&q=75';
         if (b === 'teasntrees') return 'https://res.cloudinary.com/deirtouso/image/upload/v1765887091/samples/dessert-on-a-plate.jpg';
         return 'https://res.cloudinary.com/deirtouso/image/upload/v1765887087/samples/breakfast.jpg';
       }

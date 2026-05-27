@@ -11,7 +11,7 @@ import {
 
 const router = express.Router({ mergeParams: true });
 
-// Public Route (accessible during profile completion)
+// Public Routes (accessible during profile completion)
 router.get('/reverse-geocode', reverseGeocode);
 
 // Apply authentication middleware to all other routes

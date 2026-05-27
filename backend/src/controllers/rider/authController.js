@@ -391,3 +391,77 @@ export const firebaseLogin = async (req, res) => {
         res.status(401).json({ success: false, message: error.message });
     }
 };
+
+// Rider Mobile & PIN Login (Bypasses Firebase for quick verification/testing/onboarding fallback)
+export const loginRider = async (req, res) => {
+    try {
+        const { mobile, pin } = req.body;
+        if (!mobile || !pin) {
+            return res.status(400).json({ success: false, message: 'Mobile number and PIN are required' });
+        }
+
+        const rider = await Rider.findOne({ mobile });
+        if (!rider) {
+            return res.status(404).json({ success: false, message: 'Rider account not found' });
+        }
+
+        // Self-heal: If rider doesn't have a PIN, generate one now
+        if (!rider.verificationPin) {
+            rider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+            await User.findByIdAndUpdate(rider._id, { verificationPin: rider.verificationPin });
+        }
+
+        if (rider.verificationPin !== pin.toString()) {
+            return res.status(400).json({ success: false, message: 'Invalid verification PIN' });
+        }
+
+        const token = generateToken({ userId: rider._id, role: 'rider' });
+        const refreshToken = generateRefreshToken();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90);
+
+        await RefreshToken.create({
+            token: refreshToken,
+            user: rider._id,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        res.json({
+            success: true,
+            message: 'Logged in successfully',
+            token,
+            refreshToken,
+            rider: {
+                id: rider._id,
+                name: rider.name,
+                mobile: rider.mobile,
+                email: rider.email,
+                role: 'rider',
+                isApproved: rider.isApproved,
+                isOnline: rider.isOnline,
+                isProfileComplete: rider.isProfileComplete || false,
+                verificationPin: rider.verificationPin,
+                totalDeliveries: rider.totalDeliveries,
+                totalEarnings: rider.totalEarnings,
+                averageRating: rider.averageRating,
+                vehicleType: rider.vehicleType,
+                vehicleNumber: rider.vehicleNumber,
+                vehicleModel: rider.vehicleModel,
+                licenseNumber: rider.licenseNumber,
+                licenseExpiryDate: rider.licenseExpiryDate,
+                licensePhoto: rider.licensePhoto,
+                aadharNumber: rider.aadharNumber,
+                aadharPhoto: rider.aadharPhoto,
+                emergencyContact: rider.emergencyContact,
+                bankAccountNumber: rider.bankAccountNumber,
+                ifscCode: rider.ifscCode,
+                accountHolderName: rider.accountHolderName
+            }
+        });
+    } catch (error) {
+        logger.error('Rider login error:', error);
+        res.status(500).json({ success: false, message: 'Server error during login' });
+    }
+};

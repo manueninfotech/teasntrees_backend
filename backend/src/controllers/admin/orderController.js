@@ -1,13 +1,10 @@
 import Order from "../../models/Order.js";
 import User from "../../models/User.js";
-import Settings from "../../models/Settings.js";
 import Delivery from "../../models/Delivery.js";
-
-import { riderAssignmentService } from "../../services/riderAssignmentService.js";
-import { getDistance } from "../../utils/geoUtils.js";
 
 import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import activityLogService from "../../services/activityLogService.js";
+import { riderAssignmentService } from "../../services/riderAssignmentService.js";
 
 /* =========================================================
    GET ALL ORDERS
@@ -115,15 +112,8 @@ export const updateOrderStatus = async (req, res) => {
         // Business status update (admin only)
         let finalStatus = status;
         if (status === 'ready') {
-            // If rider already accepted, show assigned; else waiting_for_rider
-            const delivery = await Delivery.findOne({ orderId: order._id }).select('status');
-            if (delivery && ['accepted', 'heading_to_pickup', 'arrived_at_pickup'].includes(delivery.status)) {
-                finalStatus = 'assigned';
-                // Allow system-side logistics update
-                order.$locals.allowDeliverySync = true;
-            } else {
-                finalStatus = 'waiting_for_rider';
-            }
+            // When ready, it enters the rider assignment pool
+            finalStatus = 'waiting_for_rider';
         }
 
         const previousStatus = order.status;
@@ -140,57 +130,17 @@ export const updateOrderStatus = async (req, res) => {
 
         await order.save();
 
-        // Auto-assign only AFTER confirming.
         // Confirmed should advance to preparing automatically.
         if (status === 'confirmed') {
             order.status = 'preparing';
             await order.save();
-
-            const coords = order.deliveryAddress?.location?.coordinates;
-            if (coords && coords.length === 2) {
-                const BRAND_OUTLETS = {
-                    littleh: { lat: 16.3090654, lng: 80.4309655, name: 'LittleH Bakery (Amaravathi Road)' },
-                    teasntrees: { lat: 16.314207, lng: 80.4187407, name: 'Teas N Trees (Lakshmipuram)' }
-                };
-                const OUTLET = BRAND_OUTLETS[order.brand] || BRAND_OUTLETS.teasntrees;
-
-                const distance = getDistance(
-                    OUTLET.lat,
-                    OUTLET.lng,
-                    coords[1],
-                    coords[0]
-                );
-
-                const settings = (await Settings.findOne({ brand: order.brand })) || {};
-                const base = settings.riderBaseEarning || 20;
-                const rate = settings.distanceBonusPerKm || 5;
-
-                await riderAssignmentService.assignRiderWithRetry(
-                    order,
-                    req.app.get('io'),
-                    {
-                        orderId: order._id,
-                        brand: order.brand,
-                        customerId: order.customerId,
-                        pickupLocation: (order.pickupLocation && order.pickupLocation.coordinates && order.pickupLocation.coordinates.length === 2)
-                            ? order.pickupLocation
-                            : {
-                                type: 'Point',
-                                coordinates: [OUTLET.lng, OUTLET.lat],
-                                address: OUTLET.name
-                            },
-                        deliveryLocation: order.deliveryAddress.location,
-                        distance,
-                        baseEarning: base,
-                        totalEarning: Math.round(base + (distance / 1000) * rate),
-                        pickupOtp: Math.floor(1000 + Math.random() * 9000).toString(),
-                        deliveryOtp: Math.floor(1000 + Math.random() * 9000).toString()
-                    }
-                );
-            }
         }
 
-        // Status already adjusted to waiting_for_rider above when ready
+        // If moved to waiting_for_rider, trigger background assignment
+        if (order.status === 'waiting_for_rider') {
+            const io = req.app.get('io');
+            riderAssignmentService.processWaitingOrders(io);
+        }
 
         // Re-fetch to return latest state (Delivery hook may have updated it)
         const updatedOrder = await Order.findById(order._id);
@@ -294,32 +244,47 @@ export const updatePaymentStatus = async (req, res) => {
 ========================================================= */
 export const assignDeliveryRider = async (req, res) => {
     try {
+        const { id } = req.params;
         const { riderId } = req.body;
-        const order = await Order.findById(req.params.id);
 
+        const order = await Order.findById(id);
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        const rider = await User.findById(riderId);
-        if (!rider || rider.role !== 'rider') {
-            return res.status(400).json({ success: false, message: 'Invalid rider' });
+        const rider = await User.findOne({ _id: riderId, role: 'rider' });
+        if (!rider) {
+            return res.status(404).json({ success: false, message: 'Rider not found' });
         }
 
-        await riderAssignmentService.createOrUpdateDelivery(order, rider);
+        const delivery = await riderAssignmentService.createOrUpdateDelivery(order, rider);
+
+        order.status = 'assigned';
+        order.riderId = rider._id;
+        await order.save();
 
         res.json({
             success: true,
             message: 'Rider assigned successfully',
-            data: order
+            data: { order, delivery }
         });
+
+        // Socket events
+        const io = req.app.get('io');
+        if (io) {
+            io.to(SOCKET_ROOMS.user(order.customerId.toString()))
+                .emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+                    orderId: order._id,
+                    status: 'assigned'
+                });
+        }
 
         // Log Activity
         await activityLogService.log(req, {
-            action: 'assign',
+            action: 'assign_rider',
             resource: 'order',
             resourceId: order._id,
-            details: { riderId, riderName: rider.name }
+            details: { riderId: rider._id }
         });
 
     } catch (error) {

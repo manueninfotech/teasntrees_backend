@@ -4,7 +4,8 @@ import {
     toggleAvailability,
     getProfile,
     completeProfile,
-    firebaseLogin
+    firebaseLogin,
+    loginRider
 } from '../../controllers/rider/authController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 import multer from 'multer';
@@ -35,6 +36,7 @@ const riderUploads = upload.fields([
 // Public Routes
 router.post('/register', riderUploads, registerRider);
 router.post('/firebase-login', firebaseLogin);
+router.post('/login', loginRider);
 
 // Protected Routes
 router.post('/availability', riderAuth, isApprovedRider, toggleAvailability);
