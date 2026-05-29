@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
             const response = await api.post('/manager/auth/firebase-login', { idToken });
             const data = response.data;
 
-            if (!response.ok || !data.success) {
+            if (!data.success) {
                 throw new Error(data.message || 'Firebase login failed');
             }
 
@@ -59,7 +59,7 @@ export const AuthProvider = ({ children }) => {
             const response = await api.post('/manager/auth/complete-profile', profileData);
             const data = response.data;
 
-            if (!response.ok || !data.success) {
+            if (!data.success) {
                 throw new Error(data.message || 'Profile update failed');
             }
 
