@@ -5,7 +5,8 @@ import {
     getProfile,
     completeProfile,
     firebaseLogin,
-    loginRider
+    loginRider,
+    updateFCMToken
 } from '../../controllers/rider/authController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 import multer from 'multer';
@@ -40,6 +41,7 @@ router.post('/login', loginRider);
 
 // Protected Routes
 router.post('/availability', riderAuth, isApprovedRider, toggleAvailability);
+router.post('/fcm-token', riderAuth, updateFCMToken);
 router.get('/profile', riderAuth, getProfile);
 router.post('/complete-profile', riderAuth, riderUploads, completeProfile);
 

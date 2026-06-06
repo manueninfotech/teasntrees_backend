@@ -86,12 +86,20 @@ const orderSchema = new mongoose.Schema(
                 colorTheme: String,
                 designDescription: String,
                 referenceImage: String
-            }
+            },
+            selectedVariants: [
+                {
+                    name: String,
+                    price: Number
+                }
+            ]
         }],
 
         subtotal: Number,
         deliveryCharge: Number,
         tax: Number,
+        couponCode: { type: String, default: null },
+        discount: { type: Number, default: 0 },
 
         total: {
             type: Number,

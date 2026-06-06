@@ -143,12 +143,21 @@ export const createReview = async (req, res) => {
         }
 
         const finalReview = review || comment || "";
+        const finalFoodRating = foodRating || rating;
+        const finalRiderRating = riderRating || rating;
+
+        if (!finalFoodRating) {
+            return res.status(400).json({
+                success: false,
+                message: 'Food rating is required'
+            });
+        }
 
         // check if review already exists
         const existingReview = await Review.findOne({ orderId });
         if (existingReview) {
-            existingReview.foodRating = foodRating;
-            existingReview.riderRating = riderRating;
+            existingReview.foodRating = finalFoodRating;
+            existingReview.riderRating = finalRiderRating;
             existingReview.review = finalReview;
             if (images) existingReview.images = images;
             existingReview.type = 'order';
@@ -156,12 +165,12 @@ export const createReview = async (req, res) => {
             await existingReview.save();
 
             await Order.findByIdAndUpdate(orderId, {
-                foodRating,
-                riderRating,
+                foodRating: finalFoodRating,
+                riderRating: finalRiderRating,
                 review: finalReview
             });
 
-            await updateRiderRating(existingReview.riderId || order.riderId, orderId, riderRating);
+            await updateRiderRating(existingReview.riderId || order.riderId, orderId, finalRiderRating);
             await updateProductRating(existingReview.productId || (order.items && order.items.length > 0 ? order.items[0].product : null));
 
             return res.status(200).json({
@@ -177,8 +186,8 @@ export const createReview = async (req, res) => {
             brand: order.brand || req.activeBrand || 'teasntrees',
             riderId: order.riderId || null,
             productId: (order.items && order.items.length > 0) ? order.items[0].product : null,
-            foodRating,
-            riderRating,
+            foodRating: finalFoodRating,
+            riderRating: finalRiderRating,
             review: finalReview,
             images: images || [],
             type: 'order',
@@ -186,12 +195,12 @@ export const createReview = async (req, res) => {
         });
 
         await Order.findByIdAndUpdate(orderId, {
-            foodRating,
-            riderRating,
+            foodRating: finalFoodRating,
+            riderRating: finalRiderRating,
             review: finalReview
         });
 
-        await updateRiderRating(newReview.riderId, orderId, riderRating);
+        await updateRiderRating(newReview.riderId, orderId, finalRiderRating);
         await updateProductRating(newReview.productId);
 
         const io = req.app.get('io');

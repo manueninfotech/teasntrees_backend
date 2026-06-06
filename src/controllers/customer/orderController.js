@@ -3,6 +3,7 @@ import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
 import User from '../../models/User.js';
 import Delivery from '../../models/Delivery.js';
+import Coupon from '../../models/Coupon.js';
 import PDFDocument from 'pdfkit';
 import logger from '../../config/logger.js';
 import { notificationService } from '../../services/notificationService.js';
@@ -17,7 +18,7 @@ import Outlet from '../../models/Outlet.js'
 ========================================================= */
 export const createOrder = async (req, res) => {
     try {
-        const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD' } = req.body;
+        const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode, location } = req.body;
         const customerId = req.user.userId;
 
         if (!items || !items.length) {
@@ -28,12 +29,22 @@ export const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Delivery address required' });
         }
 
-        const pincode = deliveryAddress.pincode;
-        if (!pincode || String(pincode).length !== 6) {
-            return res.status(400).json({
-                success: false,
-                message: 'A valid 6-digit delivery pincode is required'
-            });
+        // Handle deliveryAddress as either string or object with pincode
+        const pincode = typeof deliveryAddress === 'object' ? deliveryAddress.pincode : null;
+        
+        // FOOLPROOF LOCATION PARSING
+        let finalDeliveryAddress = {
+            address: typeof deliveryAddress === 'string' ? deliveryAddress : deliveryAddress.address
+        };
+
+        if (location && location.coordinates && location.coordinates.length === 2) {
+            finalDeliveryAddress.location = {
+                type: 'Point',
+                coordinates: location.coordinates, // [lng, lat]
+            };
+            if (location.address) {
+                finalDeliveryAddress.address = `${location.address}: ${finalDeliveryAddress.address}`;
+            }
         }
 
         // 1. Batch fetch products and categories
@@ -138,13 +149,98 @@ export const createOrder = async (req, res) => {
 
         const outlets = await Outlet.find({ isActive: true }).lean();
 
+        // --- COUPON VALIDATION ---
+        let globalDiscount = 0;
+        let appliedCoupon = null;
+
+        if (couponCode) {
+            appliedCoupon = await Coupon.findOne({
+                code: couponCode.trim().toUpperCase(),
+                isActive: true
+            });
+
+            if (!appliedCoupon) {
+                return res.status(400).json({ success: false, message: 'Invalid or inactive coupon code' });
+            }
+
+            const totalSubtotal = Object.values(brandsGrouped).reduce((sum, g) => sum + g.subtotal, 0);
+            const now = new Date();
+
+            // Expiry Check
+            if (now > new Date(appliedCoupon.expiryDate)) {
+                return res.status(400).json({ success: false, message: 'Coupon has expired' });
+            }
+
+            // Min Order Value Check
+            if (totalSubtotal < appliedCoupon.minOrderValue) {
+                return res.status(400).json({ success: false, message: `Minimum order value of ₹${appliedCoupon.minOrderValue} required for this coupon` });
+            }
+
+            // Usage Limit Check (Global)
+            if (appliedCoupon.usageLimit !== null && appliedCoupon.usedCount >= appliedCoupon.usageLimit) {
+                return res.status(400).json({ success: false, message: 'Coupon usage limit reached' });
+            }
+
+            // Per User Limit Check
+            if (appliedCoupon.perUserLimit !== null) {
+                const userUsage = appliedCoupon.userUsage.find(u => u.userId.toString() === customerId.toString());
+                if (userUsage && userUsage.count >= appliedCoupon.perUserLimit) {
+                    return res.status(400).json({ success: false, message: 'You have already used this coupon' });
+                }
+            }
+
+            // First Order Check
+            if (appliedCoupon.firstOrderOnly) {
+                const previousOrders = await Order.countDocuments({
+                    customerId,
+                    status: { $nin: ['cancelled'] }
+                });
+                if (previousOrders > 0) {
+                    return res.status(400).json({ success: false, message: 'This coupon is only valid for your first order' });
+                }
+            }
+
+            // Calculate Discount
+            if (appliedCoupon.discountType === 'flat') {
+                globalDiscount = Math.min(appliedCoupon.discountAmount, totalSubtotal);
+            } else {
+                globalDiscount = (totalSubtotal * appliedCoupon.discountAmount) / 100;
+                if (appliedCoupon.maxDiscount) {
+                    globalDiscount = Math.min(globalDiscount, appliedCoupon.maxDiscount);
+                }
+            }
+            
+            globalDiscount = Math.round(globalDiscount * 100) / 100;
+
+            // Increment usage count
+            appliedCoupon.usedCount += 1;
+            const userUsageIndex = appliedCoupon.userUsage.findIndex(u => u.userId.toString() === customerId.toString());
+            if (userUsageIndex > -1) {
+                appliedCoupon.userUsage[userUsageIndex].count += 1;
+            } else {
+                appliedCoupon.userUsage.push({ userId: customerId, count: 1 });
+            }
+            await appliedCoupon.save();
+        }
+
         const createdOrders = [];
         let grandTotalAllOrders = 0;
 
         for (const [brand, group] of Object.entries(brandsGrouped)) {
             const outlet = outlets.find(o => o.brand === brand);
             const tax = Math.round(group.subtotal * (gstRate / 100) * 100) / 100;
-            const orderTotal = Math.round((group.subtotal + deliveryChargePerOrder + tax) * 100) / 100;
+            
+            // Apply discount to the first order that can accommodate it
+            let orderDiscount = 0;
+            if (globalDiscount > 0) {
+                // If coupon is brand-specific, only apply if brand matches
+                if (!appliedCoupon.brand || appliedCoupon.brand === brand) {
+                    orderDiscount = Math.min(globalDiscount, group.subtotal);
+                    globalDiscount -= orderDiscount;
+                }
+            }
+
+            const orderTotal = Math.round((group.subtotal + deliveryChargePerOrder + tax - orderDiscount) * 100) / 100;
             grandTotalAllOrders += orderTotal;
 
             const order = await Order.create({
@@ -156,8 +252,10 @@ export const createOrder = async (req, res) => {
                 subtotal: group.subtotal,
                 deliveryCharge: deliveryChargePerOrder,
                 tax,
+                couponCode: orderDiscount > 0 ? appliedCoupon.code : null,
+                discount: orderDiscount,
                 total: orderTotal,
-                deliveryAddress,
+                deliveryAddress: finalDeliveryAddress,
                 paymentMethod,
                 specialInstructions: deliveryInstructions,
                 status: 'pending'
@@ -233,11 +331,12 @@ export const createOrder = async (req, res) => {
 export const getMyOrders = async (req, res) => {
     try {
         const customerId = req.user.userId;
-        const { page = 1, limit = 10, status } = req.query;
+        const { page = 1, limit = 10, status, ignoreBrand, excludeStatus } = req.query;
 
         const query = { customerId };
-        if (req.activeBrand) query.brand = req.activeBrand;
+        if (req.activeBrand && String(ignoreBrand) !== 'true') query.brand = req.activeBrand;
         if (status) query.status = status;
+        if (excludeStatus) query.status = { $ne: excludeStatus };
 
         const skip = (page - 1) * limit;
 
@@ -279,7 +378,6 @@ export const getOrderById = async (req, res) => {
         logger.info(`GET ORDER BY ID - orderId: ${orderId}, customerId: ${customerId}, brand: ${req.activeBrand}`);
 
         const query = { _id: orderId, customerId };
-        if (req.activeBrand) query.brand = req.activeBrand;
 
         const order = await Order.findOne(query)
             .populate('items.product', 'name image price')
@@ -297,14 +395,14 @@ export const getOrderById = async (req, res) => {
         const data = { ...order };
 
         if (delivery) {
+            const allowOtp = ['in_transit', 'arrived'].includes(delivery.status);
+
             data.delivery = {
                 status: delivery.status,
                 deliveryNumber: delivery.deliveryNumber,
                 estimatedTime: delivery.estimatedTime,
-                rider: delivery.riderId ? {
-                    name: delivery.riderId.name,
-                    mobile: delivery.riderId.mobile
-                } : null
+                deliveryOtp: allowOtp ? delivery.deliveryOtp : null,
+                rider: delivery.riderId
             };
         }
 
@@ -329,7 +427,7 @@ export const cancelOrder = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        if (order.status !== 'pending' && order.status !== 'confirmed') {
+        if (order.status !== 'pending') {
             return res.status(400).json({
                 success: false,
                 message: 'Order can no longer be cancelled'
@@ -342,7 +440,7 @@ export const cancelOrder = async (req, res) => {
 
         // Cancel delivery ONLY if exists & not picked up
         const delivery = await Delivery.findOne({ orderId: order._id });
-        if (delivery && !['picked_up', 'picked', 'in_transit', 'delivered'].includes(delivery.status)) {
+        if (delivery && !['picked_up', 'in_transit', 'delivered'].includes(delivery.status)) {
             delivery.status = 'cancelled';
             delivery.cancelledAt = new Date();
             await delivery.save();

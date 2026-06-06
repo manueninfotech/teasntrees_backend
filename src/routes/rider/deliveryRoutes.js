@@ -2,6 +2,7 @@ import express from 'express';
 import upload from '../../middlewares/upload.js';
 import {
     getActiveDelivery,
+    getDeliveryById,
     acceptDelivery,
     rejectDelivery,
     updateDeliveryStatus,
@@ -18,6 +19,8 @@ router.use(riderAuth);
 router.use(isApprovedRider);
 
 router.get('/active', getActiveDelivery);
+router.get('/earnings', getEarningsHistory);
+router.get('/:id', getDeliveryById);
 router.post('/:id/accept', acceptDelivery);
 router.post('/:id/reject', rejectDelivery);
 router.put('/:id/status', updateDeliveryStatus);

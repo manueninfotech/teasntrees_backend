@@ -28,8 +28,8 @@ const emitDeliveryStatus = (delivery, req) => {
     if (!io) return;
 
     const payload = {
-        deliveryId: delivery._id,
-        orderId: delivery.orderId,
+        deliveryId: delivery._id.toString(),
+        orderId: delivery.orderId.toString(),
         status: delivery.status
     };
 
@@ -38,6 +38,13 @@ const emitDeliveryStatus = (delivery, req) => {
 
     io.to(SOCKET_ROOMS.user(delivery.customerId.toString()))
         .emit(SOCKET_EVENTS.DELIVERY_STATUS_UPDATED, payload);
+
+    // Also emit order:status-updated so user app generic listeners catch it
+    io.to(SOCKET_ROOMS.user(delivery.customerId.toString()))
+        .emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+            orderId: delivery.orderId.toString(),
+            status: delivery.status
+        });
 
     io.to(SOCKET_ROOMS.role('admin'))
         .emit(SOCKET_EVENTS.DELIVERY_STATUS_UPDATED, payload);
@@ -62,6 +69,30 @@ export const getActiveDelivery = async (req, res) => {
     } catch (error) {
         logger.error('GetActiveDelivery Error:', error);
         res.status(500).json({ success: false });
+    }
+};
+
+/* ======================================================
+   GET DELIVERY BY ID
+====================================================== */
+export const getDeliveryById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const delivery = await Delivery.findOne({
+            _id: id,
+            riderId: req.user.userId
+        })
+            .populate('orderId')
+            .populate('customerId', 'name mobile');
+
+        if (!delivery) {
+            return res.status(404).json({ success: false, message: 'Delivery not found' });
+        }
+
+        res.json({ success: true, data: delivery });
+    } catch (error) {
+        logger.error('GetDeliveryById Error:', error);
+        res.status(500).json({ success: false, message: 'Server error' });
     }
 };
 
@@ -206,12 +237,12 @@ export const rejectDelivery = async (req, res) => {
 ====================================================== */
 export const updateDeliveryStatus = async (req, res) => {
     try {
-        const { status, otp } = req.body;
+        const { status, otp, paymentMode, amountCollected } = req.body;
 
         const delivery = await Delivery.findOne({
             _id: req.params.id,
             riderId: req.user.userId
-        });
+        }).populate('orderId');
 
         if (!delivery) {
             return res.status(404).json({ success: false });
@@ -234,6 +265,19 @@ export const updateDeliveryStatus = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Invalid Delivery OTP' });
         }
 
+        // COD Payment Handling
+        if (status === 'delivered') {
+            const isCOD = delivery.orderId.paymentMethod?.toUpperCase() === 'COD';
+            if (isCOD) {
+                if (!paymentMode || !['cash', 'upi'].includes(paymentMode)) {
+                    return res.status(400).json({ success: false, message: 'Payment mode (cash/upi) required for COD' });
+                }
+                delivery.paymentMode = paymentMode;
+                delivery.amountCollected = amountCollected || delivery.orderId.total;
+                delivery.paymentStatus = 'collected';
+            }
+        }
+
         // Timestamps + payout (ONLY ONCE)
         if (status === 'picked_up') {
             delivery.pickedUpAt = new Date();
@@ -250,7 +294,7 @@ export const updateDeliveryStatus = async (req, res) => {
                 }
             });
 
-            riderMetricsService.updateMetrics(req.user.userId);
+            await riderMetricsService.updateMetrics(req.user.userId);
         }
 
         const previousStatus = delivery.status;
@@ -286,36 +330,50 @@ export const updateDeliveryStatus = async (req, res) => {
 
 /* ======================================================
    REAL-TIME LOCATION UPDATE
-====================================================== */
+========================================================= */
 export const updateLocation = async (req, res) => {
     try {
-        const { lat, lng } = req.body;
+        let { lat, lng, location } = req.body;
+
+        // Support both {lat, lng} and {location: {lat, lng}} formats from Flutter
+        if (location && location.lat !== undefined) {
+            lat = location.lat;
+            lng = location.lng;
+        }
+
+        if (lat === undefined || lng === undefined) {
+            return res.status(400).json({ success: false, message: 'Coordinates are required' });
+        }
 
         await Rider.findByIdAndUpdate(req.user.userId, {
             currentLocation: {
                 type: 'Point',
                 coordinates: [lng, lat]
-            }
+            },
+            lastUpdated: new Date()
         });
 
         const activeDelivery = await Delivery.findOne({
             riderId: req.user.userId,
-            status: { $in: ['picked_up', 'in_transit', 'arrived'] }
+            status: { $in: ['accepted', 'heading_to_pickup', 'arrived_at_pickup', 'picked_up', 'in_transit', 'arrived'] }
         });
+if (activeDelivery) {
+    req.app.get('io')
+        ?.to(SOCKET_ROOMS.user(activeDelivery.customerId.toString()))
+        .emit(SOCKET_EVENTS.RIDER_LOCATION_UPDATE, {
+            orderId: activeDelivery.orderId.toString(),
+            riderId: req.user.userId.toString(),
+            lat,
+            lng
+        });
+}
 
-        if (activeDelivery) {
-            req.app.get('io')
-                ?.to(SOCKET_ROOMS.user(activeDelivery.customerId.toString()))
-                .emit(SOCKET_EVENTS.RIDER_LOCATION_UPDATE, {
-                    lat,
-                    lng
-                });
-        }
 
         res.json({ success: true });
 
     } catch (error) {
-        res.status(500).json({ success: false });
+        logger.error('[updateLocation Error]', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -334,7 +392,8 @@ export const getEarningsHistory = async (req, res) => {
         };
 
         const history = await Delivery.find(query)
-            .select('deliveryNumber deliveredAt totalEarning baseEarning tipAmount distance')
+            .populate('customerId', 'name mobile')
+            .populate('orderId', 'deliveryAddress total paymentMethod items brand')
             .sort({ deliveredAt: -1 })
             .skip(skip)
             .limit(limit);
