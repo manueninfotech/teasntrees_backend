@@ -200,7 +200,7 @@ export default function Orders() {
                                             <div className="flex flex-col">
                                                 <span className="font-black text-gray-900 text-sm">#{order.orderNumber}</span>
                                                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter mt-1 italic">
-                                                    {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    {new Date(order.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
                                         </td>

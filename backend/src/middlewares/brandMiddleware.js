@@ -6,10 +6,8 @@ export const brandMiddleware = (req, res, next) => {
     const allowedBrands = ['littleh', 'teasntrees'];
 
     if (!brand) {
-        return res.status(400).json({
-            success: false,
-            message: 'Brand identifier is required in the URL'
-        });
+        // Brand is optional for some routes (like generic rider or customer routes)
+        return next();
     }
 
     if (!allowedBrands.includes(brand.toLowerCase())) {

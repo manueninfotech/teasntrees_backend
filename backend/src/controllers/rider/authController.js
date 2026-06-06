@@ -17,6 +17,7 @@ export const registerRider = async (req, res) => {
             name, mobile, email,
             vehicleType, vehicleNumber, vehicleModel,
             bankAccountNumber, ifscCode, accountHolderName,
+            emergencyName, emergencyPhone, emergencyRelation,
             emergencyContactName, emergencyContactMobile, emergencyContactRelation
         } = req.body;
 
@@ -47,13 +48,6 @@ export const registerRider = async (req, res) => {
         const panPhoto = files.panPhoto ? files.panPhoto[0].path : req.body.panPhoto;
         const profilePhoto = files.profilePhoto ? files.profilePhoto[0].path : req.body.profilePhoto;
 
-        if (!licensePhoto || !aadharPhoto) {
-            return res.status(400).json({
-                success: false,
-                message: 'License and Aadhar photos are mandatory'
-            });
-        }
-
         // Create Rider
         const rider = new Rider({
             name,
@@ -62,6 +56,7 @@ export const registerRider = async (req, res) => {
             role: 'rider',
             isApproved: false, // Pending admin approval
             isActive: true,
+            isProfileComplete: true,
 
             // Vehicle
             vehicleType,
@@ -89,18 +84,53 @@ export const registerRider = async (req, res) => {
 
             // Emergency
             emergencyContact: {
-                name: emergencyContactName,
-                mobile: emergencyContactMobile,
-                relation: emergencyContactRelation
+                name: emergencyName || emergencyContactName,
+                mobile: emergencyPhone || emergencyContactMobile,
+                relation: emergencyRelation || emergencyContactRelation
             }
         });
 
+        // Self-heal: Generate a PIN for the rider
+        rider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+
         await rider.save();
+
+        // Generate tokens for auto-login
+        const token = generateToken({ userId: rider._id, role: 'rider' });
+        const refreshToken = generateRefreshToken();
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90);
+
+        await RefreshToken.create({
+            token: refreshToken,
+            user: rider._id,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
 
         res.status(201).json({
             success: true,
             message: 'Rider registered successfully. Waiting for admin approval.',
-            riderId: rider._id
+            token,
+            refreshToken,
+            rider: {
+                id: rider._id,
+                name: rider.name,
+                mobile: rider.mobile,
+                email: rider.email,
+                role: 'rider',
+                isApproved: rider.isApproved,
+                isOnline: rider.isOnline,
+                isProfileComplete: rider.isProfileComplete,
+                verificationPin: rider.verificationPin,
+                vehicleType: rider.vehicleType,
+                vehicleNumber: rider.vehicleNumber,
+                vehicleModel: rider.vehicleModel,
+                bankAccountNumber: rider.bankAccountNumber,
+                ifscCode: rider.ifscCode,
+                accountHolderName: rider.accountHolderName
+            }
         });
 
     } catch (error) {
@@ -309,11 +339,45 @@ export const toggleAvailability = async (req, res) => {
     }
 };
 
+// Update FCM Token
+export const updateFCMToken = async (req, res) => {
+    try {
+        const { fcmToken } = req.body;
+        const riderId = req.user.userId;
+
+        if (!fcmToken) {
+            return res.status(400).json({ success: false, message: 'FCM token required' });
+        }
+
+        await Rider.findByIdAndUpdate(riderId, { $set: { fcmToken } });
+
+        res.json({ success: true, message: 'FCM token updated' });
+    } catch (error) {
+        logger.error('Error updating Rider FCM token:', error);
+        res.status(500).json({ success: false, message: 'Failed to update token' });
+    }
+};
+
 // Get Profile
 export const getProfile = async (req, res) => {
     try {
-        const rider = req.rider;
-        res.json({ success: true, data: { ...rider.toObject(), isApproved: rider.isApproved, isProfileComplete: rider.isProfileComplete } });
+        const riderId = req.user.userId;
+
+        // Ensure metrics are up to date before returning profile
+        await riderMetricsService.updateMetrics(riderId);
+
+        // Fetch fresh doc from DB (middleware might have stale one)
+        const freshRider = await Rider.findById(riderId);
+
+        res.json({ 
+            success: true, 
+            data: { 
+                ...freshRider.toObject(), 
+                id: freshRider._id, 
+                isApproved: freshRider.isApproved, 
+                isProfileComplete: freshRider.isProfileComplete 
+            } 
+        });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Fetch failed' });
     }

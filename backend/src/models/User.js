@@ -115,7 +115,8 @@ const userSchema = new mongoose.Schema({
     managerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User', // Can ref Manager (which is a User)
-        default: null
+        default: null,
+        index: true
     }
 
 }, {
@@ -123,9 +124,6 @@ const userSchema = new mongoose.Schema({
     discriminatorKey: 'kind'
 });
 
-userSchema.index({ mobile: 1 });
-userSchema.index({ email: 1 });
-userSchema.index({ managerId: 1 });
 userSchema.index({ location: '2dsphere' });
 
 userSchema.methods.checkProfileComplete = function () {

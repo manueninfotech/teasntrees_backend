@@ -1,4 +1,6 @@
 import 'dotenv/config';
+import dns from 'dns';
+dns.setServers(['8.8.8.8', '8.8.4.4']);
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -27,6 +29,8 @@ import customerSettingsRoutes from './routes/customer/settingsRoutes.js';
 import customerUploadRoutes from './routes/customer/uploadRoutes.js';
 import customerContactRoutes from './routes/customer/contactRoutes.js';
 import customerPaymentRoutes from './routes/customer/paymentRoutes.js';
+import customerCouponRoutes from './routes/customer/couponRoutes.js';
+import customerStatusRoutes from './routes/customer/statusRoutes.js';
 
 import adminAuthRoutes from './routes/admin/authRoutes.js';
 import adminProfileRoutes from './routes/admin/profileRoutes.js';
@@ -44,6 +48,7 @@ import { SocketService } from './services/socketService.js';
 import { apiLimiter } from './middlewares/rateLimiter.js';
 import logger from './config/logger.js';
 import { SOCKET_EVENTS } from './sockets/socketEvents.js';
+import { initNudgeWorker } from './workers/nudgeWorker.js';
 
 const app = express();
 
@@ -53,25 +58,37 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
     .split(',')
     .map(o => o.trim());
 
-app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
+// Helper function to check if origin is allowed (with www/non-www flexibility)
+const checkOrigin = (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-            callback(null, true);
-        } else {
-            logger.error(`CORS blocked for origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+    const isAllowed = allowedOrigins.some(allowed => {
+        if (allowed === '*' || allowed === origin) return true;
+
+        // Normalize both to compare without www. prefix
+        const originBase = origin.replace(/^https?:\/\/(www\.)?/, '');
+        const allowedBase = allowed.replace(/^https?:\/\/(www\.)?/, '');
+        return originBase === allowedBase;
+    });
+
+    if (isAllowed) {
+        callback(null, true);
+    } else {
+        logger.error(`CORS blocked for origin: ${origin}`);
+        const error = new Error('Not allowed by CORS');
+        error.statusCode = 403;
+        callback(error);
+    }
+};
+
+app.use(cors({
+    origin: checkOrigin,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-client-type'],
     optionsSuccessStatus: 200
 }));
-
-// No need for separate app.options if cors is used early
 
 // Security and parsers
 app.use(helmet({
@@ -111,7 +128,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
     cors: {
-        origin: allowedOrigins,
+        origin: checkOrigin, // Use the same flexible check as the main API
         methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
         credentials: true
     }
@@ -189,6 +206,8 @@ customerApiRouter.use('/settings', customerSettingsRoutes);
 customerApiRouter.use('/upload', customerUploadRoutes);
 customerApiRouter.use('/contact', customerContactRoutes);
 customerApiRouter.use('/payments', customerPaymentRoutes);
+customerApiRouter.use('/coupons', customerCouponRoutes);
+customerApiRouter.use('/status', customerStatusRoutes);
 
 // Finally mount the customer sub-router to the main app
 app.use(['/api/:brand/customer', '/api/customer'], customerApiRouter);
@@ -243,6 +262,9 @@ function getLanIP() {
 const HOST = '0.0.0.0';
 const PORT = process.env.PORT || 5001;
 const LAN_IP = getLanIP();
+
+// Initialize Nudge Worker (Background Jobs)
+initNudgeWorker();
 
 
 httpServer.listen(PORT, HOST, () => {

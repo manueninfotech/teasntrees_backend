@@ -55,6 +55,10 @@ const deliverySchema = new mongoose.Schema({
         required: true
     },
 
+    customerName: String,
+    customerMobile: String,
+    deliveryAddress: String, // Plain text address
+
     pickupLocation: {
         type: { type: String, enum: ['Point'], default: 'Point' },
         coordinates: [Number],
@@ -112,7 +116,12 @@ const deliverySchema = new mongoose.Schema({
     notes: String,
     cancelReason: String,
     rejectionReason: String,
-    deliveryProof: String
+    deliveryProof: String,
+
+    // COD Payment Handling
+    paymentMode: { type: String, enum: ['cash', 'upi', 'none'], default: 'none' },
+    paymentStatus: { type: String, enum: ['pending', 'collected', 'handed_over'], default: 'pending' },
+    amountCollected: { type: Number, default: 0 }
 }, {
     timestamps: true
 });
@@ -125,6 +134,29 @@ deliverySchema.index({ customerId: 1, createdAt: -1 }); // Fast delivery history
 deliverySchema.index({ createdAt: -1 });
 deliverySchema.index({ pickupLocation: '2dsphere' });
 deliverySchema.index({ deliveryLocation: '2dsphere' });
+
+/* ----------------------------------
+   AUTO-POPULATE DENORMALIZED FIELDS
+----------------------------------- */
+deliverySchema.pre('save', async function (next) {
+    try {
+        if (!this.customerName || !this.deliveryAddress) {
+            const Order = mongoose.model('Order');
+            const order = await Order.findById(this.orderId).populate('customerId');
+            
+            if (order) {
+                if (!this.customerName) this.customerName = order.customerId?.name || 'Customer';
+                if (!this.customerMobile) this.customerMobile = order.customerId?.mobile || '';
+                if (!this.deliveryAddress) this.deliveryAddress = order.deliveryAddress?.address || 'Customer Address';
+                if (!this.brand) this.brand = order.brand;
+            }
+        }
+        next();
+    } catch (err) {
+        console.error('Delivery pre-save error:', err);
+        next();
+    }
+});
 
 /* ----------------------------------
    DELIVERY NUMBER
@@ -340,7 +372,13 @@ deliverySchema.post('findOneAndUpdate', async function (delivery) {
         await releaseRider(delivery.riderId);
     }
 
-    sendCustomerStatusPushNotification(delivery);
+    // ONLY send notification if the status was part of the update
+    const update = this.getUpdate();
+    const isStatusUpdate = update.status || (update.$set && update.$set.status);
+    
+    if (isStatusUpdate) {
+        sendCustomerStatusPushNotification(delivery);
+    }
 });
 
 /* ----------------------------------
