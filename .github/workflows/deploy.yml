@@ -3,27 +3,44 @@ name: Deploy Backend
 on:
   push:
     branches:
-      - feature/littleh-multi-brand
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to VM via SSH
+      - name: Deploy to Windows VM via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            echo Current directory:
-            cd
-            cd "C:\Users\tntadmin\Documents\teasntrees_littleh_backend\backend"
 
-            echo Inside backend folder:
-            dir
+            echo "🚀 Starting deployment..."
 
-            git pull origin feature/littleh-multi-brand
+            cd C:\Users\tntadmin\Documents\teasntrees_littleh_backend\backend
+
+            echo "📦 Pulling latest code from main..."
+            git reset --hard
+            git pull origin main
+
+            echo "📦 Installing dependencies..."
             npm install
-            pm2 reload teas-backend
+
+            echo "🔁 Restarting PM2 backend..."
+            pm2 reload teasntrees-backend || pm2 start src/server.js --name teasntrees-backend
+
+            echo "🌐 Checking nginx status..."
+            tasklist | findstr nginx
+
+            if %ERRORLEVEL%==0 (
+              echo "♻️ Reloading nginx..."
+              C:\nginx\nginx.exe -s reload
+            ) else (
+              echo "⚠️ nginx not running, starting it..."
+              start C:\nginx\nginx.exe
+            )
+
+            echo "✅ Deployment complete"
