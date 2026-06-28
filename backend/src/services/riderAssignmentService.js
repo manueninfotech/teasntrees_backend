@@ -118,7 +118,7 @@ class RiderAssignmentService {
                 // Available if NOT on delivery OR if the lock has expired (Ghost Rider prevention)
                 $or: [
                     { isOnDelivery: false },
-                    { lockUntil: { $lt: now }, lockUntil: { $ne: null } },
+                    { lockUntil: { $lt: now, $ne: null } },
                     { lockUntil: null }
                 ]
             };
@@ -238,8 +238,8 @@ class RiderAssignmentService {
     /* ======================================================
        ASSIGN RIDER WITH RETRY
     ====================================================== */
-    async assignRiderWithRetry(order, io, deliveryData) {
-        const excludedRiders = [];
+    async assignRiderWithRetry(order, io, deliveryData, initialExcludedRiders = []) {
+        const excludedRiders = [...initialExcludedRiders];
         let attempts = 0;
 
         const coords = deliveryData.deliveryLocation?.coordinates;

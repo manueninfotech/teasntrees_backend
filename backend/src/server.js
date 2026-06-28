@@ -51,6 +51,7 @@ import { SOCKET_EVENTS } from './sockets/socketEvents.js';
 import { initNudgeWorker } from './workers/nudgeWorker.js';
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy for express-rate-limit
 
 
 // CORS configuration
@@ -173,9 +174,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// Static files - only serve the uploads directory, not the entire backend folder!
-const uploadsDir = join(__dirname, '../../uploads');
-app.use('/uploads', express.static(uploadsDir));
+// Static files - serve public storage
+const publicStoragePath = process.env.STORAGE_PUBLIC_PATH || join(__dirname, '../../uploads/public');
+app.use('/public', express.static(publicStoragePath));
+app.use('/uploads', express.static(join(__dirname, '../../uploads'))); // Keep old uploads working just in case
 
 // Database connection
 import './models/Counter.js';

@@ -1,4 +1,4 @@
-import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../../utils/imageUpload.js";
+import { uploadService } from "../../services/storage/upload.service.js";
 import activityLogService from '../../services/activityLogService.js';
 
 // Upload single image
@@ -14,7 +14,7 @@ export const uploadImage = async (req, res) => {
         // Get folder from query  or default to 'teasntrees'
         const folder = req.query.folder || 'teasntrees';
         // upload to cloudinary
-        const result = await uploadToCloudinary(req.file.buffer, folder);
+        const result = await uploadService.uploadPublicImage(req.file.buffer, folder);
 
         // return result
         const responseData = {
@@ -53,7 +53,7 @@ export const deleteImage = async (req, res) => {
         const { publicId, url } = req.body;
         let imagePublicId = publicId;
         if (!imagePublicId && url) {
-            imagePublicId = extractPublicId(url);
+            imagePublicId = uploadService.extractPublicId(url);
         }
         if (!imagePublicId) {
             return res.status(400).json({
@@ -62,7 +62,7 @@ export const deleteImage = async (req, res) => {
             });
         }
         // delete from cloudinary
-        const result = await deleteFromCloudinary(imagePublicId);
+        const result = await uploadService.deleteFile(imagePublicId);
         if (result.result === 'ok') {
             res.status(200).json({
                 success: true,
@@ -103,7 +103,7 @@ export const uploadMultipleImages = async (req, res) => {
         }
         const folder = req.query.folder || 'teasntrees';
         // Upload all images to cloudinary
-        const uploadPromises = req.files.map(file => uploadToCloudinary(file.buffer, folder));
+        const uploadPromises = req.files.map(file => uploadService.uploadPublicImage(file.buffer, folder));
         const results = await Promise.all(uploadPromises);
         const responseData = results.map(result => ({
             url: result.url,

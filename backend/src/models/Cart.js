@@ -69,7 +69,6 @@ cartSchema.pre('save', async function () {
     }, 0);
 });
 
-// Index for faster queries
-cartSchema.index({ userId: 1 });
+// Removed duplicate index for userId
 
 export default mongoose.model('Cart', cartSchema);

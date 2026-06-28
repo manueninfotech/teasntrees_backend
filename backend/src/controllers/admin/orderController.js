@@ -190,6 +190,9 @@ export const updateOrderStatus = async (req, res) => {
         }
 
         // Status already adjusted to waiting_for_rider above when ready
+        if (order.status === 'waiting_for_rider') {
+            riderAssignmentService.processWaitingOrders(req.app.get('io'));
+        }
 
         // Re-fetch to return latest state (Delivery hook may have updated it)
         const updatedOrder = await Order.findById(order._id);

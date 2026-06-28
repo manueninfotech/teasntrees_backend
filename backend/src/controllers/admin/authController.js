@@ -253,7 +253,7 @@ const firebaseLogin = async (req, res) => {
         const mobile = decoded.phone_number.replace(/\D/g, '').slice(-10);
 
         // 2. Find/Create Admin
-        let user = await User.findOne({ mobile });
+        let user = await User.findOne({ mobile, role: 'admin' });
         let isNewUser = false;
 
         if (!user) {
