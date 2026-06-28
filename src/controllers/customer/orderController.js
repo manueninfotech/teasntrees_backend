@@ -265,7 +265,9 @@ export const createOrder = async (req, res) => {
 
         // 2. Batch product stats and Dashboard increments
         if (productUpdates.length) {
-            Product.bulkWrite(productUpdates).catch(() => { });
+            Product.bulkWrite(productUpdates).catch((err) => { 
+                logger.error('Product stats bulkWrite failed:', err);
+            });
         }
 
         if (createdOrders.length) {

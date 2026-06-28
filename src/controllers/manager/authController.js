@@ -171,7 +171,18 @@ const firebaseLogin = async (req, res) => {
         const mobile = decoded.phone_number.replace(/\D/g, '').slice(-10);
 
         // 2. Find/Create Manager
-        let user = await User.findOne({ mobile });
+        let user = await Manager.findOne({ mobile });
+        
+        // Fallback: user exists but was created without Manager discriminator (legacy)
+        if (!user) {
+            const legacyUser = await User.findOne({ mobile, role: 'manager' });
+            if (legacyUser) {
+                await User.updateOne({ _id: legacyUser._id }, { $set: { kind: 'Manager' } });
+                user = await Manager.findById(legacyUser._id);
+                logger.info('Auto-healed Manager discriminator kind field (mobile)', { userId: legacyUser._id });
+            }
+        }
+        
         let isNewUser = false;
 
         if (!user) {

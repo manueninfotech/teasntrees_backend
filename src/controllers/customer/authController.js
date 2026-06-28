@@ -53,8 +53,8 @@ const completeProfile = async (req, res) => {
                 });
             }
 
-            // Check if mobile is already in use by another user
-            const existingUser = await User.findOne({
+            // Check if mobile is already in use by another customer
+            const existingUser = await Customer.findOne({
                 mobile: mobile.toString().replace(/\D/g, ''),
                 _id: { $ne: user._id }
             });
@@ -323,7 +323,19 @@ const firebaseLogin = async (req, res) => {
         // idToken is verified with Firebase to ensure authenticity
 
         // 3. Find or create the user in DB
-        let user = await User.findOne({ mobile });
+        let user = await Customer.findOne({ mobile });
+
+        // Fallback: user exists but was created without Customer discriminator (legacy)
+        if (!user) {
+            const legacyUser = await User.findOne({ mobile, role: 'customer' });
+            if (legacyUser) {
+                // Heal: set kind to Customer so discriminator works going forward
+                await User.updateOne({ _id: legacyUser._id }, { $set: { kind: 'Customer' } });
+                user = await Customer.findById(legacyUser._id);
+                logger.info('Auto-healed Customer discriminator kind field (mobile)', { userId: legacyUser._id });
+            }
+        }
+
         let isNewUser = false;
 
         if (!user) {
@@ -445,7 +457,7 @@ const googleLogin = async (req, res) => {
 
         // Fallback: user exists but was created without Customer discriminator (legacy)
         if (!user) {
-            const legacyUser = await User.findOne({ email: email.toLowerCase() });
+            const legacyUser = await User.findOne({ email: email.toLowerCase(), role: 'customer' });
             if (legacyUser) {
                 // Heal: set kind to Customer so discriminator works going forward
                 await User.updateOne({ _id: legacyUser._id }, { $set: { kind: 'Customer' } });

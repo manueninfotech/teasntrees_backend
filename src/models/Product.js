@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { fixCloudinaryUrl } from '../utils/cloudinaryHelper.js';
+import './Review.js';
 
 const productSchema = new mongoose.Schema(
   {
@@ -60,7 +60,6 @@ const productSchema = new mongoose.Schema(
 
     image: {
       type: String,
-      get: fixCloudinaryUrl,
       // default to brand-specific Cloudinary placeholder URLs
       default: function () {
         const b = this.brand || 'teasntrees';

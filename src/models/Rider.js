@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import User from './User.js';
-import { fixCloudinaryUrl } from '../utils/cloudinaryHelper.js';
 
 const riderSchema = new mongoose.Schema({
     // Vehicle Details
@@ -22,13 +21,13 @@ const riderSchema = new mongoose.Schema({
     // Legal Documents (URLs to images/PDFs)
     licenseNumber: { type: String },
     licenseExpiryDate: { type: Date },
-    licensePhoto: { type: String, get: fixCloudinaryUrl }, // URL
+    licensePhoto: { type: String }, // URL
 
     aadharNumber: { type: String },
-    aadharPhoto: { type: String, get: fixCloudinaryUrl }, // URL
+    aadharPhoto: { type: String }, // URL
 
     panNumber: { type: String },
-    panPhoto: { type: String, get: fixCloudinaryUrl }, // URL
+    panPhoto: { type: String }, // URL
 
     // Bank Details (For Payouts)
     bankAccountNumber: { type: String },

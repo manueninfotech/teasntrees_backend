@@ -4,7 +4,7 @@ import Rider from "../../models/Rider.js";
 import { riderAssignmentService } from "../../services/riderAssignmentService.js";
 import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import logger from "../../config/logger.js";
-import { uploadToCloudinary } from "../../utils/imageUpload.js";
+import { uploadService } from '../../services/storage/upload.service.js';
 import { riderMetricsService } from "../../services/riderMetricsService.js";
 import activityLogService from "../../services/activityLogService.js";
 
@@ -216,7 +216,8 @@ export const rejectDelivery = async (req, res) => {
                     totalEarning: delivery.totalEarning,
                     pickupOtp: delivery.pickupOtp,
                     deliveryOtp: delivery.deliveryOtp
-                }
+                },
+                [req.user.userId]
             );
 
         res.json({
@@ -433,12 +434,13 @@ export const uploadDeliveryProof = async (req, res) => {
             return res.status(400).json({ success: false });
         }
 
-        const result = await uploadToCloudinary(
+        const result = await uploadService.uploadPrivateFile(
             req.file.buffer,
-            'delivery_proofs'
+            'delivery_proofs',
+            req.file.mimetype
         );
 
-        delivery.deliveryProof = result.secure_url;
+        delivery.deliveryProof = result.url;
         await delivery.save();
 
         // Log Activity

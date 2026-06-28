@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import Counter from './Counter.js';
 import './Order.js';
 import './User.js';
 import Rider from './Rider.js';
@@ -129,6 +130,7 @@ const deliverySchema = new mongoose.Schema({
 /* ----------------------------------
    INDEXES
 ----------------------------------- */
+deliverySchema.index({ orderId: 1 });
 deliverySchema.index({ riderId: 1, status: 1 });
 deliverySchema.index({ customerId: 1, createdAt: -1 }); // Fast delivery history
 deliverySchema.index({ createdAt: -1 });
@@ -138,7 +140,7 @@ deliverySchema.index({ deliveryLocation: '2dsphere' });
 /* ----------------------------------
    AUTO-POPULATE DENORMALIZED FIELDS
 ----------------------------------- */
-deliverySchema.pre('save', async function (next) {
+deliverySchema.pre('save', async function () {
     try {
         if (!this.customerName || !this.deliveryAddress) {
             const Order = mongoose.model('Order');
@@ -151,10 +153,10 @@ deliverySchema.pre('save', async function (next) {
                 if (!this.brand) this.brand = order.brand;
             }
         }
-        next();
     } catch (err) {
         console.error('Delivery pre-save error:', err);
-        next();
+        // Throwing error allows Mongoose to handle it properly
+        throw err;
     }
 });
 
@@ -168,7 +170,7 @@ deliverySchema.pre('save', async function () {
     const counter = await Counter.findOneAndUpdate(
         { name: 'delivery' },
         { $inc: { seq: 1 } },
-        { new: true, upsert: true }
+        { returnDocument: 'after', upsert: true }
     );
 
     this.deliveryNumber = `DEL${String(counter.seq).padStart(6, '0')}`;

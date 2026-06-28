@@ -2,13 +2,15 @@ import Rider from '../../models/Rider.js';
 import User from '../../models/User.js';
 import { riderMetricsService } from "../../services/riderMetricsService.js";
 import { SOCKET_ROOMS } from "../../sockets/socketEvents.js";
-import { v2 as cloudinary } from 'cloudinary';
+import { uploadService } from '../../services/storage/upload.service.js';
 import logger from '../../config/logger.js';
 import { riderAssignmentService } from '../../services/riderAssignmentService.js';
 import activityLogService from '../../services/activityLogService.js';
 import { verifyFirebaseToken } from '../../services/firebaseAuth.js';
 import { generateToken, generateRefreshToken } from '../../utils/jwtHelper.js';
 import RefreshToken from '../../models/RefreshToken.js';
+import fs from 'fs';
+import path from 'path';
 
 // Register a new Rider (Manual Onboarding)
 export const registerRider = async (req, res) => {
@@ -22,7 +24,7 @@ export const registerRider = async (req, res) => {
         } = req.body;
 
         // Check if user already exists
-        const existingUser = await User.findOne({ mobile });
+        const existingUser = await Rider.findOne({ mobile });
         if (existingUser) {
             return res.status(400).json({
                 success: false,
@@ -42,11 +44,20 @@ export const registerRider = async (req, res) => {
 
         const files = req.files || {};
 
+        // Helper to upload memory buffer to Azure
+        const uploadDoc = async (fileArray) => {
+            if (fileArray && fileArray.length > 0) {
+                const result = await uploadService.uploadPrivateFile(fileArray[0].buffer, 'rider-docs', fileArray[0].mimetype);
+                return result.url;
+            }
+            return null;
+        };
+
         // Accept either file uploads OR URLs from request body
-        const licensePhoto = files.licensePhoto ? files.licensePhoto[0].path : req.body.licensePhoto;
-        const aadharPhoto = files.aadharPhoto ? files.aadharPhoto[0].path : req.body.aadharPhoto;
-        const panPhoto = files.panPhoto ? files.panPhoto[0].path : req.body.panPhoto;
-        const profilePhoto = files.profilePhoto ? files.profilePhoto[0].path : req.body.profilePhoto;
+        const licensePhoto = await uploadDoc(files.licensePhoto) || req.body.licensePhoto;
+        const aadharPhoto = await uploadDoc(files.aadharPhoto) || req.body.aadharPhoto;
+        const panPhoto = await uploadDoc(files.panPhoto) || req.body.panPhoto;
+        const profilePhoto = await uploadDoc(files.profilePhoto) || req.body.profilePhoto;
 
         // Create Rider
         const rider = new Rider({
@@ -527,5 +538,29 @@ export const loginRider = async (req, res) => {
     } catch (error) {
         logger.error('Rider login error:', error);
         res.status(500).json({ success: false, message: 'Server error during login' });
+    }
+};
+
+// Serve private documents (Authenticated Rider or Admin only)
+export const getDocument = (req, res) => {
+    try {
+        const { filename } = req.params;
+        const folder = req.query.folder || 'temp';
+        
+        // Ensure path traversal is prevented
+        const sanitizedFilename = path.basename(filename);
+        const sanitizedFolder = path.basename(folder);
+        
+        const privateRoot = process.env.STORAGE_PRIVATE_PATH || path.join(process.cwd(), 'uploads', 'private');
+        const absolutePath = path.join(privateRoot, sanitizedFolder, sanitizedFilename);
+        
+        if (!fs.existsSync(absolutePath)) {
+            return res.status(404).send('File not found');
+        }
+        
+        res.sendFile(absolutePath);
+    } catch (error) {
+        logger.error('Error serving document:', error);
+        res.status(500).send('Internal Server Error');
     }
 };

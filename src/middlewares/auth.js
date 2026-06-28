@@ -6,16 +6,27 @@ import User from '../models/User.js';
 // Auth cache to avoid redundant User.findById calls
 const authCache = new Map();
 const AUTH_CACHE_TTL = 5000; // 5 seconds is plenty for high traffic
+const MAX_CACHE_SIZE = 1000; // Prevent Memory Leaks (OOM)
 
 const getCachedUser = (userId) => {
-    const cached = authCache.get(userId.toString());
-    if (cached && (Date.now() - cached.timestamp < AUTH_CACHE_TTL)) {
-        return cached.user;
+    const key = userId.toString();
+    const cached = authCache.get(key);
+    if (cached) {
+        if (Date.now() - cached.timestamp < AUTH_CACHE_TTL) {
+            return cached.user;
+        }
+        // Evict expired item on read
+        authCache.delete(key);
     }
     return null;
 };
 
 const setCachedUser = (userId, user) => {
+    if (authCache.size >= MAX_CACHE_SIZE) {
+        // Map iterators return elements in insertion order, so this evicts the oldest entry
+        const oldestKey = authCache.keys().next().value;
+        authCache.delete(oldestKey);
+    }
     authCache.set(userId.toString(), { user, timestamp: Date.now() });
 };
 

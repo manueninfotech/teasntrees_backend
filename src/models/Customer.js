@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import User from './User.js';
-import { fixCloudinaryUrl } from '../utils/cloudinaryHelper.js';
 
 const customerSchema = new mongoose.Schema({
     addresses: [{
@@ -44,7 +43,6 @@ const customerSchema = new mongoose.Schema({
     }],
     profileImage: {
         type: String,
-        get: fixCloudinaryUrl,
         default: null
     },
     notificationPreferences: {

@@ -40,6 +40,13 @@ export const verifyPayment = async (req, res) => {
             const orders = await Order.find({ _id: { $in: targetOrderIds } });
 
             for (const order of orders) {
+                // CRITICAL SECURITY FIX: Ensure the payment actually belongs to this order!
+                if (order.razorpayOrderId !== razorpay_order_id) {
+                    return res.status(403).json({ success: false, message: 'Payment Order ID mismatch for order: ' + order._id });
+                }
+
+                if (order.paymentStatus === 'paid') continue; // Idempotency check
+
                 order.paymentStatus = 'paid';
                 order.razorpayPaymentId = razorpay_payment_id;
                 order.razorpaySignature = razorpay_signature;

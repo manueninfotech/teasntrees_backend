@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema({
 
     email: {
         type: String,
-        unique: true,
         sparse: true,
         lowercase: true,
         trim: true,
@@ -20,7 +19,6 @@ const userSchema = new mongoose.Schema({
 
     mobile: {
         type: String,
-        unique: true,
         sparse: true, // Allow multiple null values without violating unique constraint
         trim: true,
         // default: null,
@@ -125,6 +123,8 @@ const userSchema = new mongoose.Schema({
 });
 
 userSchema.index({ location: '2dsphere' });
+userSchema.index({ mobile: 1, role: 1 }, { unique: true, sparse: true });
+userSchema.index({ email: 1, role: 1 }, { unique: true, sparse: true });
 
 userSchema.methods.checkProfileComplete = function () {
     return !!(this.name && this.email && this.address && this.role);
