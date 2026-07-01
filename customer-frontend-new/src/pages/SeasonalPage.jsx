@@ -24,7 +24,7 @@ const SeasonalPage = () => {
         }),
     });
 
-    const allProducts = productsData?.data?.products || [];
+    const allProducts = productsData || [];
     const seasonalProducts = allProducts.filter(p => p.isSeasonal);
 
     // Boutique Header with Botanical Grace
