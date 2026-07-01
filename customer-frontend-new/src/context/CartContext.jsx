@@ -93,27 +93,6 @@ export const CartProvider = ({ children }) => {
     }, [isAuthenticated]); // Only re-run when auth status changes. removed brand dep as it's unified now.
 
 
-    // Helper to map Server Item Structure to UI Structure
-    const mapServerItemToUI = (serverItem) => ({
-        key: serverItem._id, // Cart Item ID
-        id: serverItem.product._id, // Product ID
-        name: serverItem.product.name,
-        image: serverItem.product.image,
-        price: serverItem.price,
-        size: serverItem.customization,
-        customizationPayload: serverItem.weight ? {
-            type: 'cake',
-            weight: serverItem.weight,
-            isCustomized: Boolean(serverItem.isCustomized),
-            isEggless: Boolean(serverItem.isEggless),
-            customizationDetails: serverItem.customizationDetails || {}
-        } : null,
-        quantity: serverItem.quantity,
-        description: serverItem.product.description,
-        isAvailable: serverItem.product.isAvailable,
-        brand: serverItem.product.brand || 'teasntrees'
-    });
-
     // Add Item
     const addToCart = async (product, selectedOption = null) => {
         const isCakeOption = selectedOption?.type === 'cake';
