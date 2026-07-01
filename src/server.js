@@ -43,11 +43,9 @@ import adminProfileRoutes from './routes/admin/profileRoutes.js';
 import adminContactRoutes from './routes/admin/contactRoutes.js';
 import adminRoutes from './routes/admin/index.js';
 
-import riderAuthRoutes from './routes/rider/authRoutes.js';
-import riderDeliveryRoutes from './routes/rider/deliveryRoutes.js';
-
 import payoutRoutes from './routes/admin/payoutRoutes.js';
 import managerRoutes from './routes/manager/index.js';
+import riderRoutes from './routes/rider/index.js';
 
 import { notFound, errorHandler } from './middlewares/errorHandler.js';
 import { socketAuth } from './middlewares/socketAuth.js';
@@ -59,6 +57,7 @@ import { SOCKET_EVENTS } from './sockets/socketEvents.js';
 import { initNudgeWorker } from './workers/nudgeWorker.js';
 
 const app = express();
+app.set('trust proxy', 1); // Trust first proxy for express-rate-limit
 
 // Trust proxy for Render load balancer (required for rate limiting)
 app.set('trust proxy', 1);
@@ -104,6 +103,8 @@ app.use(cors({
 
 // Security and parsers
 app.use(helmet({
+    // allow other origins to load static assets (required when frontend is on
+    // a different host/port during development)
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: {
@@ -111,9 +112,12 @@ app.use(helmet({
             ...helmet.contentSecurityPolicy.getDefaultDirectives(),
             "script-src": ["'self'", "'unsafe-inline'"],
             "script-src-attr": ["'unsafe-inline'"],
+            // allow images from our own api server and the frontend origin(s)
             "img-src": [
                 "'self'",
                 "data:",
+                // when frontend runs on another port it still needs to fetch
+                // product placeholders from the backend.
                 'http://localhost:5000',
                 ...(allowedOrigins.includes('*') ? [] : allowedOrigins)
             ]
@@ -181,16 +185,15 @@ app.use((req, res, next) => {
     next();
 });
 
-// Static files - only serve the uploads directory, not the entire backend folder!
-const uploadsDir = join(__dirname, '../../uploads');
-app.use('/uploads', express.static(uploadsDir));
+// Static files - serve public storage
+const publicStoragePath = process.env.STORAGE_PUBLIC_PATH || join(__dirname, '../../uploads/public');
+app.use('/public', express.static(publicStoragePath));
+app.use('/uploads', express.static(join(__dirname, '../../uploads'))); // Keep old uploads working just in case
 
 // Database connection moved to top
 
 import { brandMiddleware } from './middlewares/brandMiddleware.js';
 
-/* =======================
-   ROUTES
 ======================= */
 // Customer Sub-Router to group routes under /api/:brand
 const customerApiRouter = express.Router({ mergeParams: true });
@@ -225,8 +228,7 @@ app.use(['/api/:brand/admin', '/api/admin'], brandMiddleware, adminRoutes);
 app.use(['/api/:brand/admin/payouts', '/api/admin/payouts'], brandMiddleware, payoutRoutes);
 
 // Rider
-app.use('/api/rider/auth', riderAuthRoutes);
-app.use('/api/rider/deliveries', riderDeliveryRoutes);
+app.use(['/api/:brand/rider', '/api/rider'], brandMiddleware, riderRoutes);
 
 // Manager
 app.use(['/api/:brand/manager', '/api/manager'], brandMiddleware, managerRoutes);

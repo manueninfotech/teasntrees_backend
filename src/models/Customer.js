@@ -51,6 +51,9 @@ const customerSchema = new mongoose.Schema({
         push: { type: Boolean, default: true },
         offers: { type: Boolean, default: true }
     }
+}, {
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 const Customer = User.discriminator('Customer', customerSchema);

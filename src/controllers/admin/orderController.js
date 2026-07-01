@@ -3,11 +3,10 @@ import User from "../../models/User.js";
 import Settings from "../../models/Settings.js";
 import Delivery from "../../models/Delivery.js";
 
-import { riderAssignmentService } from "../../services/riderAssignmentService.js";
-import { getDistance } from "../../utils/geoUtils.js";
-
 import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import activityLogService from "../../services/activityLogService.js";
+import { riderAssignmentService } from "../../services/riderAssignmentService.js";
+import { getDistance } from "../../utils/geoUtils.js";
 
 /* =========================================================
    GET ALL ORDERS
@@ -191,6 +190,9 @@ export const updateOrderStatus = async (req, res) => {
         }
 
         // Status already adjusted to waiting_for_rider above when ready
+        if (order.status === 'waiting_for_rider') {
+            riderAssignmentService.processWaitingOrders(req.app.get('io'));
+        }
 
         // Re-fetch to return latest state (Delivery hook may have updated it)
         const updatedOrder = await Order.findById(order._id);
@@ -294,32 +296,47 @@ export const updatePaymentStatus = async (req, res) => {
 ========================================================= */
 export const assignDeliveryRider = async (req, res) => {
     try {
+        const { id } = req.params;
         const { riderId } = req.body;
-        const order = await Order.findById(req.params.id);
 
+        const order = await Order.findById(id);
         if (!order) {
             return res.status(404).json({ success: false, message: 'Order not found' });
         }
 
-        const rider = await User.findById(riderId);
-        if (!rider || rider.role !== 'rider') {
-            return res.status(400).json({ success: false, message: 'Invalid rider' });
+        const rider = await User.findOne({ _id: riderId, role: 'rider' });
+        if (!rider) {
+            return res.status(404).json({ success: false, message: 'Rider not found' });
         }
 
-        await riderAssignmentService.createOrUpdateDelivery(order, rider);
+        const delivery = await riderAssignmentService.createOrUpdateDelivery(order, rider);
+
+        order.status = 'assigned';
+        order.riderId = rider._id;
+        await order.save();
 
         res.json({
             success: true,
             message: 'Rider assigned successfully',
-            data: order
+            data: { order, delivery }
         });
+
+        // Socket events
+        const io = req.app.get('io');
+        if (io) {
+            io.to(SOCKET_ROOMS.user(order.customerId.toString()))
+                .emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+                    orderId: order._id,
+                    status: 'assigned'
+                });
+        }
 
         // Log Activity
         await activityLogService.log(req, {
-            action: 'assign',
+            action: 'assign_rider',
             resource: 'order',
             resourceId: order._id,
-            details: { riderId, riderName: rider.name }
+            details: { riderId: rider._id }
         });
 
     } catch (error) {

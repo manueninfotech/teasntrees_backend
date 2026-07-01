@@ -1,6 +1,6 @@
 import Product from "../../models/Product.js";
 import Category from "../../models/Category.js";
-import { uploadToCloudinary, deleteFromCloudinary, extractPublicId } from "../../utils/imageUpload.js";
+import { uploadService } from "../../services/storage/upload.service.js";
 import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
 import { statsService } from "../../services/statsService.js";
 import activityLogService from '../../services/activityLogService.js';
@@ -217,7 +217,7 @@ export const createProduct = async (req, res) => {
         let productImage = image; // Default to string URL from body
         if (req.file) {
             // If file uploaded, upload to Cloudinary
-            const uploadResult = await uploadToCloudinary(req.file.buffer, 'products');
+            const uploadResult = await uploadService.uploadPublicImage(req.file.buffer, 'products');
             productImage = uploadResult.url;
         }
 
@@ -313,13 +313,13 @@ export const updateProduct = async (req, res) => {
         // Handle image upload/update
         if (req.file) {
             // Upload new image first (Blocking - required)
-            const uploadResult = await uploadToCloudinary(req.file.buffer, 'products');
+            const uploadResult = await uploadService.uploadPublicImage(req.file.buffer, 'products');
 
             // Delete old image from Cloudinary in background
-            if (product.image && product.image.includes('cloudinary.com')) {
-                const oldPublicId = extractPublicId(product.image);
+            if (product.image && (product.image.includes('cloudinary.com') || product.image.includes('/products/'))) {
+                const oldPublicId = uploadService.extractPublicId(product.image);
                 if (oldPublicId) {
-                    deleteFromCloudinary(oldPublicId).catch(err =>
+                    uploadService.deleteFile(oldPublicId).catch(err =>
                         console.error('Error deleting old image (background):', err)
                     );
                 }
@@ -457,11 +457,11 @@ export const deleteProduct = async (req, res) => {
         await product.deleteOne();
 
         // Delete image from Cloudinary in background (Non-blocking)
-        if (product.image && product.image.includes('cloudinary.com')) {
-            const publicId = extractPublicId(product.image);
+        if (product.image && (product.image.includes('cloudinary.com') || product.image.includes('/products/'))) {
+            const publicId = uploadService.extractPublicId(product.image);
             if (publicId) {
-                deleteFromCloudinary(publicId).catch(err =>
-                    console.error('Error deleting image from Cloudinary (background):', err)
+                uploadService.deleteFile(publicId).catch(err =>
+                    console.error('Error deleting image (background):', err)
                 );
             }
         }

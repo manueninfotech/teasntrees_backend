@@ -19,11 +19,11 @@ const riderSchema = new mongoose.Schema({
     },
 
     // Legal Documents (URLs to images/PDFs)
-    licenseNumber: { type: String, required: true },
-    licenseExpiryDate: { type: Date, required: true },
+    licenseNumber: { type: String },
+    licenseExpiryDate: { type: Date },
     licensePhoto: { type: String }, // URL
 
-    aadharNumber: { type: String, required: true },
+    aadharNumber: { type: String },
     aadharPhoto: { type: String }, // URL
 
     panNumber: { type: String },
@@ -49,6 +49,11 @@ const riderSchema = new mongoose.Schema({
     isOnDelivery: {
         type: Boolean,
         default: false
+    },
+    lockUntil: {
+        type: Date,
+        default: null,
+        index: true
     },
     currentLocation: {
         type: {
@@ -82,7 +87,9 @@ const riderSchema = new mongoose.Schema({
     maxDeliveriesPerDay: { type: Number, default: 30 }
 
 }, {
-    discriminatorKey: 'kind'
+    discriminatorKey: 'kind',
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 // Index for geospatial queries (finding nearest rider)

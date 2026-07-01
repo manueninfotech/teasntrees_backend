@@ -124,7 +124,7 @@ export const getAllProducts = async (req, res) => {
         const responseData = {
             success: true,
             data: {
-                products,
+                products: products,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(totalProducts / limit),
@@ -235,10 +235,12 @@ export const getProductsByCategory = async (req, res) => {
             Product.countDocuments(query)
         ]);
 
+        const fixedProducts = products.map(fixLeanImage);
+
         const responseData = {
             success: true,
             data: {
-                products,
+                products: fixedProducts,
                 pagination: {
                     currentPage: parseInt(page),
                     totalPages: Math.ceil(totalProducts / limit),

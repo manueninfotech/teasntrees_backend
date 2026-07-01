@@ -1,8 +1,10 @@
 import mongoose from 'mongoose';
+import Counter from './Counter.js';
 import './Order.js';
 import './User.js';
 import Rider from './Rider.js';
 import { riderAssignmentService } from '../services/riderAssignmentService.js';
+import { notificationService } from '../services/notificationService.js';
 
 /* ----------------------------------
    DELIVERY → ORDER STATUS MAP
@@ -38,7 +40,8 @@ const deliverySchema = new mongoose.Schema({
         type: String,
         enum: ['teasntrees', 'littleh'],
         default: 'teasntrees',
-        required: true
+        required: true,
+        index: true
     },
 
     riderId: {
@@ -52,6 +55,10 @@ const deliverySchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
+
+    customerName: String,
+    customerMobile: String,
+    deliveryAddress: String, // Plain text address
 
     pickupLocation: {
         type: { type: String, enum: ['Point'], default: 'Point' },
@@ -110,7 +117,12 @@ const deliverySchema = new mongoose.Schema({
     notes: String,
     cancelReason: String,
     rejectionReason: String,
-    deliveryProof: String
+    deliveryProof: String,
+
+    // COD Payment Handling
+    paymentMode: { type: String, enum: ['cash', 'upi', 'none'], default: 'none' },
+    paymentStatus: { type: String, enum: ['pending', 'collected', 'handed_over'], default: 'pending' },
+    amountCollected: { type: Number, default: 0 }
 }, {
     timestamps: true
 });
@@ -118,11 +130,35 @@ const deliverySchema = new mongoose.Schema({
 /* ----------------------------------
    INDEXES
 ----------------------------------- */
+deliverySchema.index({ orderId: 1 });
 deliverySchema.index({ riderId: 1, status: 1 });
 deliverySchema.index({ customerId: 1, createdAt: -1 }); // Fast delivery history
 deliverySchema.index({ createdAt: -1 });
 deliverySchema.index({ pickupLocation: '2dsphere' });
 deliverySchema.index({ deliveryLocation: '2dsphere' });
+
+/* ----------------------------------
+   AUTO-POPULATE DENORMALIZED FIELDS
+----------------------------------- */
+deliverySchema.pre('save', async function () {
+    try {
+        if (!this.customerName || !this.deliveryAddress) {
+            const Order = mongoose.model('Order');
+            const order = await Order.findById(this.orderId).populate('customerId');
+            
+            if (order) {
+                if (!this.customerName) this.customerName = order.customerId?.name || 'Customer';
+                if (!this.customerMobile) this.customerMobile = order.customerId?.mobile || '';
+                if (!this.deliveryAddress) this.deliveryAddress = order.deliveryAddress?.address || 'Customer Address';
+                if (!this.brand) this.brand = order.brand;
+            }
+        }
+    } catch (err) {
+        console.error('Delivery pre-save error:', err);
+        // Throwing error allows Mongoose to handle it properly
+        throw err;
+    }
+});
 
 /* ----------------------------------
    DELIVERY NUMBER
@@ -134,7 +170,7 @@ deliverySchema.pre('save', async function () {
     const counter = await Counter.findOneAndUpdate(
         { name: 'delivery' },
         { $inc: { seq: 1 } },
-        { new: true, upsert: true }
+        { returnDocument: 'after', upsert: true }
     );
 
     this.deliveryNumber = `DEL${String(counter.seq).padStart(6, '0')}`;
@@ -277,12 +313,17 @@ deliverySchema.post('save', async function (delivery) {
         await releaseRider(delivery.riderId);
     }
 
-    if (!mutated) return;
+    if (!mutated) {
+        // Even if no order status mutated, send notification for delivery updates
+        sendCustomerStatusPushNotification(delivery);
+        return;
+    }
 
     // Allow logistics status updates only from Delivery sync
     order.$locals.allowDeliverySync = true;
 
     await order.save();
+    sendCustomerStatusPushNotification(delivery);
 });
 
 /* ----------------------------------
@@ -332,7 +373,82 @@ deliverySchema.post('findOneAndUpdate', async function (delivery) {
     if (['delivered', 'cancelled', 'rejected'].includes(delivery.status)) {
         await releaseRider(delivery.riderId);
     }
+
+    // ONLY send notification if the status was part of the update
+    const update = this.getUpdate();
+    const isStatusUpdate = update.status || (update.$set && update.$set.status);
+    
+    if (isStatusUpdate) {
+        sendCustomerStatusPushNotification(delivery);
+    }
 });
+
+/* ----------------------------------
+   REAL-TIME PUSH NOTIFICATIONS
+----------------------------------- */
+const sendCustomerStatusPushNotification = async (delivery) => {
+    try {
+        if (!delivery) return;
+        const User = mongoose.model('User');
+        const customer = await User.findById(delivery.customerId);
+        if (!customer || !customer.fcmToken) return;
+
+        const rider = await User.findById(delivery.riderId);
+        const riderName = rider ? rider.name : 'A rider';
+
+        let title = 'Order Update';
+        let body = '';
+
+        switch (delivery.status) {
+            case 'accepted':
+                title = 'Rider Assigned';
+                body = `${riderName} has been assigned to deliver your order!`;
+                break;
+            case 'heading_to_pickup':
+                title = 'Rider Heading to Cafe';
+                body = `${riderName} is heading to the outlet to collect your order.`;
+                break;
+            case 'arrived_at_pickup':
+                title = 'Rider Arrived at Cafe';
+                body = `${riderName} has arrived at the outlet and is preparing to collect your order.`;
+                break;
+            case 'picked_up':
+                title = 'Order Out for Delivery';
+                body = `${riderName} has picked up your order and is on the way!`;
+                break;
+            case 'in_transit':
+                title = 'Order In Transit';
+                body = `${riderName} is on the way to your location.`;
+                break;
+            case 'arrived':
+                title = 'Rider Arrived';
+                body = `${riderName} has arrived at your address! Share delivery PIN ${delivery.deliveryOtp} to collect.`;
+                break;
+            case 'delivered':
+                title = 'Order Delivered';
+                body = `Your order has been successfully delivered. Thank you!`;
+                break;
+            case 'cancelled':
+                title = 'Delivery Cancelled';
+                body = `We are sorry, your delivery assignment was cancelled.`;
+                break;
+            default:
+                return;
+        }
+
+        await notificationService.sendPush(customer, {
+            title,
+            body,
+            data: {
+                deliveryId: delivery._id.toString(),
+                orderId: delivery.orderId.toString(),
+                status: delivery.status
+            }
+        });
+    } catch (err) {
+        console.error('Failed to send status push notification:', err);
+    }
+};
 
 /* ----------------------------------
    EXPORT

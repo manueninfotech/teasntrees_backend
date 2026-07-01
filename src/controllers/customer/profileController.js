@@ -262,7 +262,7 @@ const updateBrandPreference = async (req, res) => {
 };
 
 // Update FCM Token for push notifications
-const updateFCMToken = async (req, res) => {
+const updateFcmToken = async (req, res) => {
     try {
         const { fcmToken } = req.body;
         const userId = req.user.userId;
@@ -304,8 +304,11 @@ const updateFCMToken = async (req, res) => {
     }
 };
 
+const updateFCMToken = updateFcmToken;
+
 export {
     updateProfile,
     updateBrandPreference,
+    updateFcmToken,
     updateFCMToken
 };
