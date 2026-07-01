@@ -48,7 +48,7 @@ export default function SeasonalProducts() {
     const { data: seasonalProducts = [], isLoading: seasonalLoading } = useQuery({
         queryKey: ['products-seasonal-all'],
         queryFn: async () => {
-            const response = await api.get(`${urlBrand}/admin/products/seasonal/all`);
+            const response = await api.get('/admin/products/seasonal/all');
             const data = response.data.data || [];
             localStorage.setItem('products-seasonal-all-cache', JSON.stringify(data));
             return data;
