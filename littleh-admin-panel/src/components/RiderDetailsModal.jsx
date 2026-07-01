@@ -162,6 +162,10 @@ export default function RiderDetailsModal({ isOpen, onClose, rider, onApprove, o
                                                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Phone Number</p>
                                                 <p className="font-black text-gray-900 text-sm tracking-tight">{rider.mobile}</p>
                                             </div>
+                                            <div>
+                                                <p className="text-[8px] font-black text-bakery-primary uppercase tracking-widest mb-1 italic">Verification PIN</p>
+                                                <p className="font-black text-bakery-primary text-lg tracking-[0.2em]">{rider.verificationPin || 'N/A'}</p>
+                                            </div>
                                             <div className="col-span-2">
                                                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Email Address</p>
                                                 <p className="font-black text-gray-900 text-sm tracking-tight">{rider.email || 'N/A'}</p>

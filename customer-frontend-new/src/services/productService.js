@@ -15,8 +15,9 @@ export const productService = {
 
         const response = await api.get(`/customer/products?${params.toString()}`);
 
-        // Return full data object so MenuPage can check success and pagination
-        return response.data;
+        // Backend returns: { success: true, data: { products: [], pagination: {} } }
+        // We return just the products array for the component to use directly
+        return response.data?.data?.products || [];
     },
 
     // Get categories from backend

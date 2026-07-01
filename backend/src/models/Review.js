@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import './Customer.js';
 
 const reviewSchema = new mongoose.Schema({
     orderId: {
@@ -64,7 +65,9 @@ const reviewSchema = new mongoose.Schema({
         default: 'order'
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { getters: true },
+    toObject: { getters: true }
 });
 
 // Indexes

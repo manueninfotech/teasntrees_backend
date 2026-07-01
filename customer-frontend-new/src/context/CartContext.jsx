@@ -16,26 +16,8 @@ export const useCart = () => {
 
 export const CartProvider = ({ children }) => {
     const { isAuthenticated, user } = useAuth();
-    
-    // Initialize Cart from localStorage for persistence across brand switching (guest sessions)
-    const getInitialCart = () => {
-        try {
-            const saved = localStorage.getItem('guest_cart');
-            if (!saved) return [];
-            const parsed = JSON.parse(saved);
-            // Migration: Ensure existing items have names if saved before mapping was updated
-            return Array.isArray(parsed) ? parsed.map(item => ({
-                ...item,
-                name: item.name || 'Artisan Item',
-                brand: item.brand || 'teasntrees'
-            })) : [];
-        } catch (err) {
-            console.error("Failed to load cart from localStorage", err);
-            return [];
-        }
-    };
-
-    const [cartItems, setCartItems] = useState(getInitialCart);
+    const { brand } = useBrand();
+    const [cartItems, setCartItems] = useState([]);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -68,18 +50,16 @@ export const CartProvider = ({ children }) => {
         category: serverItem.product?.category?.name || 'Artisan Pastry',
         selectedVariants: serverItem.selectedVariants || []
     });
-
-    // Sync with Server on Auth change
     useEffect(() => {
         const loadCart = async () => {
             if (isAuthenticated) {
+                // Load from Server
                 try {
                     setIsLoading(true);
 
                     // Sync in-memory guest items if any
-                    const guestItems = getInitialCart();
-                    if (guestItems.length > 0) {
-                        for (const item of guestItems) {
+                    if (cartItems.length > 0) {
+                        for (const item of cartItems) {
                             try {
                                 await cartService.addToCart(
                                     item.id,
@@ -90,8 +70,6 @@ export const CartProvider = ({ children }) => {
                                 console.error("Failed to sync item", item.name);
                             }
                         }
-                        // Clear guest storage after successful sync check
-                        localStorage.removeItem('guest_cart');
                     }
 
                     // Fetch final server state
@@ -106,13 +84,35 @@ export const CartProvider = ({ children }) => {
                     setIsLoading(false);
                 }
             } else {
-                // For safety on hard logout, though the reload usually clears state
-                // We keep the InitialCart if not authenticated
+                // On logout or guest session, clear the cart items to ensure no leakage
+                setCartItems([]);
             }
         };
 
         loadCart();
-    }, [isAuthenticated]);
+    }, [isAuthenticated]); // Only re-run when auth status changes. removed brand dep as it's unified now.
+
+
+    // Helper to map Server Item Structure to UI Structure
+    const mapServerItemToUI = (serverItem) => ({
+        key: serverItem._id, // Cart Item ID
+        id: serverItem.product._id, // Product ID
+        name: serverItem.product.name,
+        image: serverItem.product.image,
+        price: serverItem.price,
+        size: serverItem.customization,
+        customizationPayload: serverItem.weight ? {
+            type: 'cake',
+            weight: serverItem.weight,
+            isCustomized: Boolean(serverItem.isCustomized),
+            isEggless: Boolean(serverItem.isEggless),
+            customizationDetails: serverItem.customizationDetails || {}
+        } : null,
+        quantity: serverItem.quantity,
+        description: serverItem.product.description,
+        isAvailable: serverItem.product.isAvailable,
+        brand: serverItem.product.brand || 'teasntrees'
+    });
 
     // Add Item
     const addToCart = async (product, selectedOption = null) => {
@@ -160,8 +160,7 @@ export const CartProvider = ({ children }) => {
             quantity: 1,
             description: product.description,
             isAvailable: true,
-            brand: product.brand || 'teasntrees',
-            category: product.category?.name || 'Specialty'
+            brand: product.brand || 'teasntrees'
         };
 
         if (isAuthenticated) {
@@ -200,14 +199,16 @@ export const CartProvider = ({ children }) => {
 
     // Update Quantity
     const updateQuantity = async (itemKey, delta) => {
+        // Find current quantity
         const item = cartItems.find(i => i.key === itemKey);
         if (!item) return;
 
         const newQty = item.quantity + delta;
-        if (newQty < 1) return;
+        if (newQty < 1) return; // Use remove for 0
 
         if (isAuthenticated) {
             try {
+                // itemKey is the CartItem _id from server
                 const response = await cartService.updateItem(itemKey, newQty);
                 if (response.success) {
                     setCartItems(response.data.items.map(mapServerItemToUI));
@@ -251,15 +252,15 @@ export const CartProvider = ({ children }) => {
             }
         } else {
             setCartItems([]);
-            localStorage.removeItem('guest_cart');
         }
     };
 
     // Checkout
     const checkout = async (checkoutData) => {
         if (isAuthenticated) {
+            // Server Checkout
             const response = await cartService.checkout(checkoutData);
-            setCartItems([]); 
+            setCartItems([]); // Server clears it, so we clear UI
             return response;
         } else {
             const orderPayload = {

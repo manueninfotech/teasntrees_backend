@@ -18,7 +18,7 @@ import Outlet from '../../models/Outlet.js'
 ========================================================= */
 export const createOrder = async (req, res) => {
     try {
-        const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode } = req.body;
+        const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode, location } = req.body;
         const customerId = req.user.userId;
 
         if (!items || !items.length) {
@@ -27,6 +27,24 @@ export const createOrder = async (req, res) => {
 
         if (!deliveryAddress) {
             return res.status(400).json({ success: false, message: 'Delivery address required' });
+        }
+
+        // Handle deliveryAddress as either string or object with pincode
+        const pincode = typeof deliveryAddress === 'object' ? deliveryAddress.pincode : null;
+        
+        // FOOLPROOF LOCATION PARSING
+        let finalDeliveryAddress = {
+            address: typeof deliveryAddress === 'string' ? deliveryAddress : deliveryAddress.address
+        };
+
+        if (location && location.coordinates && location.coordinates.length === 2) {
+            finalDeliveryAddress.location = {
+                type: 'Point',
+                coordinates: location.coordinates, // [lng, lat]
+            };
+            if (location.address) {
+                finalDeliveryAddress.address = `${location.address}: ${finalDeliveryAddress.address}`;
+            }
         }
 
         // 1. Batch fetch products and categories
@@ -241,7 +259,7 @@ export const createOrder = async (req, res) => {
                 couponCode: orderDiscount > 0 ? appliedCoupon.code : null,
                 discount: orderDiscount,
                 total: orderTotal,
-                deliveryAddress,
+                deliveryAddress: finalDeliveryAddress,
                 paymentMethod,
                 specialInstructions: deliveryInstructions,
                 status: 'pending'

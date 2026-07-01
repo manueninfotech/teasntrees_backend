@@ -7,23 +7,25 @@ class RiderMetricsService {
     //  Update all metrics for a rider
     async updateMetrics(riderId) {
         try {
-            const rider = await Rider.findById(riderId);
+            const riderIdObj = new mongoose.Types.ObjectId(riderId.toString());
+            const rider = await Rider.findById(riderIdObj);
             if (!rider) return;
 
-            // Calculate Acceptance Rate
-
             const DeliveryModel = mongoose.model('Delivery');
-            const completedCount = await DeliveryModel.countDocuments({ riderId, status: 'delivered' });
-            const rejectedCount = await DeliveryModel.countDocuments({ riderId, status: 'rejected' });
-
-            const totalOpportunities = completedCount + rejectedCount; // Simplification
-            const acceptanceRate = totalOpportunities > 0
-                ? (completedCount / totalOpportunities) * 100
-                : 100;
+            
+            // Re-calculate counts
+            const completedCount = await DeliveryModel.countDocuments({ 
+                riderId: riderIdObj, 
+                status: 'delivered' 
+            });
+            const rejectedCount = await DeliveryModel.countDocuments({ 
+                riderId: riderIdObj, 
+                status: 'rejected' 
+            });
 
             // Average Rating
             const deliveriesWithRatings = await DeliveryModel.find({
-                riderId,
+                riderId: riderIdObj,
                 rating: { $exists: true, $ne: null }
             });
 
@@ -33,21 +35,32 @@ class RiderMetricsService {
                 avgRating = sum / deliveriesWithRatings.length;
             }
 
+            // Total Earnings Calculation
+            const earningsData = await DeliveryModel.aggregate([
+                { $match: { riderId: riderIdObj, status: 'delivered' } },
+                { $group: { _id: null, total: { $sum: '$totalEarning' } } }
+            ]);
+            const totalEarnings = earningsData.length > 0 ? earningsData[0].total : 0;
+
+            logger.info(`[Metrics] Recalculating for ${rider.name}: ${completedCount} delivered, ₹${totalEarnings} total.`);
+
             // Update Rider Doc
-            await Rider.findByIdAndUpdate(riderId, {
+            await Rider.findByIdAndUpdate(riderIdObj, {
                 $set: {
                     performanceMetrics: {
-                        acceptanceRate: Math.round(acceptanceRate * 10) / 10,
+                        acceptanceRate: (completedCount + rejectedCount) > 0 
+                            ? Math.round((completedCount / (completedCount + rejectedCount)) * 1000) / 10 
+                            : 100,
                         completionRate: 100,
                         averageRating: Math.round(avgRating * 10) / 10,
                         totalReviews: deliveriesWithRatings.length
                     },
                     averageRating: Math.round(avgRating * 10) / 10,
                     ratingsCount: deliveriesWithRatings.length,
-                    totalDeliveries: completedCount
+                    totalDeliveries: completedCount,
+                    totalEarnings: totalEarnings
                 }
             });
-            logger.info(`Updated metrics for rider ${rider.name}: Rating=${avgRating}, AccRate=${acceptanceRate}%`);
 
         } catch (error) {
             logger.error('Error updating rider metrics:', error);

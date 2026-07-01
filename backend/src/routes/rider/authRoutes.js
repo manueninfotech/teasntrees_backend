@@ -4,25 +4,22 @@ import {
     toggleAvailability,
     getProfile,
     completeProfile,
-    firebaseLogin
+    firebaseLogin,
+    loginRider,
+    updateFCMToken,
+    getDocument
 } from '../../controllers/rider/authController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 import multer from 'multer';
-import { CloudinaryStorage } from 'multer-storage-cloudinary';
-import { v2 as cloudinary } from 'cloudinary';
-
 const router = express.Router({ mergeParams: true });
 
-// Cloudinary Storage Setup
-const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'rider-docs',
-        allowed_formats: ['jpg', 'png', 'jpeg', 'pdf'],
-    },
-});
+// Use Memory Storage so we can upload to Azure in the controller
+const storage = multer.memoryStorage();
 
-const upload = multer({ storage: storage });
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+});
 
 // Define Upload Fields
 const riderUploads = upload.fields([
@@ -35,10 +32,15 @@ const riderUploads = upload.fields([
 // Public Routes
 router.post('/register', riderUploads, registerRider);
 router.post('/firebase-login', firebaseLogin);
+router.post('/login', loginRider);
 
 // Protected Routes
 router.post('/availability', riderAuth, isApprovedRider, toggleAvailability);
+router.post('/fcm-token', riderAuth, updateFCMToken);
 router.get('/profile', riderAuth, getProfile);
 router.post('/complete-profile', riderAuth, riderUploads, completeProfile);
+
+// Retrieve private document
+router.get('/documents/:filename', riderAuth, getDocument);
 
 export default router;

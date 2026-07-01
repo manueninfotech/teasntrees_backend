@@ -10,46 +10,15 @@ export const useWishlist = () => useContext(WishlistContext);
 export const WishlistProvider = ({ children }) => {
     const { isAuthenticated } = useAuth();
     const { brand } = useBrand();
-    // Initialize Wishlist from localStorage for persistence across brand switching (guest sessions)
-    const getInitialWishlist = () => {
-        try {
-            const saved = localStorage.getItem('guest_wishlist');
-            return saved ? JSON.parse(saved) : [];
-        } catch (err) {
-            console.error("Failed to load wishlist from localStorage", err);
-            return [];
-        }
-    };
+    const [wishlistItems, setWishlistItems] = useState([]);
 
-    const [wishlistItems, setWishlistItems] = useState(getInitialWishlist);
-
-    // Save Guest Wishlist to localStorage whenever it changes
-    useEffect(() => {
-        if (!isAuthenticated) {
-            localStorage.setItem('guest_wishlist', JSON.stringify(wishlistItems));
-        }
-    }, [wishlistItems, isAuthenticated]);
+    // We no longer rely solely on localStorage for initial state to avoid brand leakage
+    // unless we use brand-specific keys. For now, let's just fetch from backend/refresh on brand change.
 
     // Sync with backend on login
     useEffect(() => {
         const fetchWishlist = async () => {
             try {
-                // Sync guest items from localStorage if any exist
-                const guestItems = getInitialWishlist();
-                if (guestItems.length > 0) {
-                    for (const item of guestItems) {
-                        try {
-                            // The server expects productId
-                            await userService.addToWishlist(item._id);
-                        } catch (err) {
-                            console.error("Failed to sync wishlist item to account", item.name, err);
-                        }
-                    }
-                    // Clear guest storage after successful sync check
-                    localStorage.removeItem('guest_wishlist');
-                }
-
-                // Fetch the final server-side source of truth
                 const items = await userService.getWishlist();
                 setWishlistItems(items || []);
             } catch (error) {
@@ -59,6 +28,9 @@ export const WishlistProvider = ({ children }) => {
 
         if (isAuthenticated) {
             fetchWishlist();
+        } else {
+            // On logout or guest session, clear the wishlist items to ensure no leakage
+            setWishlistItems([]);
         }
     }, [isAuthenticated]);
 

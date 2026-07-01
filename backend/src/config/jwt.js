@@ -1,6 +1,6 @@
 const jwtConfig = {
     secret: process.env.JWT_SECRET,
-    expire: process.env.JWT_EXPIRE || '30d'
+    expire: process.env.JWT_EXPIRE || '1h'
 };
 
 // Validate that JWT_SECRET is loaded

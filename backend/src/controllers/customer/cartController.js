@@ -88,9 +88,7 @@ export const getCart = async (req, res) => {
 
         const userId = req.user.userId;
 
-        const cart = await Cart.findOne({ userId })
-            .populate('items.product', 'name image price description isAvailable brand category')
-            .lean();
+        const cart = await Cart.findOne({ userId }).lean();
 
         if (!cart) {
             return res.json({
@@ -250,7 +248,6 @@ export const addToCart = async (req, res) => {
 
         // Save cart
         await cart.save();
-        await cart.populate('items.product', 'name image price description isAvailable brand category');
 
         logger.info("Item added to cart", {
             userId,
@@ -301,7 +298,7 @@ export const updateCartItem = async (req, res) => {
             { new: true }
         ).populate({
             path: 'items.product',
-            select: 'name description image price isAvailable brand category',
+            select: 'name description image price isAvailable',
             options: { lean: true }
         }).lean();
 

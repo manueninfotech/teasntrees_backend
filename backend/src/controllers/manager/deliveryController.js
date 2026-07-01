@@ -19,14 +19,26 @@ export const getDeliveries = async (req, res) => {
         // If 'active' type requested, filter by specific active statuses
         if (type === 'active') {
             const activeStatuses = [
-                'pending_acceptance',
-                'assigned',
-                'accepted',
-                'heading_to_pickup',
-                'arrived_at_pickup',
-                'picked_up',
+                'new',
+                'assigned_for_pickup',
+                'assigned_for_seller_pickup',
+                'ofp',
+                'picked',
+                'item_manifested',
+                'bag_in_transit',
+                'bag_received_at_via',
+                'bag_received',
+                'recd_at_fwd_hub',
+                'recd_at_fwd_dc',
+                'assigned_for_delivery',
+                'ofd',
                 'in_transit',
-                'arrived'
+                'on_hold',
+                'pickup_on_hold',
+                'reopen_ndr',
+                'cid',
+                'nc',
+                'na'
             ];
             query.status = { $in: activeStatuses };
         }

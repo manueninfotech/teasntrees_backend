@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import './Review.js';
 
 const productSchema = new mongoose.Schema(
   {
@@ -62,9 +63,9 @@ const productSchema = new mongoose.Schema(
       // default to brand-specific Cloudinary placeholder URLs
       default: function () {
         const b = this.brand || 'teasntrees';
-        if (b === 'littleh') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775625934/products/gfo3tkaqhft9km47nhoi.jpg';
-        if (b === 'teasntrees') return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
-        return 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
+        if (b === 'littleh') return 'https://paradiseyatra.com/_next/image?url=https%3A%2F%2Fres.cloudinary.com%2Fdop1mi4lg%2Fimage%2Fupload%2Ff_auto%2Cq_auto%3Agood%2Cdpr_auto%2Cw_1400%2Ch_788%2Cc_fill%2Cg_auto%2Fv1773308943%2Fparadise-yatra%2Fblogs%2Fimage-1773308940385-28447481_s1wb24.jpg&w=3840&q=75';
+        if (b === 'teasntrees') return 'https://res.cloudinary.com/deirtouso/image/upload/v1765887091/samples/dessert-on-a-plate.jpg';
+        return 'https://res.cloudinary.com/deirtouso/image/upload/v1765887087/samples/breakfast.jpg';
       }
     },
 
@@ -217,13 +218,12 @@ productSchema.pre('validate', function () {
     this.cakePricing.customizationPricePerKg = null;
   }
 
+  // if image field is empty/undefined/null we want to populate the brand
+  // specific placeholder before saving.  the default() defined above only
+  // runs when the field is omitted, and updates sometimes set it to null.
   if (!this.image) {
     const b = this.brand || 'teasntrees';
-    if (b === 'littleh') {
-      this.image = 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775625934/products/gfo3tkaqhft9km47nhoi.jpg';
-    } else {
-      this.image = 'https://res.cloudinary.com/dpguxi28j/image/upload/v1775557308/products/w5thcphy8b2j8ljeqglo.jpg';
-    }
+    this.image = b === 'littleh' ? 'default-coffee.png' : 'default-cake.png';
   }
 
   // Normalize availableMonths for indexing

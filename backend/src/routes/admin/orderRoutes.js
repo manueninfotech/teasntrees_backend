@@ -10,7 +10,6 @@ import {
 } from '../../controllers/admin/orderController.js';
 import {
     validateUpdateOrderStatus,
-    validateAssignRider,
     validateOrderId
 } from '../../middlewares/validators/orderValidator.js';
 import { logActivity } from '../../middlewares/activityLogger.js';
@@ -32,8 +31,8 @@ router.put('/:id/status', validateUpdateOrderStatus, updateOrderStatus);
 // Update payment status
 router.put('/:id/payment-status', validateOrderId, updatePaymentStatus);
 
-// Assign delivery rider
-router.put('/:id/assign-rider', validateAssignRider, assignDeliveryRider);
+// Assign rider
+router.put('/:id/assign-rider', validateOrderId, assignDeliveryRider);
 
 // Cancel order
 router.put('/:id/cancel', validateOrderId, cancelOrder);

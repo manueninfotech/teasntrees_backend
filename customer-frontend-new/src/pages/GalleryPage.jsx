@@ -3,9 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ZoomIn, Utensils, Coffee, Armchair, LayoutGrid } from 'lucide-react';
 import { cn } from '../lib/utils';
 import matchaLatte from '../assets/matchalatte.jpg';
-import bakeryCounter from '../assets/littleh_bakery_counter.png';
-import displayCase from '../assets/littleh_display_case.png';
-import cupcakes from '../assets/littleh_cupcakes.png';
 
 // Categorized images - Teas N Trees
 const teasImages = [
@@ -29,13 +26,13 @@ const teasImages = [
 // Categorized images - LittleH Bakery
 const littlehImages = [
     // Interior
-    { id: 1, category: 'Interior', src: bakeryCounter, alt: "Bakery Counter", span: "row-span-2 col-span-1" },
-    { id: 2, category: 'Interior', src: displayCase, alt: "Display Case", span: "row-span-1 col-span-1" },
+    { id: 1, category: 'Interior', src: "https://lh3.googleusercontent.com/gps-cs-s/AHVAweoq_ekNQHCak7IO6dleBxxsVxD8V0HUrHm3FZwNde8LMy5jWxXz3yJT56fJoM6ljbhuRI5Y_NYL2CPxGN-ouSm_b9-pvzQb2lgprqjRSI8g_4T0QCBnlNX0iYb2EoF6oPHfSGtWdQ=s680-w680-h510-rw", alt: "Bakery Counter", span: "row-span-2 col-span-1" },
+    { id: 2, category: 'Interior', src: "https://lh3.googleusercontent.com/gps-cs-s/AHVAweortugaS3yd-yNR4iiuAAQ-_t7XUbnqKlOb7Z5_U38vqd4yysDfuQ3daUNPYwiksmtdS02JDK6mRq9XGvEJGOpdJyB6U47UTsF2TcEVv2BYfHygJQTsDpp9rItudpzOTJ8ttBJW=s680-w680-h510-rw", alt: "Display Case", span: "row-span-1 col-span-1" },
     { id: 3, category: 'Interior', src: "https://content.jdmagicbox.com/comp/guntur/z6/9999px863.x863.220205220510.q3z6/catalogue/little-true-cakes-and-desserts-guntur-bakeries-0iig1htdzl-250.jpg", alt: "Pink Decor", span: "row-span-1 col-span-1" },
 
     // Food
     { id: 4, category: 'Food', src: "https://images.jdmagicbox.com/comp/guntur/t9/9999px863.x863.200828205813.u4t9/catalogue/bakery-delights-svn-colony-guntur-bakeries-xh489ih2rk-250.jpg", alt: "Biscuits", span: "row-span-1 col-span-1" },
-    { id: 5, category: 'Food', src: cupcakes, alt: "Cupcakes", span: "row-span-2 col-span-1" },
+    { id: 5, category: 'Food', src: "https://files.yappe.in/place/small/little-h-true-cakes-desserts-4591575.webp", alt: "Cupcakes", span: "row-span-2 col-span-1" },
     { id: 6, category: 'Food', src: "https://images.unsplash.com/photo-1550617931-e17a7b70dce2?auto=format&fit=crop&q=80&w=800", alt: "Macarons", span: "row-span-1 col-span-1" },
 
     // Drinks
