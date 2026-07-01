@@ -33,7 +33,7 @@ export const CartProvider = ({ children }) => {
         key: serverItem._id, // Cart Item ID
         id: serverItem.product?._id || serverItem.product, // Product ID
         name: serverItem.product?.name || serverItem.name || 'Artisan Item',
-        image: serverItem.product?.image,
+        image: serverItem.image || serverItem.product?.image,
         price: serverItem.price,
         size: serverItem.customization,
         customizationPayload: serverItem.weight ? {
@@ -44,10 +44,10 @@ export const CartProvider = ({ children }) => {
             customizationDetails: serverItem.customizationDetails || {}
         } : null,
         quantity: serverItem.quantity,
-        description: serverItem.product?.description,
-        isAvailable: serverItem.product?.isAvailable,
-        brand: serverItem.product?.brand || 'teasntrees',
-        category: serverItem.product?.category?.name || 'Artisan Pastry',
+        description: serverItem.product?.description || serverItem.description,
+        isAvailable: serverItem.product?.isAvailable ?? true,
+        brand: serverItem.brand || serverItem.product?.brand || 'teasntrees',
+        category: serverItem.product?.category?.name || serverItem.category || 'Artisan Pastry',
         selectedVariants: serverItem.selectedVariants || []
     });
     useEffect(() => {
