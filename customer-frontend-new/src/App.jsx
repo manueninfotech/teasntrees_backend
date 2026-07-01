@@ -19,6 +19,7 @@ import AboutPage from './pages/AboutPage';
 import GalleryPage from './pages/GalleryPage';
 import ReviewsPage from './pages/ReviewsPage';
 import ContactPage from './pages/ContactPage';
+import SeasonalPage from './pages/SeasonalPage';
 
 // Placeholder pages for those not yet created to prevent build errors
 const CartPage = () => <div className="pt-32 text-center text-4xl font-bold text-cafe-orange">Cart Coming Soon</div>;
@@ -52,6 +53,7 @@ const BrandRoot = () => {
             <Route path="gallery" element={<GalleryPage />} />
             <Route path="reviews" element={<ReviewsPage />} />
             <Route path="contact" element={<ContactPage />} />
+            <Route path="seasonal" element={<SeasonalPage />} />
           </Route>
 
           {/* Catch-all for legacy or invalid paths */}
