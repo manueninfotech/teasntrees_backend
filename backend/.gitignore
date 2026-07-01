@@ -5,3 +5,5 @@ logs/
 serviceAccountKey.json
 
 /.env
+env
+/env
