@@ -22,7 +22,7 @@ const errorHandler = (err, req, res, next) => {
     // Log error in development
     if (process.env.NODE_ENV === 'development') {
         // Suppress socket.io errors (browser dev tools noise)
-        if (!req.originalUrl.includes('/socket.io/')) {
+        if (!req.originalUrl.includes('/socket.io/') && !req.originalUrl.includes('/favicon.ico')) {
             console.error('Error:', {
                 message: err.message,
                 stack: err.stack,
