@@ -194,6 +194,8 @@ app.use('/uploads', express.static(join(__dirname, '../../uploads'))); // Keep o
 
 import { brandMiddleware } from './middlewares/brandMiddleware.js';
 
+/* =======================
+   ROUTES
 ======================= */
 // Customer Sub-Router to group routes under /api/:brand
 const customerApiRouter = express.Router({ mergeParams: true });
