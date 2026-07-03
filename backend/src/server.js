@@ -186,9 +186,9 @@ app.use((req, res, next) => {
 });
 
 // Static files - serve public storage
-const publicStoragePath = process.env.STORAGE_PUBLIC_PATH || join(__dirname, '../../uploads/public');
+const publicStoragePath = process.env.STORAGE_PUBLIC_PATH || join(__dirname, '../uploads/public');
 app.use('/public', express.static(publicStoragePath));
-app.use('/uploads', express.static(join(__dirname, '../../uploads'))); // Keep old uploads working just in case
+app.use('/uploads', express.static(join(__dirname, '../uploads'))); // Keep old uploads working just in case
 
 // Database connection moved to top
 
