@@ -48,7 +48,7 @@ export const validateCreateProduct = [
     body('image')
         .optional()
         .trim()
-        .isURL().withMessage('Image must be a valid URL'),
+        .isURL({ require_tld: false }).withMessage('Image must be a valid URL'),
 
     body('isAvailable')
         .optional()
@@ -151,7 +151,7 @@ export const validateUpdateProduct = [
     body('image')
         .optional()
         .trim()
-        .isURL().withMessage('Image must be a valid URL'),
+        .isURL({ require_tld: false }).withMessage('Image must be a valid URL'),
 
     body('isAvailable')
         .optional()
