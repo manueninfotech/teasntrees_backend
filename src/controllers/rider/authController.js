@@ -542,22 +542,44 @@ export const loginRider = async (req, res) => {
 };
 
 // Serve private documents (Authenticated Rider or Admin only)
-export const getDocument = (req, res) => {
+export const getDocument = async (req, res) => {
     try {
         const { filename } = req.params;
         const folder = req.query.folder || 'temp';
-        
+
         // Ensure path traversal is prevented
         const sanitizedFilename = path.basename(filename);
         const sanitizedFolder = path.basename(folder);
-        
+
+        // Ownership check: a rider may only fetch their own documents
+        // (identity docs on their Rider record, or proofs of their own
+        // deliveries). Without this, any authenticated rider could pull
+        // another rider's Aadhaar/PAN/licence by filename.
+        const rider = req.rider;
+        const ownDocUrls = [rider?.licensePhoto, rider?.aadharPhoto, rider?.panPhoto, rider?.profilePhoto]
+            .filter(Boolean);
+        let isOwner = ownDocUrls.some(url => url.includes(sanitizedFilename));
+
+        if (!isOwner && rider) {
+            const Delivery = (await import('../../models/Delivery.js')).default;
+            const proofOwner = await Delivery.exists({
+                riderId: rider._id,
+                deliveryProof: { $regex: sanitizedFilename, $options: 'i' }
+            });
+            isOwner = Boolean(proofOwner);
+        }
+
+        if (!isOwner) {
+            return res.status(403).json({ success: false, message: 'Access denied' });
+        }
+
         const privateRoot = process.env.STORAGE_PRIVATE_PATH || path.join(process.cwd(), 'uploads', 'private');
         const absolutePath = path.join(privateRoot, sanitizedFolder, sanitizedFilename);
-        
+
         if (!fs.existsSync(absolutePath)) {
             return res.status(404).send('File not found');
         }
-        
+
         res.sendFile(absolutePath);
     } catch (error) {
         logger.error('Error serving document:', error);

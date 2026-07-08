@@ -72,18 +72,44 @@ export const checkUserRetention = async () => {
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-        // 1. Identify customers who haven't ordered in the last 7 days
-        const customers = await User.find({ role: 'customer', isActive: true, fcmToken: { $ne: null } });
+        // Single aggregation instead of one Order query per customer:
+        // latest order per customer, filtered to those older than 7 days,
+        // joined to active customers holding an FCM token.
+        const lapsed = await Order.aggregate([
+            { $sort: { customerId: 1, createdAt: -1 } },
+            {
+                $group: {
+                    _id: '$customerId',
+                    lastOrderAt: { $first: '$createdAt' },
+                    lastItems: { $first: '$items' }
+                }
+            },
+            { $match: { lastOrderAt: { $lt: sevenDaysAgo } } },
+            {
+                $lookup: {
+                    from: User.collection.name,
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'customer'
+                }
+            },
+            { $unwind: '$customer' },
+            {
+                $match: {
+                    'customer.role': 'customer',
+                    'customer.isActive': true,
+                    'customer.fcmToken': { $nin: [null, ''] }
+                }
+            },
+            { $project: { lastItems: 1, 'customer.fcmToken': 1 } }
+        ]);
 
-        for (const customer of customers) {
-            // Find the latest order for this customer
-            const lastOrder = await Order.findOne({ customerId: customer._id })
-                .sort({ createdAt: -1 })
-                .lean();
+        logger.info(`Nudge Worker: Found ${lapsed.length} lapsed customers to nudge.`);
 
-            // If they have an order but it's older than 7 days
-            if (lastOrder && lastOrder.createdAt < sevenDaysAgo) {
-                const firstItem = lastOrder.items[0];
+        for (const entry of lapsed) {
+            const customer = entry.customer;
+            {
+                const firstItem = entry.lastItems && entry.lastItems[0];
                 const itemName = firstItem ? firstItem.name : null;
 
                 const title = "We miss you!";
@@ -105,6 +131,14 @@ export const checkUserRetention = async () => {
  * Initialize Nudge Worker schedules
  */
 export const initNudgeWorker = () => {
+    // Only one instance (the production VM) should run background jobs.
+    // Local/dev runs must set ENABLE_BACKGROUND_JOBS=false to avoid
+    // sending real FCM nudges to customers from a dev machine.
+    if (process.env.ENABLE_BACKGROUND_JOBS === 'false') {
+        logger.info('Nudge Worker: Disabled via ENABLE_BACKGROUND_JOBS=false');
+        return;
+    }
+
     logger.info('Nudge Worker: Initializing background jobs...');
 
     // 1. Abandoned Cart Job - Every 1 hour

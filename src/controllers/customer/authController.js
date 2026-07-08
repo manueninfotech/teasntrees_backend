@@ -11,7 +11,7 @@ import logger from '../../config/logger.js';
 import activityLogService from '../../services/activityLogService.js';
 import { statsService } from '../../services/statsService.js';
 import { geocodingService } from '../../services/geocodingService.js';
-import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import { verifyFirebaseToken } from '../../services/firebaseAuth.js';
 
 // Complete user profile after Firebase login (requires JWT)
@@ -122,7 +122,7 @@ const completeProfile = async (req, res) => {
         // Emit socket event for admin dashboard
         const io = req.app.get('io');
         if (io) {
-            io.emit(SOCKET_EVENTS.USER_REGISTERED, {
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.USER_REGISTERED, {
                 userId: user._id,
                 name: user.name,
                 role: user.role,

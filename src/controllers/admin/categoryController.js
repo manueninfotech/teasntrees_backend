@@ -1,5 +1,5 @@
 import Category from "../../models/Category.js";
-import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
+import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import activityLogService from '../../services/activityLogService.js';
 import { clearProductCache } from '../customer/productController.js';
 import { clearCategoryCache } from '../customer/categoryController.js';
@@ -99,7 +99,7 @@ export const createCategory = async (req, res) => {
                 icon: category.icon
             };
             // Broadcast to everyone
-            io.emit(SOCKET_EVENTS.CATEGORY_CREATED, socketData);
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.CATEGORY_CREATED, socketData);
         }
 
         // Log Activity
@@ -166,7 +166,7 @@ export const updateCategory = async (req, res) => {
                 name: category.name,
                 icon: category.icon
             };
-            io.emit(SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.CATEGORY_UPDATED, socketData);
         }
 
         // Log Activity
@@ -214,7 +214,7 @@ export const deleteCategory = async (req, res) => {
         // Emit Socket.io event DIRECTLY
         const io = req.app.get('io');
         if (io) {
-            io.emit(SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.CATEGORY_DELETED, categoryData);
         }
 
         // Log Activity

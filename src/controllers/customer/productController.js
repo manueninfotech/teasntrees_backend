@@ -31,6 +31,9 @@ const setCachedResponse = (key, data) => {
 // Clear cache (can be exported and used in other controllers on update)
 export const clearProductCache = () => productCache.clear();
 
+// Escape user input before embedding it in a regex (prevents ReDoS/injection)
+const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 // Get all products (with pagination, search, filter)
 export const getAllProducts = async (req, res) => {
     try {
@@ -57,7 +60,7 @@ export const getAllProducts = async (req, res) => {
                 query.category = category;
             } else {
                 const categoryDoc = await Category.findOne({
-                    name: { $regex: new RegExp(`^${category}$`, 'i') }
+                    name: { $regex: new RegExp(`^${escapeRegex(category)}$`, 'i') }
                 });
                 if (categoryDoc) {
                     query.category = categoryDoc._id;
@@ -73,14 +76,15 @@ export const getAllProducts = async (req, res) => {
         // Combined search query (Global 'q' + Local 'search')
         const applySearch = async (term) => {
             if (!term) return null;
+            const safeTerm = escapeRegex(term);
             const matchingCategories = await Category.find({
-                name: { $regex: term, $options: 'i' }
+                name: { $regex: safeTerm, $options: 'i' }
             }).select('_id');
             const categoryIds = matchingCategories.map(cat => cat._id);
 
             return {
                 $or: [
-                    { name: { $regex: term, $options: 'i' } },
+                    { name: { $regex: safeTerm, $options: 'i' } },
                     { category: { $in: categoryIds } }
                 ]
             };

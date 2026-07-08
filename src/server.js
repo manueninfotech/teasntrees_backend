@@ -53,14 +53,11 @@ import { setupSocketHandlers } from './sockets/socketHandlers.js';
 import { SocketService } from './services/socketService.js';
 import { apiLimiter } from './middlewares/rateLimiter.js';
 import logger from './config/logger.js';
-import { SOCKET_EVENTS } from './sockets/socketEvents.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from './sockets/socketEvents.js';
 import { initNudgeWorker } from './workers/nudgeWorker.js';
 
 const app = express();
-app.set('trust proxy', 1); // Trust first proxy for express-rate-limit
-
-// Trust proxy for Render load balancer (required for rate limiting)
-app.set('trust proxy', 1);
+app.set('trust proxy', 1); // Trust first proxy for express-rate-limit (Render/nginx)
 
 
 
@@ -174,11 +171,15 @@ app.use((req, res, next) => {
             const isNoisy = noisyEndpoints.some(endpoint => req.originalUrl.includes(endpoint));
             if (isNoisy) return;
 
-            io.emit(SOCKET_EVENTS.SYSTEM_DATA_UPDATED, {
-                method: req.method,
-                path: req.originalUrl,
-                status: res.statusCode
-            });
+            // Targeted invalidation: dashboards (admin/manager) and the rider app
+            // consume this event; customers never do. Broadcasting to every
+            // connected customer socket was a scalability problem.
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).to(SOCKET_ROOMS.role('rider'))
+                .emit(SOCKET_EVENTS.SYSTEM_DATA_UPDATED, {
+                    method: req.method,
+                    path: req.originalUrl,
+                    status: res.statusCode
+                });
         }
     });
 

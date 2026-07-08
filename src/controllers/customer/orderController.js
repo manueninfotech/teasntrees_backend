@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
@@ -61,7 +62,7 @@ export const createOrder = async (req, res) => {
 
         for (const item of items) {
             const product = productMap.get(item.product.toString());
-            if (!product || !product.isAvailable) {
+            if (!product || !product.isAvailable || product.inStock === false) {
                 return res.status(400).json({
                     success: false,
                     message: `Product unavailable`
@@ -80,7 +81,23 @@ export const createOrder = async (req, res) => {
                 product.cakePricing.basePricePerKg !== null;
             const isLittlehCake = brand === 'littleh' && isCakeCategoryName(category?.name || '');
 
-            let price = item.price ?? product.price ?? 0;
+            // Server-authoritative pricing: the client's price is only accepted
+            // if it matches a known price point of the product (base price or a
+            // size option). Cake items are fully recomputed below regardless.
+            let price = product.price ?? 0;
+            if (item.price !== undefined && item.price !== null && !isLittlehCake) {
+                const clientPrice = Number(item.price);
+                const validPrices = [product.price, ...(product.sizeOptions || []).map(o => o.price)]
+                    .filter(p => typeof p === 'number');
+                if (validPrices.some(p => Math.abs(p - clientPrice) < 0.01)) {
+                    price = clientPrice;
+                } else {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Price for ${product.name} has changed. Please refresh your cart.`
+                    });
+                }
+            }
             let weight = item.weight;
             let isCustomized = Boolean(item.isCustomized);
             let isEggless = Boolean(item.isEggless);
@@ -143,20 +160,18 @@ export const createOrder = async (req, res) => {
             });
         }
 
-        const Settings = await import('../../models/Settings.js').then(m => m.default);
-        const settings = await Settings.findOne().lean();
-        const deliveryChargePerOrder = settings ? settings.deliveryCharge : 50;
-        const gstRate = settings ? (settings.gstRate || settings.taxPercentage || 5) : 5;
+        // Settings are per-brand (unique index on brand) — fetch for every brand
+        // in this cart instead of grabbing an arbitrary document.
+        const settingsList = await Settings.find({ brand: { $in: Object.keys(brandsGrouped) } }).lean();
+        const settingsByBrand = new Map(settingsList.map(s => [s.brand, s]));
 
-        const Outlet = await import('../../models/Outlet.js').then(m => m.default);
         const outlets = await Outlet.find({ isActive: true }).lean();
-        
+
         // --- COUPON VALIDATION ---
         let globalDiscount = 0;
         let appliedCoupon = null;
 
         if (couponCode) {
-            console.log(`[Order] Validating coupon: ${couponCode} for order subtotal: ${Object.values(brandsGrouped).reduce((sum, g) => sum + g.subtotal, 0)}`);
             appliedCoupon = await Coupon.findOne({
                 code: couponCode.trim().toUpperCase(),
                 isActive: true
@@ -214,26 +229,22 @@ export const createOrder = async (req, res) => {
             }
             
             globalDiscount = Math.round(globalDiscount * 100) / 100;
-            console.log(`[Order] Global discount calculated: ₹${globalDiscount}`);
-
-            // Increment usage count
-            appliedCoupon.usedCount += 1;
-            const userUsageIndex = appliedCoupon.userUsage.findIndex(u => u.userId.toString() === customerId.toString());
-            if (userUsageIndex > -1) {
-                appliedCoupon.userUsage[userUsageIndex].count += 1;
-            } else {
-                appliedCoupon.userUsage.push({ userId: customerId, count: 1 });
-            }
-            await appliedCoupon.save();
+            // NOTE: usage is consumed AFTER orders are created, and only if the
+            // discount was actually applied to at least one order (see below).
         }
 
-        const createdOrders = [];
+        // Build the order documents first (pure computation, no writes) so the
+        // actual persistence can happen atomically inside one transaction.
+        const orderDocs = [];
         let grandTotalAllOrders = 0;
 
         for (const [brand, group] of Object.entries(brandsGrouped)) {
             const outlet = outlets.find(o => o.brand === brand);
+            const settings = settingsByBrand.get(brand);
+            const deliveryChargePerOrder = settings?.deliveryCharge ?? 50;
+            const gstRate = settings?.gstRate || settings?.taxPercentage || 5;
             const tax = Math.round(group.subtotal * (gstRate / 100) * 100) / 100;
-            
+
             // Apply discount to the first order that can accommodate it
             let orderDiscount = 0;
             if (globalDiscount > 0) {
@@ -247,7 +258,7 @@ export const createOrder = async (req, res) => {
             const orderTotal = Math.round((group.subtotal + deliveryChargePerOrder + tax - orderDiscount) * 100) / 100;
             grandTotalAllOrders += orderTotal;
 
-            const order = await Order.create({
+            orderDocs.push({
                 customerId,
                 brand,
                 outletId: outlet ? outlet._id : undefined,
@@ -264,13 +275,44 @@ export const createOrder = async (req, res) => {
                 specialInstructions: deliveryInstructions,
                 status: 'pending'
             });
+        }
 
-            createdOrders.push(order);
+        const discountApplied = orderDocs.some(o => (o.discount || 0) > 0);
+
+        // Persist all brand-orders and consume the coupon as one atomic unit.
+        // A failure part-way (e.g. second brand's order) must not leave a
+        // stray first order or a burnt coupon. Atlas (replica set) supports
+        // multi-document transactions; we fall back gracefully if unavailable.
+        let createdOrders;
+        const session = await mongoose.startSession();
+        try {
+            await session.withTransaction(async () => {
+                createdOrders = await Order.create(orderDocs, { session, ordered: true });
+
+                if (appliedCoupon && discountApplied) {
+                    const updated = await Coupon.updateOne(
+                        { _id: appliedCoupon._id, 'userUsage.userId': customerId },
+                        { $inc: { usedCount: 1, 'userUsage.$.count': 1 } },
+                        { session }
+                    );
+                    if (updated.matchedCount === 0) {
+                        await Coupon.updateOne(
+                            { _id: appliedCoupon._id },
+                            { $inc: { usedCount: 1 }, $push: { userUsage: { userId: customerId, count: 1 } } },
+                            { session }
+                        );
+                    }
+                }
+            });
+        } finally {
+            await session.endSession();
         }
 
         // 2. Batch product stats and Dashboard increments
         if (productUpdates.length) {
-            Product.bulkWrite(productUpdates).catch(() => { });
+            Product.bulkWrite(productUpdates).catch((err) => { 
+                logger.error('Product stats bulkWrite failed:', err);
+            });
         }
 
         if (createdOrders.length) {
@@ -291,12 +333,16 @@ export const createOrder = async (req, res) => {
                         total: order.total
                     });
 
-                io.emit(SOCKET_EVENTS.ORDER_NEW, {
-                    orderId: order._id,
-                    orderNumber: order.orderNumber,
-                    total: order.total,
-                    status: order.status
-                });
+                // Staff-only event: was a global broadcast, which leaked every
+                // order to all connected customers.
+                io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager'))
+                    .emit(SOCKET_EVENTS.ORDER_NEW, {
+                        orderId: order._id,
+                        orderNumber: order.orderNumber,
+                        total: order.total,
+                        status: order.status,
+                        brand: order.brand
+                    });
             });
         }
 
@@ -442,6 +488,17 @@ export const cancelOrder = async (req, res) => {
         order.cancelReason = reason || 'Cancelled by customer';
         await order.save();
 
+        // Refund the coupon usage this order consumed, so cancelling doesn't
+        // permanently burn the customer's use of a limited coupon.
+        if (order.couponCode && (order.discount || 0) > 0) {
+            await Coupon.updateOne(
+                { code: order.couponCode, 'userUsage.userId': customerId },
+                {
+                    $inc: { usedCount: -1, 'userUsage.$.count': -1 }
+                }
+            );
+        }
+
         // Cancel delivery ONLY if exists & not picked up
         const delivery = await Delivery.findOne({ orderId: order._id });
         if (delivery && !['picked_up', 'in_transit', 'delivered'].includes(delivery.status)) {
@@ -452,10 +509,16 @@ export const cancelOrder = async (req, res) => {
 
         const io = req.app.get('io');
         if (io) {
-            io.emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
-                orderId: order._id,
-                status: 'cancelled'
-            });
+            // Notify the customer, anyone watching this order, and staff —
+            // not every connected socket.
+            io.to(SOCKET_ROOMS.user(customerId.toString()))
+                .to(SOCKET_ROOMS.order(order._id.toString()))
+                .to(SOCKET_ROOMS.role('admin'))
+                .to(SOCKET_ROOMS.role('manager'))
+                .emit(SOCKET_EVENTS.ORDER_STATUS_UPDATED, {
+                    orderId: order._id,
+                    status: 'cancelled'
+                });
         }
 
         res.json({

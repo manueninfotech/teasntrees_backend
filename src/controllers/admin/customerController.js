@@ -1,7 +1,7 @@
 import User from '../../models/User.js';
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
-import { SOCKET_EVENTS } from '../../sockets/socketEvents.js';
+import { SOCKET_EVENTS, SOCKET_ROOMS } from '../../sockets/socketEvents.js';
 import { statsService } from '../../services/statsService.js';
 import activityLogService from '../../services/activityLogService.js';
 import mongoose from 'mongoose';
@@ -324,7 +324,7 @@ export const deleteCustomer = async (req, res) => {
         const io = req.app.get('io');
         if (io) {
             console.log('EMITTED user:deleted via direct IO');
-            io.emit(SOCKET_EVENTS.USER_DELETED, {
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.USER_DELETED, {
                 id: customer._id,
                 role: 'customer',
                 totalCustomers: (await statsService.getStats()).totalCustomers

@@ -1,7 +1,7 @@
 import Product from "../../models/Product.js";
 import Category from "../../models/Category.js";
 import { uploadService } from "../../services/storage/upload.service.js";
-import { SOCKET_EVENTS } from "../../sockets/socketEvents.js";
+import { SOCKET_EVENTS, SOCKET_ROOMS } from "../../sockets/socketEvents.js";
 import { statsService } from "../../services/statsService.js";
 import activityLogService from '../../services/activityLogService.js';
 import { isLittlehCakeCategory } from '../../utils/cakeUtils.js';
@@ -259,7 +259,7 @@ export const createProduct = async (req, res) => {
                 totalProducts: (await statsService.getStats()).totalProducts
             };
             // Broadcast to everyone (Customers need to see new product, Admin/Manager need stats)
-            io.emit(SOCKET_EVENTS.PRODUCT_CREATED, socketData);
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.PRODUCT_CREATED, socketData);
         }
 
         // Log Activity
@@ -414,7 +414,7 @@ export const updateProduct = async (req, res) => {
                 isAvailable: product.isAvailable,
                 price: product.price
             };
-            io.emit(SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.PRODUCT_UPDATED, socketData);
         }
 
         // Log Activity
@@ -472,7 +472,7 @@ export const deleteProduct = async (req, res) => {
         // Emit Socket.io event DIRECTLY
         const io = req.app.get('io');
         if (io) {
-            io.emit(SOCKET_EVENTS.PRODUCT_DELETED, {
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.PRODUCT_DELETED, {
                 ...productData,
                 totalProducts: (await statsService.getStats()).totalProducts
             });
@@ -597,7 +597,7 @@ export const bulkUpdateProducts = async (req, res) => {
         // Emit Socket.io event
         const io = req.app.get('io');
         if (io) {
-            io.emit(SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.PRODUCT_UPDATED, { bulk: true, productIds });
         }
     } catch (error) {
         res.status(500).json({

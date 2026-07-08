@@ -41,6 +41,13 @@ const orderSchema = new mongoose.Schema(
             required: true
         },
 
+        // Set by the rider-assignment escalation monitor so the same stuck
+        // order is not re-escalated every minute.
+        escalatedAt: {
+            type: Date,
+            default: null
+        },
+
         outletId: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Outlet'

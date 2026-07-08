@@ -439,7 +439,7 @@ export const deleteUser = async (req, res) => {
         // Emit socket event
         const io = req.app.get('io');
         if (io) {
-            io.emit(SOCKET_EVENTS.USER_DELETED, userData);
+            io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager')).emit(SOCKET_EVENTS.USER_DELETED, userData);
         }
 
         // Log activity in background (non-blocking)

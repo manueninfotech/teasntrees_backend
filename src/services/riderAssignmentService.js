@@ -40,7 +40,14 @@ class RiderAssignmentService {
 
     startEscalationMonitor() {
         if (this.monitorInterval) return;
-        
+
+        // Same guard as the nudge worker: only the production instance should
+        // run monitors that push real notifications (escalations go to admin FCM).
+        if (process.env.ENABLE_BACKGROUND_JOBS === 'false') {
+            logger.info("[RiderAssignment] Escalation Monitor disabled via ENABLE_BACKGROUND_JOBS=false");
+            return;
+        }
+
         logger.info("[RiderAssignment] Starting Escalation Monitor...");
         this.monitorInterval = setInterval(() => {
             this.checkEscalations();
@@ -53,10 +60,16 @@ class RiderAssignmentService {
             const now = new Date();
             const cutoff = new Date(now.getTime() - this.CONFIG.ESCALATION_TIME);
 
-            // Find orders stuck in waiting_for_rider for too long
+            // Find orders stuck in waiting_for_rider for too long that have
+            // not already been escalated since their last state change.
             const stuckOrders = await Order.find({
                 status: 'waiting_for_rider',
-                updatedAt: { $lt: cutoff }
+                updatedAt: { $lt: cutoff },
+                $or: [
+                    { escalatedAt: null },
+                    { escalatedAt: { $exists: false } },
+                    { $expr: { $lt: ['$escalatedAt', '$updatedAt'] } }
+                ]
             });
 
             if (stuckOrders.length > 0) {
@@ -80,6 +93,14 @@ class RiderAssignmentService {
                         data: { orderId: order._id.toString(), type: 'escalation' }
                     });
                 }
+
+                // Mark as escalated without touching updatedAt, so each stuck
+                // order alerts staff exactly once per state change.
+                await Order.updateMany(
+                    { _id: { $in: stuckOrders.map(o => o._id) } },
+                    { $set: { escalatedAt: now } },
+                    { timestamps: false }
+                );
             }
         } catch (err) {
             logger.error("[RiderAssignment] Escalation check failed:", err);
@@ -88,11 +109,14 @@ class RiderAssignmentService {
 
     emitRiderStatus(riderId, statusData) {
         if (this.io) {
-            this.io.emit('rider:status-updated', {
-                riderId,
-                ...statusData,
-                timestamp: new Date()
-            });
+            // Rider status concerns the rider themself and staff dashboards —
+            // not every connected customer.
+            this.io.to(`user:${riderId}`).to('role:admin').to('role:manager')
+                .emit('rider:status-updated', {
+                    riderId,
+                    ...statusData,
+                    timestamp: new Date()
+                });
         }
     }
 
