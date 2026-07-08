@@ -1,0 +1,34 @@
+name: Deploy Backend
+
+# Deploys to the Windows VM on every push to main.
+# Requires repo secrets (Settings -> Secrets and variables -> Actions):
+#   VM_HOST     = 20.246.72.93
+#   VM_USER     = tntadmin
+#   VM_SSH_KEY  = a private key whose public half is in the VM's
+#                 administrators_authorized_keys (GitHub runner -> VM auth)
+#
+# The VM pulls from GitHub using its own deploy key (tnt-vm-deploy-new), so the
+# origin remote on the VM is git@github-new:manueninfotech/teasntrees_backend.git
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Windows VM via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script_stop: true
+          # Single command: multi-line scripts are unreliable through Windows
+          # OpenSSH's default shell. deploy.ps1 lives on the VM (outside the
+          # repo) and does git fetch+reset -> npm install -> pm2 restart ->
+          # nginx reload.
+          script: powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\tntadmin\deploy.ps1
