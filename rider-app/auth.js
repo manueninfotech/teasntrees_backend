@@ -1,5 +1,5 @@
-const API_BASE = 'https://teasntrees-backend.onrender.com/api/rider/auth';
-const ADDRESS_API = 'https://teasntrees-backend.onrender.com/api/customer/address'; // Reusing public geocode route
+const API_BASE = 'http://api.teasntrees.in/api/rider/auth';
+const ADDRESS_API = 'http://api.teasntrees.in/api/customer/address'; // Reusing public geocode route
 
 // Utility for API calls
 async function request(url, body, method = 'POST', isFormData = false) {

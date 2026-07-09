@@ -1,4 +1,4 @@
-const API_BASE = 'https://teasntrees-backend.onrender.com/api/rider';
+const API_BASE = 'http://api.teasntrees.in/api/rider';
 const token = localStorage.getItem('riderToken');
 
 // Debug overlay to help diagnose unexpected reloads
@@ -114,7 +114,7 @@ async function init() {
 }
 
 function initSocket() {
-    const socket = io('https://teasntrees-backend.onrender.com', {
+    const socket = io('http://api.teasntrees.in', {
         auth: { token: vToken }
     });
 

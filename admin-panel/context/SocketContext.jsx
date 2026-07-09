@@ -30,7 +30,7 @@ export const SocketProvider = ({ children }) => {
         const pathSegments = window.location.pathname.split('/');
         const activeBrand = pathSegments[1] || 'teasntrees';
 
-        const backendUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'https://teasntrees-backend.onrender.com';
+        const backendUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') : 'http://api.teasntrees.in';
         const newSocket = io(backendUrl, {
             auth: { token, brand: activeBrand },
             reconnection: true,
