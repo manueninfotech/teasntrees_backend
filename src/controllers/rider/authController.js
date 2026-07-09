@@ -225,11 +225,37 @@ export const completeProfile = async (req, res) => {
         rider.aadharNumber = aadharNumber || rider.aadharNumber;
         rider.panNumber = panNumber || rider.panNumber;
 
-        // Document photos
-        if (files.licensePhoto) rider.licensePhoto = files.licensePhoto[0].path;
-        if (files.aadharPhoto) rider.aadharPhoto = files.aadharPhoto[0].path;
-        if (files.panPhoto) rider.panPhoto = files.panPhoto[0].path;
-        if (files.profilePhoto) rider.image = files.profilePhoto[0].path;
+        // Document photos.
+        // multer uses memoryStorage, so uploaded files expose `.buffer` — NOT
+        // `.path`. Reading `.path` silently stored `undefined` and dropped the
+        // file entirely. Upload identity docs to private storage and the
+        // profile photo to public storage.
+        const uploadPrivateDoc = async (fileArray) => {
+            if (!fileArray?.[0]) return undefined;
+            const result = await uploadService.uploadPrivateFile(
+                fileArray[0].buffer,
+                'rider-docs',
+                fileArray[0].mimetype
+            );
+            return result.url;
+        };
+
+        const licenseUrl = await uploadPrivateDoc(files.licensePhoto);
+        if (licenseUrl) rider.licensePhoto = licenseUrl;
+
+        const aadharUrl = await uploadPrivateDoc(files.aadharPhoto);
+        if (aadharUrl) rider.aadharPhoto = aadharUrl;
+
+        const panUrl = await uploadPrivateDoc(files.panPhoto);
+        if (panUrl) rider.panPhoto = panUrl;
+
+        if (files.profilePhoto?.[0]) {
+            const profileResult = await uploadService.uploadPublicImage(
+                files.profilePhoto[0].buffer,
+                'profiles'
+            );
+            rider.image = profileResult.url;
+        }
 
         // Bank info
         rider.bankAccountNumber = bankAccountNumber || rider.bankAccountNumber;
