@@ -20,12 +20,9 @@ router.use(authenticate);
 // Get cart
 router.get('/', getCart);
 
-// Temp: catch mysterious DELETE calls to /
-router.delete('/', (req, res) => {
-    console.log('CATCHED DELETE / on cartRoutes!');
-    console.log('Headers:', req.headers);
-    res.status(200).json({ success: true, message: 'Catched' });
-});
+// Clear cart. The client calls DELETE /cart; this used to be a debug stub that
+// logged "CATCHED" and returned success without clearing anything.
+router.delete('/', clearCart);
 
 // Add item to cart
 router.post('/add', addToCart);
