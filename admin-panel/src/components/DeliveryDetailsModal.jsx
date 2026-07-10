@@ -255,9 +255,17 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                             <Phone className="w-4 h-4" />
                                         </div>
                                     </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Customer Name</p>
-                                        <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.customerId?.name || 'GENERIC_USER'}</p>
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Customer Name</p>
+                                            <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.customerId?.name || 'GENERIC_USER'}</p>
+                                        </div>
+                                        {delivery.deliveryOtp && (
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Delivery OTP</p>
+                                                <p className="text-lg font-black text-emerald-600 tracking-wider bg-emerald-50 px-3 py-1 rounded-xl border border-emerald-100">{delivery.deliveryOtp}</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="pt-6 border-t border-gray-50">
                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Delivery Address</p>
@@ -275,9 +283,17 @@ const DeliveryDetailsModal = ({ isOpen, onClose, delivery }) => {
                                             <ShieldCheck className="w-4 h-4" />
                                         </div>
                                     </div>
-                                    <div>
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Rider Name</p>
-                                        <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.riderId?.name || 'Waiting for Rider'}</p>
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Rider Name</p>
+                                            <p className="text-xl font-black text-gray-900 uppercase tracking-tight">{delivery.riderId?.name || 'Waiting for Rider'}</p>
+                                        </div>
+                                        {delivery.pickupOtp && (
+                                            <div className="text-right">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Pickup OTP</p>
+                                                <p className="text-lg font-black text-amber-600 tracking-wider bg-amber-50 px-3 py-1 rounded-xl border border-amber-100">{delivery.pickupOtp}</p>
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="pt-6 border-t border-gray-50 flex items-center justify-between">
                                         <div>
