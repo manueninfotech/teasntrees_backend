@@ -203,7 +203,7 @@ const DeliveriesPage = () => {
                                         {delivery.status.replace(/_/g, ' ')}
                                     </span>
                                 </div>
-                                <div className={`flex items-center gap-3 mt-4 pt-4 border-t ${selectedDelivery?._id === delivery._id ? 'border-white/10' : 'border-gray-50'}`}>
+                                <div className={`flex items-center justify-between gap-3 mt-4 pt-4 border-t ${selectedDelivery?._id === delivery._id ? 'border-white/10' : 'border-gray-50'}`}>
                                     <div className="flex items-center gap-3">
                                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center shadow-inner ${selectedDelivery?._id === delivery._id ? 'bg-white/10 text-white' : 'bg-gray-100 text-gray-500'}`}>
                                             <Bike className="w-4 h-4" />
@@ -212,6 +212,11 @@ const DeliveriesPage = () => {
                                             {delivery.riderId?.name}
                                         </span>
                                     </div>
+                                    {delivery.pickupOtp && (
+                                        <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border ${selectedDelivery?._id === delivery._id ? 'bg-white/20 border-white/20 text-white' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                                            Pickup OTP: {delivery.pickupOtp}
+                                        </span>
+                                    )}
                                 </div>
 
                                 {selectedDelivery?._id === delivery._id && (

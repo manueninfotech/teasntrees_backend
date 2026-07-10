@@ -64,10 +64,17 @@ export default function DeliveriesPage() {
                                         <span className="text-[10px] font-black text-bakery-accent uppercase tracking-widest mb-1">Order Ref</span>
                                         <span className="text-lg font-black text-bakery-primary uppercase tracking-tight">#{delivery.orderId?.orderNumber || 'N/A'}</span>
                                     </div>
-                                    <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${delivery.status === 'in_transit' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'
-                                        }`}>
-                                        {delivery.status?.replace('_', ' ') || 'Unknown'}
-                                    </span>
+                                    <div className="flex flex-col items-end gap-1.5">
+                                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${delivery.status === 'in_transit' ? 'bg-blue-100 text-blue-600' : 'bg-emerald-100 text-emerald-600'
+                                            }`}>
+                                            {delivery.status?.replace('_', ' ') || 'Unknown'}
+                                        </span>
+                                        {delivery.pickupOtp && (
+                                            <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                                                Pickup OTP: {delivery.pickupOtp}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-6">
