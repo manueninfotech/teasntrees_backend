@@ -43,7 +43,7 @@ const shapeDelivery = (delivery, order) => ({
         mobile: delivery.riderId.mobile,
         currentLocation: delivery.riderId.currentLocation
     } : null,
-    deliveryOtp: null
+    deliveryOtp: delivery.deliveryOtp || null
 });
 
 /* ==================================================
@@ -54,7 +54,7 @@ export const getMyDeliveries = async (req, res) => {
         const customerId = req.user.userId;
 
         const deliveries = await Delivery.find({ customerId })
-            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId')
+            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId deliveryOtp')
             .populate({
                 path: 'orderId',
                 select: 'orderNumber total deliveryAddress createdAt confirmedAt deliveredAt cancelledAt updatedAt',
@@ -88,7 +88,7 @@ export const trackDelivery = async (req, res) => {
             _id: deliveryId,
             customerId
         })
-            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId')
+            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId deliveryOtp')
             .populate({
                 path: 'orderId',
                 select: 'orderNumber total deliveryAddress createdAt confirmedAt deliveredAt cancelledAt updatedAt',
@@ -130,7 +130,7 @@ export const getDeliveryByOrder = async (req, res) => {
         }
 
         const delivery = await Delivery.findOne({ orderId: order._id })
-            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId')
+            .select('deliveryNumber status createdAt updatedAt pickupLocation deliveryLocation estimatedTime deliveredAt cancelledAt orderId riderId deliveryOtp')
             .populate('riderId', 'name mobile currentLocation')
             .lean();
 

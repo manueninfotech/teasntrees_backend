@@ -4,6 +4,7 @@ import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
 import User from '../../models/User.js';
 import Delivery from '../../models/Delivery.js';
+import OrderComplaint from '../../models/OrderComplaint.js';
 import Coupon from '../../models/Coupon.js';
 import PDFDocument from 'pdfkit';
 import logger from '../../config/logger.js';
@@ -605,5 +606,113 @@ export const downloadInvoice = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ success: false, message: 'Invoice generation failed' });
+    }
+};
+
+/* ==================================================
+   RAISE AN ORDER COMPLAINT (after a rider is assigned)
+================================================== */
+export const createComplaint = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const customerId = req.user.userId;
+        const { reason, notes } = req.body;
+
+        const validReasons = ['rider_unreachable', 'item_wrong_missing', 'long_delay', 'other'];
+        if (!validReasons.includes(reason)) {
+            return res.status(400).json({ success: false, message: 'Invalid complaint reason' });
+        }
+
+        const order = await Order.findOne({ _id: orderId, customerId }).lean();
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        const complaint = await OrderComplaint.create({
+            orderId,
+            customerId,
+            brand: order.brand,
+            reason,
+            notes: (notes || '').trim()
+        });
+
+        // Nudge staff in real time so it can be triaged.
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                io.to(SOCKET_ROOMS.role('admin')).to(SOCKET_ROOMS.role('manager'))
+                    .emit('order:complaint', {
+                        complaintId: complaint._id,
+                        orderId,
+                        orderNumber: order.orderNumber,
+                        reason
+                    });
+            }
+        } catch (emitErr) {
+            logger.error('complaint emit failed', emitErr);
+        }
+
+        res.status(201).json({
+            success: true,
+            message: 'Your issue has been reported. Our team will look into it.',
+            data: { complaintId: complaint._id, status: complaint.status }
+        });
+    } catch (error) {
+        logger.error('createComplaint error', error);
+        res.status(500).json({ success: false, message: 'Could not submit your issue' });
+    }
+};
+
+/* ==================================================
+   EDIT DELIVERY ADDRESS (allowed until the rider picks up)
+================================================== */
+export const updateOrderAddress = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const customerId = req.user.userId;
+        const { address, location } = req.body;
+
+        if (!address || !address.trim()) {
+            return res.status(400).json({ success: false, message: 'Address is required' });
+        }
+
+        const order = await Order.findOne({ _id: orderId, customerId });
+        if (!order) {
+            return res.status(404).json({ success: false, message: 'Order not found' });
+        }
+
+        // Lock once the food is on the way — the rider is already routing to the
+        // old address past this point. Owner rule: editable until picked_up.
+        const locked = ['out-for-delivery', 'in_transit', 'delivered', 'cancelled'];
+        if (locked.includes(order.status)) {
+            return res.status(409).json({
+                success: false,
+                message: 'The rider has already picked up your order, so the address can no longer be changed.'
+            });
+        }
+
+        order.deliveryAddress = order.deliveryAddress || {};
+        order.deliveryAddress.address = address.trim();
+        if (location && Array.isArray(location.coordinates) && location.coordinates.length === 2) {
+            order.deliveryAddress.location = { type: 'Point', coordinates: location.coordinates };
+        }
+        await order.save();
+
+        // Keep any assigned delivery's drop point in sync.
+        if (order.deliveryAddress.location) {
+            await Delivery.updateOne(
+                { orderId: order._id, status: { $nin: ['delivered', 'cancelled', 'rejected'] } },
+                { $set: { deliveryLocation: order.deliveryAddress.location } }
+            );
+        }
+
+        res.json({
+            success: true,
+            message: 'Delivery address updated.',
+            data: { deliveryAddress: order.deliveryAddress }
+        });
+    } catch (error) {
+        logger.error('updateOrderAddress error', error);
+        res.status(500).json({ success: false, message: 'Could not update the address' });
     }
 };

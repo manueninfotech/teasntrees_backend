@@ -8,7 +8,9 @@ import {
     getOrderById,
     cancelOrder,
     reorder,
-    downloadInvoice
+    downloadInvoice,
+    createComplaint,
+    updateOrderAddress
 } from '../../controllers/customer/orderController.js';
 import { authenticate } from '../../middlewares/auth.js';
 import { checkProfileComplete } from '../../middlewares/profileGuard.js';
@@ -31,5 +33,11 @@ router.get('/:orderId', getOrderById);
 
 // Cancel order
 router.delete('/:orderId/cancel', cancelOrder);
+
+// Raise an issue against an order (after a rider is assigned)
+router.post('/:orderId/complaint', createComplaint);
+
+// Edit delivery address (allowed until the rider picks up)
+router.patch('/:orderId/address', updateOrderAddress);
 
 export default router;

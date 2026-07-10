@@ -302,6 +302,21 @@ export const updateDeliveryStatus = async (req, res) => {
         delivery.status = status;
         await delivery.save();
 
+        // Keep the ORDER's status in step with the delivery, so the customer's
+        // order view (which reads order.status) reflects reality instead of
+        // freezing at assignment time. Maps delivery phase -> order status.
+        const orderStatusForDelivery = {
+            picked_up: 'out-for-delivery',
+            in_transit: 'in_transit',
+            arrived: 'in_transit',
+            delivered: 'delivered',
+        };
+        if (orderStatusForDelivery[status]) {
+            await mongoose.model('Order').findByIdAndUpdate(delivery.orderId, {
+                status: orderStatusForDelivery[status],
+            });
+        }
+
         // Log Activity
         await activityLogService.log(req, {
             action: 'update_status',
@@ -424,14 +439,27 @@ export const getEarningsHistory = async (req, res) => {
 ====================================================== */
 export const uploadDeliveryProof = async (req, res) => {
     try {
+        // Proof is captured at the door BEFORE the OTP marks it delivered, so
+        // the rider is on 'arrived' here — requiring 'delivered' rejected every
+        // upload ("Upload failed. Please try again."). Accept the near-terminal
+        // states for this rider's own delivery.
         const delivery = await Delivery.findOne({
             _id: req.params.id,
             riderId: req.user.userId,
-            status: 'delivered'
+            status: { $in: ['arrived', 'in_transit', 'delivered'] }
         });
 
-        if (!delivery || !req.file) {
-            return res.status(400).json({ success: false });
+        if (!delivery) {
+            return res.status(404).json({
+                success: false,
+                message: 'Delivery not found or not in a state that accepts proof.'
+            });
+        }
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No image received. Please retake the photo.'
+            });
         }
 
         const result = await uploadService.uploadPrivateFile(

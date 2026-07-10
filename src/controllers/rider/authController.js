@@ -127,6 +127,7 @@ export const registerRider = async (req, res) => {
             refreshToken,
             rider: {
                 id: rider._id,
+                readableId: rider.readableId,
                 name: rider.name,
                 mobile: rider.mobile,
                 email: rider.email,
@@ -287,6 +288,7 @@ export const completeProfile = async (req, res) => {
             message: 'Profile completed successfully. Pending administrator approval.',
             rider: {
                 _id: rider._id,
+                readableId: rider.readableId,
                 name: rider.name,
                 isApproved: rider.isApproved,
                 isProfileComplete: rider.isProfileComplete
@@ -478,6 +480,7 @@ export const firebaseLogin = async (req, res) => {
             refreshToken,
             rider: {
                 id: rider._id,
+                readableId: rider.readableId,
                 name: rider.name,
                 mobile: rider.mobile,
                 role: 'rider',
@@ -536,6 +539,7 @@ export const loginRider = async (req, res) => {
             refreshToken,
             rider: {
                 id: rider._id,
+                readableId: rider.readableId,
                 name: rider.name,
                 mobile: rider.mobile,
                 email: rider.email,
@@ -610,5 +614,49 @@ export const getDocument = async (req, res) => {
     } catch (error) {
         logger.error('Error serving document:', error);
         res.status(500).send('Internal Server Error');
+    }
+};
+
+/* ==================================================
+   UPDATE A SINGLE RIDER DOCUMENT (re-upload from profile)
+   Safe: touches only the one field, never the rest of the profile.
+================================================== */
+export const updateRiderDocument = async (req, res) => {
+    try {
+        const rider = await Rider.findById(req.user.userId);
+        if (!rider) {
+            return res.status(404).json({ success: false, message: 'Rider not found' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ success: false, message: 'No file received' });
+        }
+
+        const { docType } = req.body;
+        const allowed = {
+            aadharPhoto: 'private',
+            licensePhoto: 'private',
+            panPhoto: 'private',
+            profilePhoto: 'public',
+        };
+        if (!allowed[docType]) {
+            return res.status(400).json({ success: false, message: 'Invalid document type' });
+        }
+
+        let url;
+        if (allowed[docType] === 'public') {
+            const result = await uploadService.uploadPublicImage(req.file.buffer, 'profiles');
+            url = result.url;
+            rider.image = url;
+        } else {
+            const result = await uploadService.uploadPrivateFile(req.file.buffer, 'rider-docs', req.file.mimetype);
+            url = result.url;
+            rider[docType] = url;
+        }
+
+        await rider.save();
+        res.json({ success: true, message: 'Document updated', data: { docType, url } });
+    } catch (error) {
+        logger.error('updateRiderDocument error', error);
+        res.status(500).json({ success: false, message: 'Could not update the document' });
     }
 };
