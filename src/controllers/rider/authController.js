@@ -26,12 +26,33 @@ export const registerRider = async (req, res) => {
             emergencyContactName, emergencyContactMobile, emergencyContactRelation
         } = req.body;
 
-        // Check if user already exists
-        const existingUser = await Rider.findOne({ mobile });
+        // Is this number already taken?
+        //
+        // This used to ask `Rider.findOne({ mobile })` — but Rider is a
+        // DISCRIMINATOR of User, so that only matches documents with
+        // kind: 'Rider', while the unique index (`users.mobile_1`) is on the
+        // whole collection. Anyone who had ever used the app as a CUSTOMER
+        // therefore sailed past this check and then blew up on `rider.save()`
+        // with a raw E11000, which we handed back as a 500 "Registration
+        // failed" with the Mongo error attached. Two real people hit this in
+        // production today and had no idea why.
+        const existingUser = await User.findOne({ mobile });
         if (existingUser) {
-            return res.status(400).json({
+            if (existingUser.kind === 'Rider' || existingUser.role === 'rider') {
+                return res.status(409).json({
+                    success: false,
+                    message: existingUser.isApproved
+                        ? 'That number is already registered. Please sign in with your PIN.'
+                        : 'That number is already registered and is waiting for approval. We will let you know as soon as it is verified.'
+                });
+            }
+
+            // The number belongs to a customer account. We can't quietly turn it
+            // into a rider — that would let anyone claim rider access on a number
+            // they merely shop with.
+            return res.status(409).json({
                 success: false,
-                message: 'Mobile number already registered'
+                message: 'That number is already used for a customer account. Please register with a different number, or ask the store to help.'
             });
         }
 
@@ -155,10 +176,26 @@ export const registerRider = async (req, res) => {
 
     } catch (error) {
         logger.error('Rider Registration Error:', error);
+
+        // Two riders registering the same number (or vehicle) at once still race
+        // past the checks above and land on the unique index. That's a 409 the
+        // rider can act on, not a 500.
+        if (error?.code === 11000) {
+            const field = Object.keys(error.keyPattern || {})[0];
+            return res.status(409).json({
+                success: false,
+                message:
+                    field === 'vehicleNumber'
+                        ? 'That vehicle number is already registered.'
+                        : 'That number is already registered. Please sign in instead.'
+            });
+        }
+
+        // The raw Mongo error used to be handed straight to the client, index
+        // names and all.
         res.status(500).json({
             success: false,
-            message: 'Registration failed',
-            error: error.message
+            message: "Registration failed. Please try again, or ask the store for help."
         });
     }
 };
