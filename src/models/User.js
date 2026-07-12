@@ -104,9 +104,15 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+    /// The rider's login PIN, stored as a bcrypt hash and never returned to a
+    /// client. It used to default to a random PLAINTEXT value for every user —
+    /// which also got reused as the delivery OTP. Delivery codes are now minted
+    /// per delivery, and customers authenticate through Firebase, so nothing
+    /// needs a PIN unless it is explicitly set (registerRider hashes one).
     verificationPin: {
         type: String,
-        default: () => Math.floor(1000 + Math.random() * 9000).toString()
+        default: null,
+        select: false
     },
 
     // For Riders: Linked Manager

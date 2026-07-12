@@ -533,7 +533,9 @@ export const loginRider = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Mobile number and PIN are required' });
         }
 
-        const rider = await Rider.findOne({ mobile });
+        // verificationPin is `select: false` on the schema, so it never rides
+        // along on an ordinary query. This is the one place that needs it.
+        const rider = await Rider.findOne({ mobile }).select('+verificationPin');
 
         // One generic failure for "no such rider" AND "wrong PIN". Answering
         // 404 vs 400 let anyone enumerate which phone numbers are registered
