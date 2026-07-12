@@ -126,6 +126,19 @@ export const addToCart = async (req, res) => {
         const userId = req.user.userId;
         const { productId, quantity = 1, customization = '', selectedVariants = [] } = req.body;
 
+        // The Cart schema's `min: 1` would catch a bad quantity, but only by
+        // throwing a Mongoose ValidationError out of `save()` — a 500 with a
+        // stack trace, after we'd already mutated the cart in memory. Say no
+        // properly instead. (Note this guards the CART; the order endpoint takes
+        // its items straight from the request body and does its own check.)
+        const qty = Number(quantity);
+        if (!Number.isInteger(qty) || qty < 1 || qty > 50) {
+            return res.status(400).json({
+                success: false,
+                message: 'Choose a quantity between 1 and 50.'
+            });
+        }
+
         // Get product
         const product = await Product.findById(productId).lean();
 
@@ -225,7 +238,7 @@ export const addToCart = async (req, res) => {
 
         if (existingItemIndex > -1) {
 
-            cart.items[existingItemIndex].quantity += quantity;
+            cart.items[existingItemIndex].quantity += qty;
 
         } else {
 
@@ -233,7 +246,7 @@ export const addToCart = async (req, res) => {
                 product: productId,
                 name: product.name,
                 image: product.image,
-                quantity,
+                quantity: qty,
                 price: itemPrice,
                 finalPrice: itemPrice,
                 customization: itemCustomizationLabel,

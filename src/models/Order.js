@@ -75,7 +75,12 @@ const orderSchema = new mongoose.Schema(
                 ref: 'Product'
             },
             name: String,
-            quantity: Number,
+            // Floored at 1. createOrder builds items straight from the request
+            // body (it never reads the server-side Cart, whose own `min: 1`
+            // therefore protects nothing), and a negative or fractional quantity
+            // drags subtotal -> tax -> total to zero or below. Last line of
+            // defence if another code path ever writes an order.
+            quantity: { type: Number, required: true, min: 1 },
             price: Number,
             finalPrice: Number,
             weight: Number,
@@ -110,7 +115,10 @@ const orderSchema = new mongoose.Schema(
 
         total: {
             type: Number,
-            required: true
+            required: true,
+            // An order can never be worth less than nothing. Belt and braces
+            // against any future arithmetic that could go negative.
+            min: 0
         },
 
         deliveryAddress: {

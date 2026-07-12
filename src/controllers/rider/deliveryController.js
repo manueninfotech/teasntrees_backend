@@ -274,8 +274,30 @@ export const updateDeliveryStatus = async (req, res) => {
                     return res.status(400).json({ success: false, message: 'Payment mode (cash/upi) required for COD' });
                 }
                 delivery.paymentMode = paymentMode;
-                delivery.amountCollected = amountCollected || delivery.orderId.total;
+
+                // The amount collected is the ORDER TOTAL, full stop — it is not
+                // the rider's to declare. `amountCollected || total` let the app
+                // send any figure it liked: a rider closing a ₹2,000 COD order
+                // with `amountCollected: 1` had ₹1 recorded against them and
+                // kept the rest, and the books balanced. COD means they collect
+                // the total; there is no legitimate reason to report a different
+                // number. A genuine shortfall is a dispute for an admin to
+                // settle, not something the rider's own app gets to write down.
+                delivery.amountCollected = delivery.orderId.total;
                 delivery.paymentStatus = 'collected';
+
+                if (
+                    amountCollected !== undefined &&
+                    amountCollected !== null &&
+                    Math.abs(Number(amountCollected) - delivery.orderId.total) > 0.01
+                ) {
+                    logger.warn('Rider reported a COD amount that differs from the order total', {
+                        deliveryId: delivery._id.toString(),
+                        riderId: req.user.userId,
+                        reported: amountCollected,
+                        orderTotal: delivery.orderId.total
+                    });
+                }
             }
         }
 

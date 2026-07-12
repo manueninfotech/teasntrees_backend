@@ -19,6 +19,13 @@ import Outlet from '../../models/Outlet.js'
 /* =========================================================
    CREATE ORDER (CUSTOMER)
 ========================================================= */
+/**
+ * A single line can't exceed this. Nobody legitimately orders 100 lattes through
+ * the app, and an unbounded quantity is an easy way to make a nonsense order the
+ * kitchen has to phone the customer about.
+ */
+const MAX_ITEM_QUANTITY = 50;
+
 export const createOrder = async (req, res) => {
     try {
         const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode, location } = req.body;
@@ -78,6 +85,29 @@ export const createOrder = async (req, res) => {
                     message: `Product unavailable`
                 });
             }
+
+            // QUANTITY MUST BE A SANE POSITIVE INTEGER.
+            //
+            // This endpoint takes `items` straight from the request body and
+            // never consults the server-side cart, so the Cart schema's `min: 1`
+            // protects nothing here — and `Order.items.quantity` was a bare
+            // Number with no floor. A crafted order could therefore carry a
+            // NEGATIVE quantity, which flows into
+            //   subtotal += price * quantity
+            //   tax       = subtotal * gstRate
+            //   total     = subtotal + delivery + tax - discount
+            // and drags the total to zero or below: pair one real item with a
+            // large negative line and you get the food for nothing on COD. A
+            // fractional quantity (0.001) does the same thing more quietly.
+            // Prices were already server-authoritative; quantity was not.
+            const quantity = Number(item.quantity);
+            if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_ITEM_QUANTITY) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Invalid quantity for ${product.name}. Choose between 1 and ${MAX_ITEM_QUANTITY}.`
+                });
+            }
+            item.quantity = quantity;
 
             const brand = product.brand || 'teasntrees';
             if (!brandsGrouped[brand]) {
