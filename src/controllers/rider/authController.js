@@ -186,11 +186,23 @@ export const registerRider = async (req, res) => {
             });
         }
 
+        // A missing or malformed field is the rider's problem to fix, not a
+        // server fault — it was answering 500, so the app could only say
+        // "Registration failed" and the rider had no idea which field was wrong.
+        if (error?.name === 'ValidationError') {
+            const fields = Object.keys(error.errors || {});
+            return res.status(400).json({
+                success: false,
+                message: 'Some details are missing or invalid. Please check and try again.',
+                fields
+            });
+        }
+
         // The raw Mongo error used to be handed straight to the client, index
         // names and all.
         res.status(500).json({
             success: false,
-            message: "Registration failed. Please try again, or ask the store for help."
+            message: 'Registration failed. Please try again, or ask the store for help.'
         });
     }
 };
