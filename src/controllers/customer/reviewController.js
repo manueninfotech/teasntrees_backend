@@ -38,14 +38,28 @@ const updateProductRating = async (productId) => {
 
         const stats = await Review.aggregate([
             {
+                // These two conditions used to be two `$or` keys in the SAME
+                // object literal — and JavaScript keeps only the last one, so
+                // the product filter was silently thrown away. Every product was
+                // therefore scored against EVERY rated review in the database:
+                // each one showed the same site-wide average, with a review count
+                // equal to the total number of reviews across both brands. A
+                // brand-new product with no reviews still displayed a rating.
+                // Both conditions must hold, so they have to be $and-ed.
                 $match: {
-                    $or: [
-                        { productId: new mongoose.Types.ObjectId(productId) },
-                        { orderId: { $in: orderIds }, type: 'order' }
-                    ],
-                    $or: [
-                        { productRating: { $exists: true, $ne: null } },
-                        { foodRating: { $exists: true, $ne: null } }
+                    $and: [
+                        {
+                            $or: [
+                                { productId: new mongoose.Types.ObjectId(productId) },
+                                { orderId: { $in: orderIds }, type: 'order' }
+                            ]
+                        },
+                        {
+                            $or: [
+                                { productRating: { $exists: true, $ne: null } },
+                                { foodRating: { $exists: true, $ne: null } }
+                            ]
+                        }
                     ]
                 }
             },

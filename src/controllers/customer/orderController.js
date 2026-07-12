@@ -330,20 +330,89 @@ export const createOrder = async (req, res) => {
                 createdOrders = await Order.create(orderDocs, { session, ordered: true });
 
                 if (appliedCoupon && discountApplied) {
-                    const updated = await Coupon.updateOne(
-                        { _id: appliedCoupon._id, 'userUsage.userId': customerId },
+                    // COUPON DOUBLE-SPEND.
+                    //
+                    // The limit checks above are a READ, taken well before this
+                    // WRITE, and the increment used to be unconditional. Fire N
+                    // concurrent createOrder calls with the same single-use
+                    // coupon and every one of them reads `count: 0`, every one
+                    // passes, and every one gets the discount — a "one per
+                    // customer" or "first order only" coupon applied N times.
+                    // The transaction made the increment atomic; it did nothing
+                    // about check-then-act.
+                    //
+                    // The limit now lives in the update FILTER, so the database
+                    // decides, and a loser matches zero documents and aborts the
+                    // whole transaction — no order, no discount.
+                    //
+                    // firstOrderOnly implies at most one use per customer, so it
+                    // is enforced here as a per-user limit of 1 rather than
+                    // relying on the (equally racy) previous-order count.
+                    const globalLimit = appliedCoupon.usageLimit;
+                    const perUserLimit = appliedCoupon.firstOrderOnly
+                        ? 1
+                        : appliedCoupon.perUserLimit;
+
+                    const globalGuard =
+                        globalLimit !== null && globalLimit !== undefined
+                            ? { usedCount: { $lt: globalLimit } }
+                            : {};
+
+                    // Path A: this customer already has a usage entry — bump it,
+                    // but only if it is still under their limit.
+                    const bumpExisting = await Coupon.updateOne(
+                        {
+                            _id: appliedCoupon._id,
+                            ...globalGuard,
+                            userUsage: {
+                                $elemMatch: {
+                                    userId: customerId,
+                                    ...(perUserLimit !== null && perUserLimit !== undefined
+                                        ? { count: { $lt: perUserLimit } }
+                                        : {})
+                                }
+                            }
+                        },
                         { $inc: { usedCount: 1, 'userUsage.$.count': 1 } },
                         { session }
                     );
-                    if (updated.matchedCount === 0) {
-                        await Coupon.updateOne(
-                            { _id: appliedCoupon._id },
-                            { $inc: { usedCount: 1 }, $push: { userUsage: { userId: customerId, count: 1 } } },
+
+                    if (bumpExisting.matchedCount === 0) {
+                        // Path B: no entry for this customer yet — create one.
+                        // `$ne` guarantees we only take this path when they truly
+                        // have none, so a maxed-out customer can't slip through
+                        // by failing Path A.
+                        const addNew = await Coupon.updateOne(
+                            {
+                                _id: appliedCoupon._id,
+                                ...globalGuard,
+                                'userUsage.userId': { $ne: customerId }
+                            },
+                            {
+                                $inc: { usedCount: 1 },
+                                $push: { userUsage: { userId: customerId, count: 1 } }
+                            },
                             { session }
                         );
+
+                        if (addNew.matchedCount === 0) {
+                            // Someone else took the last use, or this customer
+                            // already spent theirs, between our check and now.
+                            const exhausted = new Error('COUPON_EXHAUSTED');
+                            exhausted.code = 'COUPON_EXHAUSTED';
+                            throw exhausted;
+                        }
                     }
                 }
             });
+        } catch (err) {
+            if (err?.code === 'COUPON_EXHAUSTED') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'That coupon has just been used up. Remove it and try again.'
+                });
+            }
+            throw err;
         } finally {
             await session.endSession();
         }
