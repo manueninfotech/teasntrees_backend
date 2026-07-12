@@ -17,13 +17,32 @@ import { checkRole } from '../../middlewares/roleCheck.js';
 
 const router = express.Router({ mergeParams: true });
 
-// Apply brand guard to all manager routes
-router.use(brandGuard);
-
-// Auth routes (public + protected inside)
+// Auth routes first — logging in is necessarily public.
 router.use('/auth', authRoutes);
 
-// Protected routes (middleware applied in sub-routes)
+// BRAND ISOLATION WAS SILENTLY OFF.
+//
+// `brandGuard` compares req.user.brand against the brand in the URL and 403s on
+// a mismatch. But it was mounted HERE, at the top of the index, while
+// `authenticate` runs down inside each sub-router — so at guard time `req.user`
+// was still undefined, the guard hit its `if (!req.user) return next()` and
+// waved everything through. It has never blocked a single request.
+//
+// The controllers serve data by `req.activeBrand`, which comes from the URL. So
+// a Little H manager holding a perfectly legitimate token could simply call
+// /api/teasntrees/manager/orders and read — and modify — the other brand's
+// orders, products, categories, customers and riders. (The login route does
+// reject a cross-brand LOGIN, but that only guards logging in, not the token
+// afterwards.)
+//
+// Authentication must therefore happen BEFORE the guard that depends on it.
+// The sub-routers still apply their own authenticate/checkRole; that's
+// redundant now, but harmless, and it keeps them safe if ever mounted elsewhere.
+router.use(authenticate);
+router.use(checkRole(['manager', 'admin']));
+router.use(brandGuard);
+
+// Protected routes
 router.use('/dashboard', dashboardRoutes);
 router.use('/orders', orderRoutes);
 router.use('/riders', riderRoutes);
