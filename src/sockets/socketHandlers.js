@@ -1,4 +1,33 @@
+import mongoose from 'mongoose';
 import { SOCKET_EVENTS, SOCKET_ROOMS } from './socketEvents.js';
+
+/**
+ * May this socket listen in on this order?
+ *
+ * `order:join` used to join whatever id it was handed, with no check at all — so
+ * any authenticated user could join ANY order's room and receive everything
+ * broadcast to it, including the live GPS of the rider delivering someone else's
+ * food. Order ids are ObjectIds: semi-predictable, and freely known to anyone
+ * who has ever seen one.
+ *
+ * A customer may follow their own orders; the assigned rider may follow theirs;
+ * staff may follow anything.
+ */
+const canAccessOrder = async (orderId, user) => {
+    if (!mongoose.isValidObjectId(orderId)) return false;
+
+    const { userId, role } = user;
+
+    if (role === 'admin' || role === 'manager') return true;
+
+    if (role === 'rider') {
+        const Delivery = mongoose.model('Delivery');
+        return !!(await Delivery.exists({ orderId, riderId: userId }));
+    }
+
+    const Order = mongoose.model('Order');
+    return !!(await Order.exists({ _id: orderId, customerId: userId }));
+};
 
 /**
  * Setup Socket.io event handlers
@@ -35,12 +64,26 @@ export const setupSocketHandlers = (io) => {
         }
 
         // --- NEW: Common Order Events ---
-        socket.on('order:join', (orderId) => {
-            if (orderId) {
+        socket.on('order:join', async (orderId) => {
+            if (!orderId) return;
+            try {
+                if (!(await canAccessOrder(orderId, socket.user))) {
+                    console.warn(
+                        `Blocked order:join — user ${userId} (${role}) tried to follow order ${orderId}`
+                    );
+                    socket.emit(SOCKET_EVENTS.SYSTEM_MESSAGE, {
+                        message: 'Not allowed to follow that order',
+                        timestamp: new Date()
+                    });
+                    return;
+                }
                 socket.join(SOCKET_ROOMS.order(orderId));
+            } catch (err) {
+                console.error('order:join check failed:', err.message);
             }
         });
 
+        // Leaving needs no check — you can only leave a room you're in.
         socket.on('order:leave', (orderId) => {
             if (orderId) {
                 socket.leave(SOCKET_ROOMS.order(orderId));
@@ -75,17 +118,33 @@ const handleRiderEvents = (socket, io) => {
     const { userId } = socket.user;
 
     // Rider updates their location
-    socket.on(SOCKET_EVENTS.RIDER_LOCATION_UPDATE, (data) => {
+    socket.on(SOCKET_EVENTS.RIDER_LOCATION_UPDATE, async (data) => {
         const { orderId, location } = data;
+        if (!orderId) return;
 
-        // Broadcast location to customer and managers
-        if (orderId) {
+        try {
+            // The orderId came from the rider's own socket and was broadcast
+            // unchecked, so a rider could push their GPS into an order they were
+            // never assigned to — and the customer watching that order would see
+            // a stranger's bike moving on their map.
+            const Delivery = mongoose.model('Delivery');
+            if (!mongoose.isValidObjectId(orderId)) return;
+            const assigned = await Delivery.exists({ orderId, riderId: userId });
+            if (!assigned) {
+                console.warn(
+                    `Blocked rider:location — rider ${userId} is not assigned to order ${orderId}`
+                );
+                return;
+            }
+
             io.to(SOCKET_ROOMS.order(orderId)).emit(SOCKET_EVENTS.RIDER_LOCATION_UPDATE, {
                 riderId: userId,
                 orderId,
                 location,
                 timestamp: new Date()
             });
+        } catch (err) {
+            console.error('rider location broadcast failed:', err.message);
         }
     });
 
