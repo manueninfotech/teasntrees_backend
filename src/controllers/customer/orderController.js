@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { assertPaymentMethodAllowed } from '../../utils/paymentGuard.js';
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
@@ -21,6 +22,14 @@ import Outlet from '../../models/Outlet.js'
 export const createOrder = async (req, res) => {
     try {
         const { items, deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode, location } = req.body;
+
+        // Reject anything we cannot actually collect money for. Without this a
+        // crafted request could place an 'Online' order that no gateway settles
+        // and no rider collects cash for.
+        const payCheck = assertPaymentMethodAllowed(paymentMethod);
+        if (!payCheck.ok) {
+            return res.status(400).json({ success: false, message: payCheck.message });
+        }
         const customerId = req.user.userId;
 
         if (!items || !items.length) {

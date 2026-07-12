@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import logger from '../config/logger.js';
 
 const isDev = process.env.NODE_ENV === 'development';
@@ -22,6 +22,26 @@ export const authLimiter = rateLimit({
         message: 'Too many login attempts from this IP, please try again after 15 minutes'
     },
     handler: onLimitReached('AuthLimiter'),
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+/// Rider login. The credential is a 4-digit PIN — only 9,000 possibilities — so
+/// the generic 100/15min ceiling would let someone walk the whole keyspace in
+/// under a day. Key on the mobile number as well as the IP, so an attacker
+/// can't spread guesses for one rider across many IPs (or grind many riders
+/// from one IP).
+export const pinLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isDev ? 100000 : 8,
+    // ipKeyGenerator normalises IPv6 into a /64 subnet; using req.ip raw would
+    // let an IPv6 client hop addresses within its own prefix to reset the count.
+    keyGenerator: (req) => `${ipKeyGenerator(req.ip)}:${req.body?.mobile ?? 'unknown'}`,
+    message: {
+        success: false,
+        message: 'Too many sign-in attempts. Please wait 15 minutes and try again.'
+    },
+    handler: onLimitReached('PinLimiter'),
     standardHeaders: true,
     legacyHeaders: false,
 });

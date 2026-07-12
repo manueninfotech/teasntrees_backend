@@ -2,6 +2,7 @@
 // Manage shopping cart for customers
 
 import mongoose from 'mongoose';
+import { assertPaymentMethodAllowed } from '../../utils/paymentGuard.js';
 import Cart from '../../models/Cart.js';
 import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
@@ -410,6 +411,14 @@ export const checkoutCart = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { deliveryAddress, deliveryInstructions, paymentMethod = 'COD', couponCode } = req.body;
+
+        // Reject anything we cannot actually collect money for. Without this a
+        // crafted request could place an 'Online' order that no gateway settles
+        // and no rider collects cash for.
+        const payCheck = assertPaymentMethodAllowed(paymentMethod);
+        if (!payCheck.ok) {
+            return res.status(400).json({ success: false, message: payCheck.message });
+        }
 
         // Get cart
         const cart = await Cart.findOne({ userId }).populate('items.product');

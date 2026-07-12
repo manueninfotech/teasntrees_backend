@@ -5,6 +5,11 @@ import Order from "../models/Order.js";
 import { getDistance } from "../utils/geoUtils.js";
 import logger from "../config/logger.js";
 import { notificationService } from "./notificationService.js";
+import crypto from "crypto";
+
+/// A fresh 4-digit code for one delivery leg. Uses the CSPRNG rather than
+/// Math.random so codes aren't predictable from one another.
+const generateOtp = () => String(crypto.randomInt(1000, 10000));
 
 const BRAND_OUTLETS = {
     littleh: {
@@ -291,20 +296,17 @@ class RiderAssignmentService {
                     continue;
                 }
 
-                const User = mongoose.model('User');
-                let dbRider = await User.findById(rider._id);
-                if (dbRider && !dbRider.verificationPin) {
-                    dbRider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
-                    await User.findByIdAndUpdate(rider._id, { verificationPin: dbRider.verificationPin });
-                }
-                const riderPin = dbRider ? dbRider.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+const User = mongoose.model('User');
+            const dbRider = await User.findById(rider._id);
+            const dbCustomer = await User.findById(order.customerId);
 
-                let dbCustomer = await User.findById(order.customerId);
-                if (dbCustomer && !dbCustomer.verificationPin) {
-                    dbCustomer.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
-                    await User.findByIdAndUpdate(order.customerId, { verificationPin: dbCustomer.verificationPin });
-                }
-                const customerPin = dbCustomer ? dbCustomer.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+            // Per-delivery codes. These used to be the users' STATIC
+            // verificationPin, which meant the rider's LOGIN PIN was handed to
+            // the outlet as the pickup OTP, and the same code worked for every
+            // future delivery -- so a rider who served a customer once could
+            // close a later order without ever turning up.
+            const riderPin = generateOtp();
+            const customerPin = generateOtp();
 
                 const DeliveryModel = mongoose.model('Delivery');
 
@@ -448,20 +450,17 @@ class RiderAssignmentService {
                 deliveryLocation.coordinates[0]
             );
 
-            const User = mongoose.model('User');
-            let dbRider = await User.findById(rider._id);
-            if (dbRider && !dbRider.verificationPin) {
-                dbRider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
-                await User.findByIdAndUpdate(rider._id, { verificationPin: dbRider.verificationPin });
-            }
-            const riderPin = dbRider ? dbRider.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+const User = mongoose.model('User');
+            const dbRider = await User.findById(rider._id);
+            const dbCustomer = await User.findById(order.customerId);
 
-            let dbCustomer = await User.findById(order.customerId);
-            if (dbCustomer && !dbCustomer.verificationPin) {
-                dbCustomer.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
-                await User.findByIdAndUpdate(order.customerId, { verificationPin: dbCustomer.verificationPin });
-            }
-            const customerPin = dbCustomer ? dbCustomer.verificationPin : Math.floor(1000 + Math.random() * 9000).toString();
+            // Per-delivery codes. These used to be the users' STATIC
+            // verificationPin, which meant the rider's LOGIN PIN was handed to
+            // the outlet as the pickup OTP, and the same code worked for every
+            // future delivery -- so a rider who served a customer once could
+            // close a later order without ever turning up.
+            const riderPin = generateOtp();
+            const customerPin = generateOtp();
 
             const deliveryData = {
                 orderId: order._id,

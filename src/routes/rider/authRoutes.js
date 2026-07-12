@@ -12,6 +12,7 @@ import {
 } from '../../controllers/rider/authController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 import multer from 'multer';
+import { pinLimiter } from '../../middlewares/rateLimiter.js';
 const router = express.Router({ mergeParams: true });
 
 // Use Memory Storage so we can upload to Azure in the controller
@@ -33,7 +34,7 @@ const riderUploads = upload.fields([
 // Public Routes
 router.post('/register', riderUploads, registerRider);
 router.post('/firebase-login', firebaseLogin);
-router.post('/login', loginRider);
+router.post('/login', pinLimiter, loginRider);
 
 // Protected Routes
 router.post('/availability', riderAuth, isApprovedRider, toggleAvailability);

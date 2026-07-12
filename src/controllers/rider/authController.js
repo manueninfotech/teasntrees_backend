@@ -1,3 +1,6 @@
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import Rider from '../../models/Rider.js';
 import User from '../../models/User.js';
 import { riderMetricsService } from "../../services/riderMetricsService.js";
@@ -101,8 +104,10 @@ export const registerRider = async (req, res) => {
             }
         });
 
-        // Self-heal: Generate a PIN for the rider
-        rider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
+        // The PIN is a credential, so it is shown to the rider exactly once (in
+        // this response) and only ever STORED as a bcrypt hash.
+        const plainPin = String(crypto.randomInt(1000, 10000));
+        rider.verificationPin = await bcrypt.hash(plainPin, 10);
 
         await rider.save();
 
@@ -135,7 +140,10 @@ export const registerRider = async (req, res) => {
                 isApproved: rider.isApproved,
                 isOnline: rider.isOnline,
                 isProfileComplete: rider.isProfileComplete,
-                verificationPin: rider.verificationPin,
+                // The only time the PIN is ever returned in the clear. It is
+                // stored hashed, so this cannot be recovered later — the rider
+                // must write it down (the app shows it once on this screen).
+                verificationPin: plainPin,
                 vehicleType: rider.vehicleType,
                 vehicleNumber: rider.vehicleNumber,
                 vehicleModel: rider.vehicleModel,
@@ -318,6 +326,23 @@ export const toggleAvailability = async (req, res) => {
             });
         }
 
+        // Going offline mid-trip abandons an order a customer is waiting on and
+        // kills the GPS the shop and customer are tracking. The app guards this,
+        // but the endpoint has to as well — a client guard is only a suggestion.
+        if (isOnline === false) {
+            const Delivery = mongoose.model('Delivery');
+            const active = await Delivery.exists({
+                riderId: rider._id,
+                status: { $nin: ['delivered', 'cancelled', 'rejected'] }
+            });
+            if (active) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'Finish your active delivery before going offline.'
+                });
+            }
+        }
+
         const updateFields = { isOnline: isOnline };
         if (location) {
             updateFields.currentLocation = {
@@ -408,13 +433,17 @@ export const getProfile = async (req, res) => {
         // Fetch fresh doc from DB (middleware might have stale one)
         const freshRider = await Rider.findById(riderId);
 
-        res.json({ 
-            success: true, 
-            data: { 
-                ...freshRider.toObject(), 
-                id: freshRider._id, 
-                isApproved: freshRider.isApproved, 
-                isProfileComplete: freshRider.isProfileComplete 
+        // This spreads the whole document, so the PIN hash would ride along to
+        // the client. Drop it explicitly.
+        const { verificationPin, ...safeRider } = freshRider.toObject();
+
+        res.json({
+            success: true,
+            data: {
+                ...safeRider,
+                id: freshRider._id,
+                isApproved: freshRider.isApproved,
+                isProfileComplete: freshRider.isProfileComplete
             } 
         });
     } catch (error) {
@@ -505,19 +534,43 @@ export const loginRider = async (req, res) => {
         }
 
         const rider = await Rider.findOne({ mobile });
-        if (!rider) {
-            return res.status(404).json({ success: false, message: 'Rider account not found' });
+
+        // One generic failure for "no such rider" AND "wrong PIN". Answering
+        // 404 vs 400 let anyone enumerate which phone numbers are registered
+        // riders. The old code also "self-healed" a missing PIN by generating a
+        // random one and saving it — then failing the compare, permanently
+        // locking that rider out of a PIN nobody could ever tell them.
+        const invalid = () => res.status(401).json({
+            success: false,
+            message: 'Invalid mobile number or PIN'
+        });
+
+        if (!rider || !rider.verificationPin) return invalid();
+
+        // Backward-compatible check. PINs used to be stored in the clear; a
+        // straight switch to bcrypt.compare would have locked out every
+        // existing rider the moment this deployed. So: hashed PINs compare
+        // normally, and a legacy plaintext PIN is accepted once and upgraded to
+        // a hash in place, which drains the plaintext away as riders sign in.
+        const stored = rider.verificationPin;
+        const isHashed = stored.startsWith('$2');
+
+        let pinOk;
+        if (isHashed) {
+            pinOk = await bcrypt.compare(String(pin), stored);
+        } else {
+            pinOk = stored === String(pin);
+            if (pinOk) {
+                await User.findByIdAndUpdate(rider._id, {
+                    verificationPin: await bcrypt.hash(String(pin), 10)
+                });
+                logger.info('Upgraded legacy plaintext rider PIN to a hash', {
+                    riderId: rider._id
+                });
+            }
         }
 
-        // Self-heal: If rider doesn't have a PIN, generate one now
-        if (!rider.verificationPin) {
-            rider.verificationPin = Math.floor(1000 + Math.random() * 9000).toString();
-            await User.findByIdAndUpdate(rider._id, { verificationPin: rider.verificationPin });
-        }
-
-        if (rider.verificationPin !== pin.toString()) {
-            return res.status(400).json({ success: false, message: 'Invalid verification PIN' });
-        }
+        if (!pinOk) return invalid();
 
         const token = generateToken({ userId: rider._id, role: 'rider' });
         const refreshToken = generateRefreshToken();
@@ -547,7 +600,8 @@ export const loginRider = async (req, res) => {
                 isApproved: rider.isApproved,
                 isOnline: rider.isOnline,
                 isProfileComplete: rider.isProfileComplete || false,
-                verificationPin: rider.verificationPin,
+                // Never echo the PIN back — it's a hash now, and returning it
+                // to the client served no purpose but to leak the credential.
                 totalDeliveries: rider.totalDeliveries,
                 totalEarnings: rider.totalEarnings,
                 averageRating: rider.averageRating,
