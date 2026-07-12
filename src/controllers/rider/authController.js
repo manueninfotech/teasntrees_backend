@@ -716,3 +716,87 @@ export const updateRiderDocument = async (req, res) => {
         res.status(500).json({ success: false, message: 'Could not update the document' });
     }
 };
+
+/* ======================================================
+   REFRESH ACCESS TOKEN
+
+   The rider access token lives for 1 hour. Login and register have always
+   minted a 90-day refresh token and handed it back — but there was no route to
+   redeem it, and the app never stored it. So every rider was signed out an hour
+   into their shift, potentially mid-delivery, and had to re-enter a PIN they
+   very likely don't have memorised (and which, now that PINs are hashed, nobody
+   can look up for them).
+
+   Mirrors the customer flow, including refresh-token rotation.
+====================================================== */
+export const refreshRiderToken = async (req, res) => {
+    try {
+        const { refreshToken } = req.body;
+
+        if (!refreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: 'Refresh token required'
+            });
+        }
+
+        const stored = await RefreshToken.findOne({
+            token: refreshToken,
+            isRevoked: false
+        }).populate('user');
+
+        if (!stored || !stored.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid or revoked refresh token'
+            });
+        }
+
+        if (stored.expiresAt < new Date()) {
+            return res.status(401).json({
+                success: false,
+                message: 'Your session expired. Please sign in again.'
+            });
+        }
+
+        // A rider who has been deactivated must not be able to refresh their way
+        // back into an active session.
+        if (stored.user.isActive === false) {
+            return res.status(403).json({
+                success: false,
+                message: 'This account is no longer active.'
+            });
+        }
+
+        // Rotation: burn the presented token, issue a fresh pair.
+        const newRefreshToken = generateRefreshToken();
+        stored.isRevoked = true;
+        stored.revokedAt = new Date();
+        stored.replacedBy = newRefreshToken;
+        await stored.save();
+
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 90);
+
+        await RefreshToken.create({
+            token: newRefreshToken,
+            user: stored.user._id,
+            expiresAt,
+            ipAddress: req.ip,
+            userAgent: req.headers['user-agent']
+        });
+
+        const token = generateToken({ userId: stored.user._id, role: 'rider' });
+
+        logger.info('Rider token refreshed', { userId: stored.user._id });
+
+        return res.json({
+            success: true,
+            token,
+            refreshToken: newRefreshToken
+        });
+    } catch (error) {
+        logger.error('refreshRiderToken error', error);
+        return res.status(500).json({ success: false, message: 'Server error' });
+    }
+};

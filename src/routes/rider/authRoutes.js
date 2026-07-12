@@ -8,11 +8,12 @@ import {
     loginRider,
     updateFCMToken,
     getDocument,
-    updateRiderDocument
+    updateRiderDocument,
+    refreshRiderToken
 } from '../../controllers/rider/authController.js';
 import { riderAuth, isApprovedRider } from '../../middlewares/riderAuth.js';
 import multer from 'multer';
-import { pinLimiter } from '../../middlewares/rateLimiter.js';
+import { pinLimiter, authLimiter } from '../../middlewares/rateLimiter.js';
 const router = express.Router({ mergeParams: true });
 
 // Use Memory Storage so we can upload to Azure in the controller
@@ -35,6 +36,9 @@ const riderUploads = upload.fields([
 router.post('/register', riderUploads, registerRider);
 router.post('/firebase-login', firebaseLogin);
 router.post('/login', pinLimiter, loginRider);
+// Redeems the 90-day refresh token for a new 1h access token, so a rider isn't
+// signed out an hour into their shift.
+router.post('/refresh-token', authLimiter, refreshRiderToken);
 
 // Protected Routes
 router.post('/availability', riderAuth, isApprovedRider, toggleAvailability);
