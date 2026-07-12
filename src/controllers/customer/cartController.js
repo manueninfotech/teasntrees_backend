@@ -3,6 +3,7 @@
 
 import mongoose from 'mongoose';
 import { assertPaymentMethodAllowed } from '../../utils/paymentGuard.js';
+import { beginIdempotentOrder, releaseIdempotencyKey } from '../../utils/idempotency.js';
 import Cart from '../../models/Cart.js';
 import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
@@ -433,6 +434,17 @@ export const checkoutCart = async (req, res) => {
             return res.status(400).json({ success: false, message: payCheck.message });
         }
 
+        // Same protection as /customer/orders: a retried checkout whose first
+        // response was lost must not create a SECOND real order. Both entry
+        // points create orders, so both need this.
+        const idem = await beginIdempotentOrder(req, res);
+        if (idem.handled) return;
+        if (idem.key) {
+            res.on('finish', () => {
+                if (res.statusCode >= 400) releaseIdempotencyKey(idem.key);
+            });
+        }
+
         // Get cart
         const cart = await Cart.findOne({ userId }).populate('items.product');
 
@@ -587,6 +599,7 @@ export const checkoutCart = async (req, res) => {
             const orderPayload = {
                 customerId: userId,
                 brand: brand,
+                idempotencyKey: idem.key,
                 outletId: outlet ? outlet._id : undefined,
                 items: group.items,
                 subtotal: group.subtotal,

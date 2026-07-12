@@ -113,6 +113,11 @@ const orderSchema = new mongoose.Schema(
         couponCode: { type: String, default: null },
         discount: { type: Number, default: 0 },
 
+        // Stamped on every order created by one checkout (a multi-brand cart
+        // makes several). Lets a retried checkout return the SAME orders instead
+        // of creating duplicates. See utils/idempotency.js.
+        idempotencyKey: { type: String, default: null, index: true },
+
         total: {
             type: Number,
             required: true,

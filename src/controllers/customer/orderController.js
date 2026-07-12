@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import { assertPaymentMethodAllowed } from '../../utils/paymentGuard.js';
+import { beginIdempotentOrder, releaseIdempotencyKey } from '../../utils/idempotency.js';
 import Order from '../../models/Order.js';
 import Product from '../../models/Product.js';
 import Category from '../../models/Category.js';
@@ -38,6 +39,22 @@ export const createOrder = async (req, res) => {
             return res.status(400).json({ success: false, message: payCheck.message });
         }
         const customerId = req.user.userId;
+
+        // Retrying a checkout must not create a second order. If we already made
+        // these orders under this key, replay them; if an identical request is
+        // in flight, say so. See utils/idempotency.js.
+        const idem = await beginIdempotentOrder(req, res);
+        if (idem.handled) return;
+
+        // If this checkout fails for ANY reason, the key must not stay claimed —
+        // otherwise a genuine retry is told "already in progress" forever and the
+        // customer can never place the order at all. One hook covers every early
+        // return and the catch block, so no failure path can forget.
+        if (idem.key) {
+            res.on('finish', () => {
+                if (res.statusCode >= 400) releaseIdempotencyKey(idem.key);
+            });
+        }
 
         if (!items || !items.length) {
             return res.status(400).json({ success: false, message: 'Cart is empty' });
@@ -301,6 +318,7 @@ export const createOrder = async (req, res) => {
             orderDocs.push({
                 customerId,
                 brand,
+                idempotencyKey: idem.key,
                 outletId: outlet ? outlet._id : undefined,
                 pickupLocation: outlet ? outlet.location : undefined,
                 items: group.items,
