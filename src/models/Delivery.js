@@ -58,6 +58,11 @@ const deliverySchema = new mongoose.Schema({
 
     customerName: String,
     customerMobile: String,
+    // Denormalized alongside name/mobile so the rider app can show the customer
+    // on the map without a second round-trip. Null when the customer signed up
+    // with a mobile number rather than Google (most of them) — the app falls
+    // back to their initials, it must never invent a face.
+    customerImage: { type: String, default: null },
     deliveryAddress: String, // Plain text address
 
     pickupLocation: {
@@ -149,6 +154,7 @@ deliverySchema.pre('save', async function () {
             if (order) {
                 if (!this.customerName) this.customerName = order.customerId?.name || 'Customer';
                 if (!this.customerMobile) this.customerMobile = order.customerId?.mobile || '';
+                if (!this.customerImage) this.customerImage = order.customerId?.profileImage || null;
                 if (!this.deliveryAddress) this.deliveryAddress = order.deliveryAddress?.address || 'Customer Address';
                 if (!this.brand) this.brand = order.brand;
             }

@@ -63,7 +63,7 @@ export const getActiveDelivery = async (req, res) => {
             status: { $nin: ['delivered', 'cancelled', 'rejected'] }
         })
             .populate('orderId')
-            .populate('customerId', 'name mobile');
+            .populate('customerId', 'name mobile profileImage');
 
         res.json({ success: true, data: delivery || null });
     } catch (error) {
@@ -83,7 +83,7 @@ export const getDeliveryById = async (req, res) => {
             riderId: req.user.userId
         })
             .populate('orderId')
-            .populate('customerId', 'name mobile');
+            .populate('customerId', 'name mobile profileImage');
 
         if (!delivery) {
             return res.status(404).json({ success: false, message: 'Delivery not found' });
@@ -408,7 +408,7 @@ export const getEarningsHistory = async (req, res) => {
         };
 
         const history = await Delivery.find(query)
-            .populate('customerId', 'name mobile')
+            .populate('customerId', 'name mobile profileImage')
             .populate('orderId', 'deliveryAddress total paymentMethod items brand')
             .sort({ deliveredAt: -1 })
             .skip(skip)

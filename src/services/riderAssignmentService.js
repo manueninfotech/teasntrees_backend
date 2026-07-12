@@ -345,6 +345,7 @@ const User = mongoose.model('User');
                     deliveryLocation: finalDeliveryLoc,
                     customerName: dbCustomer?.name || 'Customer',
                     customerMobile: dbCustomer?.mobile || '',
+                    customerImage: dbCustomer?.profileImage || null,
                     deliveryAddress: finalDeliveryLoc.address
                 });
 
@@ -469,6 +470,7 @@ const User = mongoose.model('User');
                 customerId: order.customerId,
                 customerName: dbCustomer?.name || 'Customer',
                 customerMobile: dbCustomer?.mobile || '',
+                customerImage: dbCustomer?.profileImage || null,
                 pickupLocation: {
                     type: 'Point',
                     coordinates: [outletLocation.lng, outletLocation.lat],
