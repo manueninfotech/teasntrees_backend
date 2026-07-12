@@ -149,6 +149,12 @@ setupSocketHandlers(io);
 import { riderAssignmentService } from './services/riderAssignmentService.js';
 riderAssignmentService.setIo(io);
 
+// Watches riders who accepted an order and then stopped moving toward the store
+// or the customer. Nothing looked at a delivery after acceptance before this —
+// the escalation monitor only covers orders still waiting for a rider.
+import { deliveryWatchdogService } from './services/deliveryWatchdogService.js';
+deliveryWatchdogService.initialize(io);
+
 const socketService = new SocketService(io);
 app.set('io', io);
 app.set('socketService', socketService);

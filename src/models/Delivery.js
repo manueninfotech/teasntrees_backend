@@ -127,7 +127,29 @@ const deliverySchema = new mongoose.Schema({
     // COD Payment Handling
     paymentMode: { type: String, enum: ['cash', 'upi', 'none'], default: 'none' },
     paymentStatus: { type: String, enum: ['pending', 'collected', 'handed_over'], default: 'pending' },
-    amountCollected: { type: Number, default: 0 }
+    amountCollected: { type: Number, default: 0 },
+
+    /* ----------------------------------
+       STALL WATCHDOG
+
+       Once a rider accepted, nothing watched them ever again: the escalation
+       monitor only looks at orders still in `waiting_for_rider`, and an accepted
+       order has left that status. A rider who accepted and then went home left
+       the order frozen forever, with the customer watching a stationary bike and
+       nobody alerted. These fields let deliveryWatchdogService tell "stuck in
+       traffic" apart from "not coming".
+    ----------------------------------- */
+
+    // How far the rider was from the current stop when they last made real
+    // progress toward it, and when that was.
+    lastProgressDistance: { type: Number, default: null }, // metres
+    lastProgressAt: { type: Date, default: null },
+
+    // Set when we nudge the rider / escalate to admins, so we do it once per
+    // stall rather than every time the monitor ticks. Cleared as soon as the
+    // rider starts moving again.
+    stallNudgedAt: { type: Date, default: null },
+    stallEscalatedAt: { type: Date, default: null }
 }, {
     timestamps: true
 });
