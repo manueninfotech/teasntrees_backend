@@ -1,6 +1,6 @@
+import mongoose from 'mongoose';
 import Delivery from '../../models/Delivery.js';
 import User from '../../models/User.js';
-import Order from '../../models/Order.js';
 import logger from '../../config/logger.js';
 import activityLogService from '../../services/activityLogService.js';
 
@@ -13,8 +13,11 @@ export const getPayoutStats = async (req, res) => {
             isPaid: false
         };
         if (brand) {
-            const filteredOrders = await Order.find({ brand }).select('_id');
-            match.orderId = { $in: filteredOrders.map(o => o._id) };
+            // Same landmine as processPayout had: this loaded the _id of every
+            // order in the brand and passed them all as an `$in`. Delivery has
+            // its own `brand` (verified populated on every existing row), so
+            // filter on that and let the index do the work.
+            match.brand = brand;
         }
 
         const stats = await Delivery.aggregate([
@@ -72,9 +75,27 @@ export const processPayout = async (req, res) => {
             isPaid: false
         };
         if (brand) {
-            const filteredOrders = await Order.find({ brand }).select('_id');
-            filter.orderId = { $in: filteredOrders.map(o => o._id) };
+            // Delivery carries its own `brand`. This used to load the _id of
+            // EVERY order in the brand and pass them all as an `$in` — fine with
+            // a hundred orders, a several-megabyte query with a hundred
+            // thousand, and it grows forever.
+            filter.brand = brand;
         }
+
+        // What are we about to pay? Read it BEFORE the update flips isPaid, or
+        // the deliveries no longer match the filter and the sum comes back zero.
+        //
+        // Nothing recorded the payout AMOUNT anywhere: the deliveries got an
+        // isPaid flag and a reference, the activity log noted a COUNT, and the
+        // rider was told "N deliveries". So there was no financial record of how
+        // much money left the business — reconciliation was impossible from the
+        // app's own data.
+        const [totals] = await Delivery.aggregate([
+            { $match: { ...filter, riderId: new mongoose.Types.ObjectId(String(riderId)) } },
+            { $group: { _id: null, amount: { $sum: '$totalEarning' }, count: { $sum: 1 } } }
+        ]);
+        const payoutAmount = Math.round((totals?.amount || 0) * 100) / 100;
+
         const result = await Delivery.updateMany(
             filter,
             {
@@ -99,8 +120,12 @@ export const processPayout = async (req, res) => {
                 // Socket.io update
                 const socketService = req.app.get('socketService');
                 if (socketService) {
+                    // Was: `Your payout of ₹${result.modifiedCount} deliveries` —
+                    // a rupee sign in front of a COUNT, so a rider paid ₹2,000
+                    // across 5 jobs was told "₹5". Tell them the money.
                     socketService.notifyUser(riderId, 'payout:processed', {
-                        message: `Your payout of ₹${result.modifiedCount} deliveries has been processed.`,
+                        message: `₹${payoutAmount} for ${result.modifiedCount} deliveries has been paid out.`,
+                        amount: payoutAmount,
                         count: result.modifiedCount
                     });
                 }
@@ -108,9 +133,13 @@ export const processPayout = async (req, res) => {
                 // Push Notification
                 const { notificationService } = await import('../../services/notificationService.js');
                 await notificationService.sendPush(rider, {
-                    title: 'Payout Processed! ',
-                    body: `Your earnings for ${result.modifiedCount} deliveries have been transferred. Check your bank account.`,
-                    data: { type: 'payout', count: result.modifiedCount }
+                    title: 'Payout processed',
+                    body: `₹${payoutAmount} for ${result.modifiedCount} deliveries has been transferred to your bank account.`,
+                    data: {
+                        type: 'payout',
+                        amount: String(payoutAmount),
+                        count: String(result.modifiedCount)
+                    }
                 });
             }
         } catch (notifError) {
@@ -124,14 +153,18 @@ export const processPayout = async (req, res) => {
             details: {
                 riderId,
                 riderName,
-                deliveriesUpdated: result.modifiedCount
+                deliveriesUpdated: result.modifiedCount,
+                // The only durable record of how much was actually paid.
+                amount: payoutAmount,
+                payoutReference: payoutReference || null
             }
         });
 
         res.json({
             success: true,
-            message: `Successfully processed payout for ${result.modifiedCount} deliveries`,
+            message: `Paid ₹${payoutAmount} across ${result.modifiedCount} deliveries`,
             data: {
+                amount: payoutAmount,
                 deliveriesUpdated: result.modifiedCount
             }
         });
