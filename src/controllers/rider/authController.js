@@ -26,35 +26,30 @@ export const registerRider = async (req, res) => {
             emergencyContactName, emergencyContactMobile, emergencyContactRelation
         } = req.body;
 
-        // Is this number already taken?
+        // Already a RIDER on this number?
         //
-        // This used to ask `Rider.findOne({ mobile })` — but Rider is a
-        // DISCRIMINATOR of User, so that only matches documents with
-        // kind: 'Rider', while the unique index (`users.mobile_1`) is on the
-        // whole collection. Anyone who had ever used the app as a CUSTOMER
-        // therefore sailed past this check and then blew up on `rider.save()`
-        // with a raw E11000, which we handed back as a 500 "Registration
-        // failed" with the Mongo error attached. Two real people hit this in
-        // production today and had no idea why.
-        const existingUser = await User.findOne({ mobile });
-        if (existingUser) {
-            if (existingUser.kind === 'Rider' || existingUser.role === 'rider') {
-                return res.status(409).json({
-                    success: false,
-                    message: existingUser.isApproved
-                        ? 'That number is already registered. Please sign in with your PIN.'
-                        : 'That number is already registered and is waiting for approval. We will let you know as soon as it is verified.'
-                });
-            }
-
-            // The number belongs to a customer account. We can't quietly turn it
-            // into a rider — that would let anyone claim rider access on a number
-            // they merely shop with.
+        // Scoped to riders deliberately: ONE PERSON MAY BE BOTH A CUSTOMER AND A
+        // RIDER ON THE SAME NUMBER. Customer and Rider are separate discriminator
+        // documents of User, and the unique index that governs this is the
+        // compound `{ mobile, role }` — which the schema has always declared, and
+        // which permits one of each per number.
+        //
+        // What actually forbade it was a LEGACY single-field `mobile_1` unique
+        // index still sitting on the production `users` collection (Mongoose adds
+        // indexes but never drops the ones you've stopped declaring). Anyone who
+        // had ever shopped with us therefore blew up on `rider.save()` with a raw
+        // E11000 — a 500 with the Mongo error attached. Dropped by
+        // scripts/drop_legacy_user_indexes.mjs.
+        const existingRider = await Rider.findOne({ mobile });
+        if (existingRider) {
             return res.status(409).json({
                 success: false,
-                message: 'That number is already used for a customer account. Please register with a different number, or ask the store to help.'
+                message: existingRider.isApproved
+                    ? 'That number is already registered as a rider. Please sign in with your PIN.'
+                    : 'That number is already registered and is waiting for approval. We will let you know as soon as it is verified.'
             });
         }
+
 
         // Check for duplicate vehicle
         const existingVehicle = await Rider.findOne({ vehicleNumber });
