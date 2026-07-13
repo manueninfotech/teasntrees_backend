@@ -593,6 +593,15 @@ export const loginRider = async (req, res) => {
 
         if (!rider || !rider.verificationPin) return invalid();
 
+        // Check if account is currently locked
+        if (rider.lockUntil && rider.lockUntil > Date.now()) {
+            const minutesLeft = Math.ceil((rider.lockUntil - Date.now()) / (60 * 1000));
+            return res.status(403).json({
+                success: false,
+                message: `Too many failed login attempts. Your account has been temporarily locked. Please try again in ${minutesLeft} minute(s).`
+            });
+        }
+
         // Backward-compatible check. PINs used to be stored in the clear; a
         // straight switch to bcrypt.compare would have locked out every
         // existing rider the moment this deployed. So: hashed PINs compare
@@ -616,7 +625,23 @@ export const loginRider = async (req, res) => {
             }
         }
 
-        if (!pinOk) return invalid();
+        if (!pinOk) {
+            // Increment failed login attempts
+            rider.loginAttempts = (rider.loginAttempts || 0) + 1;
+            if (rider.loginAttempts >= 5) {
+                rider.lockUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 mins lockout
+                rider.loginAttempts = 0; // Reset counter
+            }
+            await rider.save();
+            return invalid();
+        }
+
+        // Reset failed attempts upon successful login
+        if (rider.loginAttempts > 0 || rider.lockUntil) {
+            rider.loginAttempts = 0;
+            rider.lockUntil = null;
+            await rider.save();
+        }
 
         const token = generateToken({ userId: rider._id, role: 'rider' });
         const refreshToken = generateRefreshToken();
