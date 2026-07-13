@@ -1,9 +1,0 @@
-node_modules/
-.env
-*.log
-logs/
-serviceAccountKey.json
-
-/.env
-env
-/env
