@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Tester - Teas N Trees</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+        }
+
+        .header h1 {
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            font-weight: 600;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+
+        .tab:hover {
+            color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .login-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+
+        .login-box h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .login-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .login-box input {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 180px;
+        }
+
+        .btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .token-display {
+            margin-top: 15px;
+            padding: 12px;
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 4px;
+            display: none;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .request-builder {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .request-builder h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .request-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: stretch;
+        }
+
+        .method-select {
+            padding: 12px 15px;
+            border: 2px solid #667eea;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 110px;
+        }
+
+        .endpoint-input {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .send-btn {
+            padding: 12px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .send-btn:hover {
+            background: #5568d3;
+        }
+
+        .body-section {
+            margin-top: 15px;
+        }
+
+        .body-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .body-textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+
+        .quick-examples {
+            margin-top: 15px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .quick-examples h4 {
+            margin-bottom: 10px;
+            color: #1976d2;
+            font-size: 14px;
+        }
+
+        .example-section {
+            margin-bottom: 12px;
+        }
+
+        .example-section strong {
+            display: block;
+            margin: 8px 0 4px 0;
+            color: #667eea;
+            font-size: 13px;
+        }
+
+        .example-btn {
+            padding: 8px 14px;
+            margin: 4px;
+            background: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .example-btn:hover {
+            background: #1976d2;
+        }
+
+        .response-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            min-height: 250px;
+        }
+
+        .response-section h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .response-content {
+            background: white;
+            padding: 20px;
+            border-radius: 4px;
+            border-left: 4px solid #ddd;
+            min-height: 200px;
+        }
+
+        .response-content.success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .response-content.error {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .response-content pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .status-200,
+        .status-201 {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-400,
+        .status-404 {
+            background: #ffc107;
+            color: black;
+        }
+
+        .status-401,
+        .status-403,
+        .status-500 {
+            background: #dc3545;
+            color: white;
+        }
+
+        .info-note {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+
+        .info-note strong {
+            color: #856404;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 API Tester - Teas N Trees</h1>
+            <p>Test Admin, Customer & Rider endpoints - Comprehensive API Testing Tool</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('admin')">Admin</button>
+            <button class="tab" onclick="switchTab('customer')">Customer</button>
+            <button class="tab" onclick="switchTab('rider')">Rider</button>
+        </div>
+
+        <!-- ADMIN TAB -->
+        <div id="admin-tab" class="tab-content active">
+            <div class="login-box">
+                <h3>🔑 Token Management</h3>
+                <div class="info-note">
+                    <strong>Tip:</strong> Tokens are auto-saved from successful responses. Or paste your token manually
+                    below.
+                </div>
+                <div class="login-row">
+                    <input type="text" id="admin-token-input" placeholder="Paste token here (optional)"
+                        style="flex: 1; min-width: 300px;">
+                    <button class="btn btn-primary" onclick="setToken('admin')">Set Token</button>
+                    <button class="btn btn-success" onclick="clearToken('admin')">Clear Token</button>
+                </div>
+                <div class="token-display" id="admin-token-display"></div>
+            </div>
+
+            <div class="request-builder">
+                <h3>📝 Build Request</h3>
+                <div class="request-row">
+                    <select id="admin-method" class="method-select">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <input type="text" id="admin-endpoint" class="endpoint-input" placeholder="/api/admin/categories"
+                        value="/api/admin/categories">
+                    <button class="send-btn" onclick="sendRequest('admin')">Send</button>
+                </div>
+
+                <div class="body-section">
+                    <label for="admin-body">Request Body (JSON):</label>
+                    <textarea id="admin-body" class="body-textarea" placeholder='{"name": "Category Name"}'></textarea>
+                </div>
+
+                <div class="quick-examples">
+                    <h4>⚡ Quick Examples - All Admin Endpoints:</h4>
+
+                    <div class="example-section">
+                        <strong>Authentication:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'sendOTP')">Send OTP</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'verifyOTP')">Verify OTP</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'completeProfile')">Complete
+                            Profile</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'refreshToken')">Refresh
+                            Token</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'logout')">Logout</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Dashboard:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'dashboardStats')">Dashboard
+                            Stats</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'recentOrders')">Recent
+                            Orders</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'revenue')">Revenue</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'topProducts')">Top Products</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Users:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getAllUsers')">Get All Users</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getUserById')">Get User by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'userStats')">User Stats</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getCustomers')">Get
+                            Customers</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getRiders')">Get Riders</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateUserRole')">Update
+                            Role</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'activateUser')">Activate
+                            User</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deactivateUser')">Deactivate
+                            User</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deleteUser')">Delete User</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Categories:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getCategories')">Get
+                            Categories</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getCategoryById')">Get Category by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'createCategory')">Create
+                            Category</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateCategory')">Update
+                            Category</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deleteCategory')">Delete
+                            Category</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Products:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getProducts')">Get Products</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getProductById')">Get Product by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getProductsByCategory')">Products by
+                            Category</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'createProduct')">Create
+                            Product</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateProduct')">Update
+                            Product</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'toggleAvailability')">Toggle
+                            Availability</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'bulkUpdate')">Bulk Update</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deleteProduct')">Delete
+                            Product</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getSeasonalProducts')">Seasonal
+                            Products</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getOutOfSeasonProducts')">Out of
+                            Season</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateProductSeason')">Update
+                            Season</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Orders:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getOrders')">Get Orders</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getOrderById')">Get Order by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'orderStats')">Order Stats</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateOrderStatus')">Update
+                            Status</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'assignRider')">Assign Rider</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'cancelOrder')">Cancel Order</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Deliveries:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getDeliveries')">Get
+                            Deliveries</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getDeliveryById')">Get Delivery by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deliveryStats')">Delivery
+                            Stats</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateDeliveryStatus')">Update
+                            Status</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateDeliveryLocation')">Update
+                            Location</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'completeDelivery')">Complete
+                            Delivery</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Reviews:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getReviews')">Get Reviews</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getReviewById')">Get Review by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getRiderReviews')">Rider
+                            Reviews</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'reviewStats')">Review Stats</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'approveReview')">Approve
+                            Review</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'rejectReview')">Reject
+                            Review</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Rider Management:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getAllRiders')">Get All
+                            Riders</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getPendingRiders')">Pending
+                            Riders</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getRiderById')">Get Rider by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'approveRider')">Approve
+                            Rider</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'rejectRider')">Reject Rider</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'toggleRiderStatus')">Toggle
+                            Status</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deleteRider')">Delete Rider</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Activity Logs:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getAllActivityLogs')">All Activity
+                            Logs</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'activityStats')">Activity
+                            Stats</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'logsByAdmin')">Logs by Admin</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'activityLogById')">Activity Log by
+                            ID</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'exportLogs')">Export Logs</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Cart Analytics:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'cartAnalytics')">Cart
+                            Analytics</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'abandonedCarts')">Abandoned
+                            Carts</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Payouts:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'payoutStats')">Payout Stats</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'processPayout')">Process
+                            Payout</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Uploads:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'uploadImage')">Upload Single
+                            Image</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'uploadMultipleImages')">Upload
+                            Multiple Images</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'deleteImage')">Delete Image</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Settings & Profile:</strong>
+                        <button class="example-btn" onclick="loadExample('admin', 'getSettings')">Get Settings</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateSettings')">Update
+                            Settings</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getDeliveryZones')">Get Delivery
+                            Zones</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateDeliveryZones')">Update
+                            Delivery Zones</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'getProfile')">Get Profile</button>
+                        <button class="example-btn" onclick="loadExample('admin', 'updateProfile')">Update
+                            Profile</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="response-section">
+                <h3>📊 Response</h3>
+                <div class="response-content" id="admin-response">
+                    <pre>Click "Send" to test an endpoint...</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- CUSTOMER TAB -->
+        <div id="customer-tab" class="tab-content">
+            <div class="login-box">
+                <h3>🔑 Token Management</h3>
+                <div class="info-note">
+                    <strong>Tip:</strong> Tokens are auto-saved from successful responses. Or paste your token manually
+                    below.
+                </div>
+                <div class="login-row">
+                    <input type="text" id="customer-token-input" placeholder="Paste token here (optional)"
+                        style="flex: 1; min-width: 300px;">
+                    <button class="btn btn-primary" onclick="setToken('customer')">Set Token</button>
+                    <button class="btn btn-success" onclick="clearToken('customer')">Clear Token</button>
+                </div>
+                <div class="token-display" id="customer-token-display"></div>
+            </div>
+
+            <div class="request-builder">
+                <h3>📝 Build Request</h3>
+                <div class="request-row">
+                    <select id="customer-method" class="method-select">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <input type="text" id="customer-endpoint" class="endpoint-input"
+                        placeholder="/api/customer/products" value="/api/customer/products">
+                    <button class="send-btn" onclick="sendRequest('customer')">Send</button>
+                </div>
+
+                <div class="body-section">
+                    <label for="customer-body">Request Body (JSON):</label>
+                    <textarea id="customer-body" class="body-textarea"
+                        placeholder='{"productId": "...", "quantity": 2}'></textarea>
+                </div>
+
+                <div class="quick-examples">
+                    <h4>⚡ Quick Examples - All Customer Endpoints:</h4>
+
+                    <div class="example-section">
+                        <strong>Authentication:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'sendOTP')">Send OTP</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'verifyOTP')">Verify OTP</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'completeProfile')">Complete
+                            Profile</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'refreshToken')">Refresh
+                            Token</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'logout')">Logout</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Products & Categories:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'browseProducts')">Browse
+                            Products</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'getProductDetails')">Product
+                            Details</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'getProductsByCategory')">Products
+                            by Category</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'browseCategories')">Browse
+                            Categories</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'getCategoryById')">Category
+                            Details</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Profile:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'getProfile')">Get Profile</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'updateProfile')">Update
+                            Profile</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Cart:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'getCart')">Get Cart</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'addToCart')">Add to Cart</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'updateCartItem')">Update Cart
+                            Item</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'removeCartItem')">Remove
+                            Item</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'clearCart')">Clear Cart</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'checkout')">Checkout</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Orders:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'createOrder')">Create
+                            Order</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'getMyOrders')">My Orders</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'getOrderDetails')">Order
+                            Details</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'downloadInvoice')">Download
+                            Invoice</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'reorder')">Reorder</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'cancelOrder')">Cancel
+                            Order</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Deliveries:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'getMyDeliveries')">My
+                            Deliveries</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'getDeliveryByOrder')">Get Delivery
+                            by Order</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'trackDelivery')">Track
+                            Delivery</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Wishlist:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'getWishlist')">Get
+                            Wishlist</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'addToWishlist')">Add to
+                            Wishlist</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'removeFromWishlist')">Remove from
+                            Wishlist</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Addresses:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'getAddresses')">Get
+                            Addresses</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'addAddress')">Add Address</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'updateAddress')">Update
+                            Address</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'setDefaultAddress')">Set
+                            Default</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'deleteAddress')">Delete
+                            Address</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Reviews:</strong>
+                        <button class="example-btn" onclick="loadExample('customer', 'createReview')">Create
+                            Review</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'getMyReviews')">My
+                            Reviews</button>
+                        <button class="example-btn" onclick="loadExample('customer', 'rateProduct')">Rate
+                            Product</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="response-section">
+                <h3>📊 Response</h3>
+                <div class="response-content" id="customer-response">
+                    <pre>Click "Send" to test an endpoint...</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIDER TAB -->
+        <div id="rider-tab" class="tab-content">
+            <div class="login-box">
+                <h3>🔑 Token Management</h3>
+                <div class="info-note">
+                    <strong>Tip:</strong> Tokens are auto-saved from successful responses. Or paste your token manually
+                    below.
+                </div>
+                <div class="login-row">
+                    <input type="text" id="rider-token-input" placeholder="Paste token here (optional)"
+                        style="flex: 1; min-width: 300px;">
+                    <button class="btn btn-primary" onclick="setToken('rider')">Set Token</button>
+                    <button class="btn btn-success" onclick="clearToken('rider')">Clear Token</button>
+                </div>
+                <div class="token-display" id="rider-token-display"></div>
+            </div>
+
+            <div class="request-builder">
+                <h3>📝 Build Request</h3>
+                <div class="request-row">
+                    <select id="rider-method" class="method-select">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                        <option value="DELETE">DELETE</option>
+                    </select>
+                    <input type="text" id="rider-endpoint" class="endpoint-input"
+                        placeholder="/api/rider/deliveries/active" value="/api/rider/deliveries/active">
+                    <button class="send-btn" onclick="sendRequest('rider')">Send</button>
+                </div>
+
+                <div class="body-section">
+                    <label for="rider-body">Request Body (JSON):</label>
+                    <textarea id="rider-body" class="body-textarea" placeholder='{"isOnline": true}'></textarea>
+                </div>
+
+                <div class="quick-examples">
+                    <h4>⚡ Quick Examples - All Rider Endpoints:</h4>
+
+                    <div class="example-section">
+                        <strong>Authentication:</strong>
+                        <button class="example-btn" onclick="loadExample('rider', 'registerRider')">Register
+                            Rider</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'sendOTP')">Send OTP</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'verifyOTP')">Verify OTP</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'getProfile')">Get Profile</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Availability:</strong>
+                        <button class="example-btn" onclick="loadExample('rider', 'toggleOnline')">Toggle
+                            Online</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'toggleOffline')">Toggle
+                            Offline</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Deliveries:</strong>
+                        <button class="example-btn" onclick="loadExample('rider', 'getActiveDelivery')">Active
+                            Delivery</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'acceptDelivery')">Accept
+                            Delivery</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'rejectDelivery')">Reject
+                            Delivery</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'updateDeliveryStatus')">Update
+                            Status</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'uploadDeliveryProof')">Upload
+                            Proof</button>
+                        <button class="example-btn" onclick="loadExample('rider', 'updateLocation')">Update
+                            Location</button>
+                    </div>
+
+                    <div class="example-section">
+                        <strong>Earnings:</strong>
+                        <button class="example-btn" onclick="loadExample('rider', 'getEarnings')">Earnings
+                            History</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="response-section">
+                <h3>📊 Response</h3>
+                <div class="response-content" id="rider-response">
+                    <pre>Click "Send" to test an endpoint...</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000';
+        const tokens = { admin: '', customer: '', rider: '' };
+        const savedIds = { category: '', product: '', order: '', delivery: '', user: '', address: '', review: '' };
+
+        function setToken(role) {
+            const tokenInput = document.getElementById(`${role}-token-input`);
+            const token = tokenInput.value.trim();
+            if (token) {
+                tokens[role] = token;
+                updateTokenDisplay(role);
+                tokenInput.value = '';
+                alert('✅ Token set successfully!');
+            } else {
+                alert('❌ Please enter a token');
+            }
+        }
+
+        function clearToken(role) {
+            tokens[role] = '';
+            updateTokenDisplay(role);
+            alert('✅ Token cleared');
+        }
+
+        function updateTokenDisplay(role) {
+            const display = document.getElementById(`${role}-token-display`);
+            if (tokens[role]) {
+                display.style.display = 'block';
+                display.innerHTML = `✅ <strong>Token Active</strong><br><small>${tokens[role].substring(0, 50)}...</small>`;
+            } else {
+                display.style.display = 'none';
+                display.innerHTML = '';
+            }
+        }
+
+        function switchTab(role) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`${role}-tab`).classList.add('active');
+        }
+
+        async function sendOTP(role) {
+            const mobile = document.getElementById(`${role}-mobile`).value;
+            const authPath = role === 'rider' ? '/api/rider/auth/send-otp' :
+                role === 'customer' ? '/api/customer/auth/send-otp' : '/api/admin/auth/send-otp';
+
+            try {
+                const res = await fetch(`${API_BASE}${authPath}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobile })
+                });
+                const data = await res.json();
+                alert(data.success ? '✅ OTP sent! Check console.' : '❌ ' + data.message);
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function login(role) {
+            const mobile = document.getElementById(`${role}-mobile`).value;
+            const otp = document.getElementById(`${role}-otp`).value;
+            const authPath = role === 'rider' ? '/api/rider/auth/verify-otp' :
+                role === 'customer' ? '/api/customer/auth/verify-otp' : '/api/admin/auth/verify-otp';
+
+            try {
+                const res = await fetch(`${API_BASE}${authPath}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobile, otp })
+                });
+                const data = await res.json();
+
+                const token = data.token || data.data?.token;
+                const user = data.user || data.data?.user || data.rider || data.data?.rider;
+
+                if (token) {
+                    tokens[role] = token;
+                    const display = document.getElementById(`${role}-token`);
+                    display.style.display = 'block';
+                    display.innerHTML = `✅ <strong>Logged in as ${user?.name || mobile}</strong><br><small>Token: ${token.substring(0, 50)}...</small>`;
+                    alert('✅ Login successful!');
+                } else {
+                    alert('❌ Login failed: ' + data.message);
+                }
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+        }
+
+        async function sendRequest(role) {
+            const method = document.getElementById(`${role}-method`).value;
+            const endpoint = document.getElementById(`${role}-endpoint`).value;
+            const bodyText = document.getElementById(`${role}-body`).value;
+            const responseDiv = document.getElementById(`${role}-response`);
+
+            responseDiv.className = 'response-content';
+            responseDiv.innerHTML = '<pre>⏳ Loading...</pre>';
+
+            try {
+                const options = {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+
+                if (tokens[role]) {
+                    options.headers['Authorization'] = `Bearer ${tokens[role]}`;
+                }
+
+                if (bodyText && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+                    try {
+                        JSON.parse(bodyText);
+                        options.body = bodyText;
+                    } catch (e) {
+                        responseDiv.className = 'response-content error';
+                        responseDiv.innerHTML = '<pre>❌ Invalid JSON in request body</pre>';
+                        return;
+                    }
+                }
+
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const data = await response.json();
+
+                // Auto-save token from response
+                if (data.success && (data.token || data.data?.token)) {
+                    const newToken = data.token || data.data.token;
+                    tokens[role] = newToken;
+                    updateTokenDisplay(role);
+                }
+
+                // Save IDs
+                if (data.success && data.data) {
+                    if (Array.isArray(data.data) && data.data[0]?._id) {
+                        if (endpoint.includes('categor')) savedIds.category = data.data[0]._id;
+                        if (endpoint.includes('product')) savedIds.product = data.data[0]._id;
+                        if (endpoint.includes('order')) savedIds.order = data.data[0]._id;
+                        if (endpoint.includes('deliver')) savedIds.delivery = data.data[0]._id;
+                        if (endpoint.includes('user')) savedIds.user = data.data[0]._id;
+                        if (endpoint.includes('address')) savedIds.address = data.data[0]._id;
+                        if (endpoint.includes('review')) savedIds.review = data.data[0]._id;
+                    } else if (data.data._id) {
+                        if (endpoint.includes('categor')) savedIds.category = data.data._id;
+                        if (endpoint.includes('product')) savedIds.product = data.data._id;
+                        if (endpoint.includes('order')) savedIds.order = data.data._id;
+                        if (endpoint.includes('deliver')) savedIds.delivery = data.data._id;
+                        if (endpoint.includes('user')) savedIds.user = data.data._id;
+                        if (endpoint.includes('address')) savedIds.address = data.data._id;
+                        if (endpoint.includes('review')) savedIds.review = data.data._id;
+                    }
+                    if (data.data.orderId) savedIds.order = data.data.orderId;
+                    if (data.data.orderNumber) savedIds.orderNumber = data.data.orderNumber;
+                }
+
+                responseDiv.className = 'response-content ' + (response.ok ? 'success' : 'error');
+                responseDiv.innerHTML = `
+                    <span class="status-badge status-${response.status}">${response.status} ${response.statusText}</span><br>
+                    <strong>${data.success ? '✅ Success' : '❌ Failed'}</strong>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                responseDiv.className = 'response-content error';
+                responseDiv.innerHTML = `<pre>❌ Error: ${error.message}</pre>`;
+            }
+        }
+
+        function loadExample(role, type) {
+            const examples = {
+                admin: {
+                    // Auth
+                    sendOTP: { method: 'POST', endpoint: '/api/admin/auth/send-otp', body: JSON.stringify({ mobile: "9999999999" }, null, 2) },
+                    verifyOTP: { method: 'POST', endpoint: '/api/admin/auth/verify-otp', body: JSON.stringify({ mobile: "9999999999", otp: "123456" }, null, 2) },
+                    completeProfile: { method: 'POST', endpoint: '/api/admin/auth/complete-profile', body: JSON.stringify({ mobile: "9999999999", name: "Admin User", email: "admin@example.com", address: "Admin Office" }, null, 2) },
+                    refreshToken: { method: 'POST', endpoint: '/api/admin/auth/refresh-token', body: JSON.stringify({ refreshToken: "YOUR_REFRESH_TOKEN" }, null, 2) },
+                    logout: { method: 'POST', endpoint: '/api/admin/auth/logout', body: JSON.stringify({ refreshToken: "YOUR_REFRESH_TOKEN" }, null, 2) },
+
+                    // Dashboard
+                    dashboardStats: { method: 'GET', endpoint: '/api/admin/dashboard/stats', body: '' },
+                    recentOrders: { method: 'GET', endpoint: '/api/admin/dashboard/recent-orders', body: '' },
+                    revenue: { method: 'GET', endpoint: '/api/admin/dashboard/revenue', body: '' },
+                    topProducts: { method: 'GET', endpoint: '/api/admin/dashboard/top-products', body: '' },
+
+                    // Users
+                    getAllUsers: { method: 'GET', endpoint: '/api/admin/users', body: '' },
+                    getUserById: { method: 'GET', endpoint: `/api/admin/users/${savedIds.user || 'USER_ID'}`, body: '' },
+                    userStats: { method: 'GET', endpoint: '/api/admin/users/stats', body: '' },
+                    getCustomers: { method: 'GET', endpoint: '/api/admin/users/role/customer', body: '' },
+                    getRiders: { method: 'GET', endpoint: '/api/admin/users/role/rider', body: '' },
+                    updateUserRole: { method: 'PUT', endpoint: `/api/admin/users/${savedIds.user || 'USER_ID'}/role`, body: JSON.stringify({ role: "customer" }, null, 2) },
+                    activateUser: { method: 'PUT', endpoint: `/api/admin/users/${savedIds.user || 'USER_ID'}/activate`, body: '{}' },
+                    deactivateUser: { method: 'PUT', endpoint: `/api/admin/users/${savedIds.user || 'USER_ID'}/deactivate`, body: '{}' },
+                    deleteUser: { method: 'DELETE', endpoint: `/api/admin/users/${savedIds.user || 'USER_ID'}`, body: '' },
+
+                    // Categories
+                    getCategories: { method: 'GET', endpoint: '/api/admin/categories', body: '' },
+                    getCategoryById: { method: 'GET', endpoint: `/api/admin/categories/${savedIds.category || 'CATEGORY_ID'}`, body: '' },
+                    createCategory: { method: 'POST', endpoint: '/api/admin/categories', body: JSON.stringify({ name: "New Category", description: "Description", icon: "🍵", displayOrder: 1 }, null, 2) },
+                    updateCategory: { method: 'PUT', endpoint: `/api/admin/categories/${savedIds.category || 'CATEGORY_ID'}`, body: JSON.stringify({ name: "Updated Category", description: "Updated description" }, null, 2) },
+                    deleteCategory: { method: 'DELETE', endpoint: `/api/admin/categories/${savedIds.category || 'CATEGORY_ID'}`, body: '' },
+
+                    // Products
+                    getProducts: { method: 'GET', endpoint: '/api/admin/products', body: '' },
+                    getProductById: { method: 'GET', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}`, body: '' },
+                    getProductsByCategory: { method: 'GET', endpoint: `/api/admin/products/category/${savedIds.category || 'CATEGORY_ID'}`, body: '' },
+                    createProduct: { method: 'POST', endpoint: '/api/admin/products', body: JSON.stringify({ name: "Test Product", description: "Description", category: savedIds.category || "CATEGORY_ID", price: 299, isAvailable: true, ingredients: ["Tea Leaves"], allergens: ["None"] }, null, 2) },
+                    updateProduct: { method: 'PUT', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}`, body: JSON.stringify({ name: "Updated Product", price: 399 }, null, 2) },
+                    toggleAvailability: { method: 'PUT', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}/availability`, body: JSON.stringify({ isAvailable: false }, null, 2) },
+                    bulkUpdate: {
+                        method: 'PUT', endpoint: '/api/admin/products/bulk-update', body: JSON.stringify({
+                            productIds: ["695f9dd40680745ae36c938a", "695f9dd40680745ae36c938b"],
+                            updates: { isAvailable: true }
+                        }, null, 2)
+                    },
+                    deleteProduct: { method: 'DELETE', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}`, body: '' },
+                    getSeasonalProducts: { method: 'GET', endpoint: '/api/admin/products/seasonal/all', body: '' },
+                    getOutOfSeasonProducts: { method: 'GET', endpoint: '/api/admin/products/seasonal/out-of-season', body: '' },
+                    updateProductSeason: {
+                        method: 'PUT', endpoint: `/api/admin/products/${savedIds.product || 'PRODUCT_ID'}/season`, body: JSON.stringify({
+                            isSeasonal: true,
+                            availableMonths: [11, 12, 1, 2]
+                        }, null, 2)
+                    },
+
+                    // Orders
+                    getOrders: { method: 'GET', endpoint: '/api/admin/orders', body: '' },
+                    getOrderById: { method: 'GET', endpoint: `/api/admin/orders/${savedIds.order || 'ORDER_ID'}`, body: '' },
+                    orderStats: { method: 'GET', endpoint: '/api/admin/orders/stats', body: '' },
+                    updateOrderStatus: { method: 'PUT', endpoint: `/api/admin/orders/${savedIds.order || 'ORDER_ID'}/status`, body: JSON.stringify({ status: "confirmed" }, null, 2) },
+                    assignRider: { method: 'PUT', endpoint: `/api/admin/orders/${savedIds.order || 'ORDER_ID'}/assign-rider`, body: JSON.stringify({ riderId: "RIDER_ID" }, null, 2) },
+                    cancelOrder: { method: 'PUT', endpoint: `/api/admin/orders/${savedIds.order || 'ORDER_ID'}/cancel`, body: JSON.stringify({ reason: "Customer requested" }, null, 2) },
+
+                    // Deliveries
+                    getDeliveries: { method: 'GET', endpoint: '/api/admin/deliveries', body: '' },
+                    getDeliveryById: { method: 'GET', endpoint: `/api/admin/deliveries/${savedIds.delivery || 'DELIVERY_ID'}`, body: '' },
+                    deliveryStats: { method: 'GET', endpoint: '/api/admin/deliveries/stats', body: '' },
+                    updateDeliveryStatus: { method: 'PUT', endpoint: `/api/admin/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/status`, body: JSON.stringify({ status: "picked_up" }, null, 2) },
+                    updateDeliveryLocation: { method: 'PUT', endpoint: `/api/admin/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/location`, body: JSON.stringify({ lat: 12.9716, lng: 77.5946 }, null, 2) },
+                    completeDelivery: { method: 'PUT', endpoint: `/api/admin/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/complete`, body: JSON.stringify({ otp: "1234", notes: "Delivered" }, null, 2) },
+
+                    // Activity Logs
+                    getAllActivityLogs: { method: 'GET', endpoint: '/api/admin/activity-logs', body: '' },
+                    activityStats: { method: 'GET', endpoint: '/api/admin/activity-logs/stats', body: '' },
+                    logsByAdmin: { method: 'GET', endpoint: `/api/admin/activity-logs/admin/${savedIds.user || 'ADMIN_ID'}`, body: '' },
+                    activityLogById: { method: 'GET', endpoint: `/api/admin/activity-logs/${savedIds.activityLog || 'LOG_ID'}`, body: '' },
+                    exportLogs: { method: 'GET', endpoint: '/api/admin/activity-logs/export', body: '' },
+
+                    // Cart Analytics
+                    cartAnalytics: { method: 'GET', endpoint: '/api/admin/analytics/carts', body: '' },
+                    abandonedCarts: { method: 'GET', endpoint: '/api/admin/analytics/carts/abandoned', body: '' },
+
+                    // Payouts
+                    payoutStats: { method: 'GET', endpoint: '/api/admin/payouts/stats', body: '' },
+                    processPayout: { method: 'POST', endpoint: '/api/admin/payouts/process', body: JSON.stringify({ riderId: savedIds.user || "RIDER_ID", amount: 500 }, null, 2) },
+
+                    // Reviews
+                    getReviews: { method: 'GET', endpoint: '/api/admin/reviews', body: '' },
+                    getReviewById: { method: 'GET', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}`, body: '' },
+                    getRiderReviews: { method: 'GET', endpoint: `/api/admin/reviews/rider/${savedIds.user || 'RIDER_ID'}`, body: '' },
+                    reviewStats: { method: 'GET', endpoint: '/api/admin/reviews/stats', body: '' },
+                    approveReview: { method: 'PUT', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}/approve`, body: '' },
+                    rejectReview: { method: 'PUT', endpoint: `/api/admin/reviews/${savedIds.review || 'REVIEW_ID'}/reject`, body: '' },
+
+                    // Rider Management
+                    getAllRiders: { method: 'GET', endpoint: '/api/admin/riders', body: '' },
+                    getPendingRiders: { method: 'GET', endpoint: '/api/admin/riders/pending', body: '' },
+                    getRiderById: { method: 'GET', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}`, body: '' },
+                    approveRider: { method: 'PUT', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}/approve`, body: '' },
+                    rejectRider: { method: 'PUT', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}/reject`, body: JSON.stringify({ reason: "Documents not clear" }, null, 2) },
+                    toggleRiderStatus: { method: 'PUT', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}/status`, body: JSON.stringify({ isActive: false }, null, 2) },
+                    deleteRider: { method: 'DELETE', endpoint: `/api/admin/riders/${savedIds.rider || 'RIDER_ID'}`, body: '' },
+
+                    // Uploads
+                    uploadImage: { method: 'POST', endpoint: '/api/admin/upload/image', body: 'NOTE: Use multipart/form-data with "image" field' },
+                    uploadMultipleImages: { method: 'POST', endpoint: '/api/admin/upload/images', body: 'NOTE: Use multipart/form-data with "images" field (max 10)' },
+                    deleteImage: { method: 'DELETE', endpoint: '/api/admin/upload/image', body: JSON.stringify({ imageUrl: "IMAGE_URL_TO_DELETE" }, null, 2) },
+
+                    // Settings & Profile
+                    getSettings: { method: 'GET', endpoint: '/api/admin/settings', body: '' },
+                    updateSettings: { method: 'PUT', endpoint: '/api/admin/settings', body: JSON.stringify({ deliveryCharge: 50, minOrderAmount: 100 }, null, 2) },
+                    getDeliveryZones: { method: 'GET', endpoint: '/api/admin/settings/delivery-zones', body: '' },
+                    updateDeliveryZones: { method: 'PUT', endpoint: '/api/admin/settings/delivery-zones', body: JSON.stringify({ deliveryZones: [{ name: "Zone 1", charge: 30 }] }, null, 2) },
+                    getProfile: { method: 'GET', endpoint: '/api/admin/profile', body: '' },
+                    updateProfile: { method: 'PUT', endpoint: '/api/admin/profile', body: JSON.stringify({ name: "Updated Admin", email: "admin@updated.com" }, null, 2) }
+                },
+                customer: {
+                    // Auth
+                    sendOTP: { method: 'POST', endpoint: '/api/customer/auth/send-otp', body: JSON.stringify({ mobile: "8888888888" }, null, 2) },
+                    verifyOTP: { method: 'POST', endpoint: '/api/customer/auth/verify-otp', body: JSON.stringify({ mobile: "8888888888", otp: "123456" }, null, 2) },
+                    completeProfile: { method: 'POST', endpoint: '/api/customer/auth/complete-profile', body: JSON.stringify({ mobile: "8888888888", name: "Customer Name", email: "customer@example.com", address: "Customer Address" }, null, 2) },
+                    refreshToken: { method: 'POST', endpoint: '/api/customer/auth/refresh-token', body: JSON.stringify({ refreshToken: "YOUR_REFRESH_TOKEN" }, null, 2) },
+                    logout: { method: 'POST', endpoint: '/api/customer/auth/logout', body: JSON.stringify({ refreshToken: "YOUR_REFRESH_TOKEN" }, null, 2) },
+
+                    // Products & Categories
+                    browseProducts: { method: 'GET', endpoint: '/api/customer/products', body: '' },
+                    getProductDetails: { method: 'GET', endpoint: `/api/customer/products/${savedIds.product || 'PRODUCT_ID'}`, body: '' },
+                    getProductsByCategory: { method: 'GET', endpoint: `/api/customer/products/category/${savedIds.category || 'CATEGORY_ID'}`, body: '' },
+                    browseCategories: { method: 'GET', endpoint: '/api/customer/categories', body: '' },
+                    getCategoryById: { method: 'GET', endpoint: `/api/customer/categories/${savedIds.category || 'CATEGORY_ID'}`, body: '' },
+
+                    // Profile
+                    getProfile: { method: 'GET', endpoint: '/api/customer/profile', body: '' },
+                    updateProfile: { method: 'PUT', endpoint: '/api/customer/profile', body: JSON.stringify({ name: "Updated Name", email: "updated@email.com" }, null, 2) },
+
+                    // Cart
+                    getCart: { method: 'GET', endpoint: '/api/customer/cart', body: '' },
+                    addToCart: { method: 'POST', endpoint: '/api/customer/cart/add', body: JSON.stringify({ productId: savedIds.product || "PRODUCT_ID", quantity: 2, customization: "No sugar" }, null, 2) },
+                    updateCartItem: { method: 'PUT', endpoint: `/api/customer/cart/item/${savedIds.cartItem || 'ITEM_ID'}`, body: JSON.stringify({ quantity: 3 }, null, 2) },
+                    removeCartItem: { method: 'DELETE', endpoint: `/api/customer/cart/item/${savedIds.cartItem || 'ITEM_ID'}`, body: '' },
+                    clearCart: { method: 'DELETE', endpoint: '/api/customer/cart/clear', body: '' },
+                    checkout: { method: 'POST', endpoint: '/api/customer/cart/checkout', body: JSON.stringify({ deliveryAddress: "123 Main St, Bangalore", paymentMethod: "COD", deliveryInstructions: "Ring doorbell" }, null, 2) },
+
+                    // Orders
+                    createOrder: { method: 'POST', endpoint: '/api/customer/orders', body: JSON.stringify({ items: [{ product: savedIds.product || "PRODUCT_ID", quantity: 2, price: 299 }], deliveryAddress: "123 Main St", paymentMethod: "COD" }, null, 2) },
+                    getMyOrders: { method: 'GET', endpoint: '/api/customer/orders/my-orders', body: '' },
+                    getOrderDetails: { method: 'GET', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}`, body: '' },
+                    downloadInvoice: { method: 'GET', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}/invoice`, body: '' },
+                    reorder: { method: 'POST', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}/reorder`, body: '' },
+                    cancelOrder: { method: 'DELETE', endpoint: `/api/customer/orders/${savedIds.order || 'ORDER_ID'}/cancel`, body: JSON.stringify({ reason: "Changed my mind" }, null, 2) },
+
+                    // Deliveries
+                    getMyDeliveries: { method: 'GET', endpoint: '/api/customer/deliveries', body: '' },
+                    getDeliveryByOrder: { method: 'GET', endpoint: `/api/customer/deliveries/order/${savedIds.order || 'ORDER_ID'}`, body: '' },
+                    trackDelivery: { method: 'GET', endpoint: `/api/customer/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/track`, body: '' },
+
+                    // Wishlist
+                    getWishlist: { method: 'GET', endpoint: '/api/customer/wishlist', body: '' },
+                    addToWishlist: { method: 'POST', endpoint: '/api/customer/wishlist/add', body: JSON.stringify({ productId: savedIds.product || "PRODUCT_ID" }, null, 2) },
+                    removeFromWishlist: { method: 'DELETE', endpoint: `/api/customer/wishlist/remove/${savedIds.product || 'PRODUCT_ID'}`, body: '' },
+
+                    // Addresses
+                    getAddresses: { method: 'GET', endpoint: '/api/customer/address', body: '' },
+                    addAddress: { method: 'POST', endpoint: '/api/customer/address', body: JSON.stringify({ label: "Home", addressLine: "123 Main St, Bangalore - 560001", location: { type: "Point", coordinates: [77.5946, 12.9716] }, isDefault: true }, null, 2) },
+                    updateAddress: { method: 'PUT', endpoint: `/api/customer/address/${savedIds.address || 'ADDRESS_ID'}`, body: JSON.stringify({ label: "Office", addressLine: "456 Work St" }, null, 2) },
+                    setDefaultAddress: { method: 'PUT', endpoint: `/api/customer/address/${savedIds.address || 'ADDRESS_ID'}/default`, body: '' },
+                    deleteAddress: { method: 'DELETE', endpoint: `/api/customer/address/${savedIds.address || 'ADDRESS_ID'}`, body: '' },
+
+                    // Reviews
+                    createReview: { method: 'POST', endpoint: '/api/customer/reviews', body: JSON.stringify({ orderId: savedIds.order || "ORDER_ID", foodRating: 5, riderRating: 5, review: "Excellent service!" }, null, 2) },
+                    getMyReviews: { method: 'GET', endpoint: '/api/customer/reviews/my-reviews', body: '' },
+                    rateProduct: { method: 'POST', endpoint: '/api/customer/reviews/product', body: JSON.stringify({ productId: savedIds.product || "PRODUCT_ID", orderId: savedIds.order || "ORDER_ID", rating: 5, review: "Excellent!" }, null, 2) }
+                },
+                rider: {
+                    // Auth
+                    registerRider: {
+                        method: 'POST',
+                        endpoint: '/api/rider/auth/register',
+                        body: JSON.stringify({
+                            name: "Rider Name",
+                            mobile: "9876543210",
+                            email: "rider@example.com",
+                            vehicleType: "bike",
+                            vehicleNumber: "KA01AB1234",
+                            vehicleModel: "Honda Activa",
+                            licenseNumber: "DL1234567890",
+                            licenseExpiryDate: "2025-12-31",
+                            licensePhoto: "https://example.com/license.jpg",
+                            aadharNumber: "123456789012",
+                            aadharPhoto: "https://example.com/aadhar.jpg",
+                            panNumber: "ABCDE1234F",
+                            panPhoto: "https://example.com/pan.jpg",
+                            profilePhoto: "https://example.com/profile.jpg",
+                            bankAccountNumber: "1234567890",
+                            ifscCode: "SBIN0001234",
+                            accountHolderName: "Rider Name",
+                            emergencyContactName: "Emergency Contact",
+                            emergencyContactMobile: "9876543211",
+                            emergencyContactRelation: "Father"
+                        }, null, 2)
+                    },
+                    sendOTP: { method: 'POST', endpoint: '/api/rider/auth/send-otp', body: JSON.stringify({ mobile: "9876543210" }, null, 2) },
+                    verifyOTP: { method: 'POST', endpoint: '/api/rider/auth/verify-otp', body: JSON.stringify({ mobile: "9876543210", otp: "123456" }, null, 2) },
+                    getProfile: { method: 'GET', endpoint: '/api/rider/auth/profile', body: '' },
+
+                    // Availability
+                    toggleOnline: { method: 'POST', endpoint: '/api/rider/auth/availability', body: JSON.stringify({ isOnline: true, location: { lat: 12.9716, lng: 77.5946 } }, null, 2) },
+                    toggleOffline: { method: 'POST', endpoint: '/api/rider/auth/availability', body: JSON.stringify({ isOnline: false }, null, 2) },
+
+                    // Deliveries
+                    getActiveDelivery: { method: 'GET', endpoint: '/api/rider/deliveries/active', body: '' },
+                    acceptDelivery: { method: 'POST', endpoint: `/api/rider/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/accept`, body: '' },
+                    rejectDelivery: { method: 'POST', endpoint: `/api/rider/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/reject`, body: JSON.stringify({ reason: "Too far" }, null, 2) },
+                    updateDeliveryStatus: { method: 'PUT', endpoint: `/api/rider/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/status`, body: JSON.stringify({ status: "picked_up", otp: "1234" }, null, 2) },
+                    uploadDeliveryProof: { method: 'POST', endpoint: `/api/rider/deliveries/${savedIds.delivery || 'DELIVERY_ID'}/proof`, body: 'NOTE: Use multipart/form-data with "image" field' },
+                    updateLocation: { method: 'PUT', endpoint: '/api/rider/deliveries/location', body: JSON.stringify({ lat: 12.9716, lng: 77.5946 }, null, 2) },
+
+                    // Earnings
+                    getEarnings: { method: 'GET', endpoint: '/api/rider/deliveries/earnings', body: '' }
+                }
+            };
+
+            const example = examples[role][type];
+            if (example) {
+                document.getElementById(`${role}-method`).value = example.method;
+                document.getElementById(`${role}-endpoint`).value = example.endpoint;
+                document.getElementById(`${role}-body`).value = example.body;
+            }
+        }
+
+        // Keyboard shortcut: Ctrl+Enter to send
+        ['admin', 'customer', 'rider'].forEach(role => {
+            document.getElementById(`${role}-body`).addEventListener('keydown', function (e) {
+                if (e.ctrlKey && e.key === 'Enter') {
+                    sendRequest(role);
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

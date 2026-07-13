@@ -1,14 +1,24 @@
 name: Deploy Backend
 
+# Deploys to the Windows VM on every push to main.
+# Requires repo secrets (Settings -> Secrets and variables -> Actions):
+#   VM_HOST     = 20.246.72.93
+#   VM_USER     = tntadmin
+#   VM_SSH_KEY  = a private key whose public half is in the VM's
+#                 administrators_authorized_keys (GitHub runner -> VM auth)
+#
+# The VM pulls from GitHub using its own deploy key (tnt-vm-deploy-new), so the
+# origin remote on the VM is git@github-new:manueninfotech/teasntrees_backend.git
+
 on:
   push:
     branches:
       - main
+  workflow_dispatch: {}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Deploy to Windows VM via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -16,31 +26,9 @@ jobs:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-
-            echo "🚀 Starting deployment..."
-
-            cd C:\Users\tntadmin\Documents\teasntrees_littleh_backend\backend
-
-            echo "📦 Pulling latest code from main..."
-            git reset --hard
-            git pull origin main
-
-            echo "📦 Installing dependencies..."
-            npm install
-
-            echo "🔁 Restarting PM2 backend..."
-            pm2 reload teasntrees-backend || pm2 start src/server.js --name teasntrees-backend
-
-            echo "🌐 Checking nginx status..."
-            tasklist | findstr nginx
-
-            if %ERRORLEVEL%==0 (
-              echo "♻️ Reloading nginx..."
-              C:\nginx\nginx.exe -s reload
-            ) else (
-              echo "⚠️ nginx not running, starting it..."
-              start C:\nginx\nginx.exe
-            )
-
-            echo "✅ Deployment complete"
+          script_stop: true
+          # Single command: multi-line scripts are unreliable through Windows
+          # OpenSSH's default shell. deploy.ps1 lives on the VM (outside the
+          # repo) and does git fetch+reset -> npm install -> pm2 restart ->
+          # nginx reload.
+          script: powershell -NoProfile -ExecutionPolicy Bypass -File C:\Users\tntadmin\deploy.ps1

@@ -1,2 +1,11 @@
-.vercel
-.env*.local
+node_modules/
+.env
+*.log
+logs/
+serviceAccountKey.json
+
+/.env
+env
+/env
+# macOS
+.DS_Store
